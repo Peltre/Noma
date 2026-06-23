@@ -2,7 +2,6 @@
 // This is what react navigation will read to build all nav structure correctly
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Settings, Text } from 'react-native';
 
 import HomeScreen from "../screens/HomeScreen";
 import TransactionScreen from '../screens/TransactionScreen';
@@ -20,8 +19,8 @@ const Stack = createNativeStackNavigator();
 function HomeStack() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Home" component={HomeScreen}/>
-            <Stack.Screen name="AddTransaction" component={TransactionScreen}/>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="AddTransaction" component={TransactionScreen} />
         </Stack.Navigator>
     );
 }
@@ -30,8 +29,8 @@ function HomeStack() {
 function CardsStack() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Cards" component={CardsScreen}/>
-            <Stack.Screen name="AddCard" component={AddCardScreen}/>
+            <Stack.Screen name="Cards" component={CardsScreen} />
+            <Stack.Screen name="AddCard" component={AddCardScreen} />
         </Stack.Navigator>
     );
 }
@@ -39,7 +38,7 @@ function CardsStack() {
 // Root structure AppNavigator, defines 4 tabs & appearance
 export default function AppNavigator() {
     return (
-        <Tab.Navigator 
+        <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
@@ -85,14 +84,14 @@ export default function AppNavigator() {
             />
             <Tab.Screen
                 name="SettingsTab"
-                component={Settings}
+                component={SettingsScreen}
                 options={{
                     tabBarLabel: 'Config.',
                     tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>⚙</Text>
                 }}
             />
 
-           
+
         </Tab.Navigator>
     )
 }
