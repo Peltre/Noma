@@ -22,31 +22,38 @@ export function useFinanceStore(){
     const [accounts, setAccounts] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [creditCards, setCreditCards] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // load data on startup
     useEffect(() => {
-        const savedAccounts = loadData(KEYS.accounts);
-        const savedTransactions = loadData(KEYS.transactions);
-        const savedCreditCards = loadData(KEYS.creditCards);
+    const loadAll = async () => {
+      const savedAccounts     = await loadData(KEYS.accounts);
+      const savedTransactions = await loadData(KEYS.transactions);
+      const savedCreditCards  = await loadData(KEYS.creditCards);
 
-        setAccounts(savedAccounts || initialAccounts);
-        setTransactions(savedTransactions || []);
-        setCreditCards(savedCreditCards || []);
-    }, []);
+      setAccounts(savedAccounts         || initialAccounts);
+      setTransactions(savedTransactions || []);
+      setCreditCards(savedCreditCards   || []);
+      setIsLoading(false);
+    };
+    loadAll();
+  }, []);
 
     // Account management
-    const updateAccountBalance = (accountId, amount) => {
+    const updateAccountBalance = async (accountId, amount, currentAccounts) => {
+        const base = currentAccounts || accounts;
         const updated = accounts.map(acc =>
             acc.id === accountId
                 ? { ...acc, balance: acc.balance + amount }
                 : acc
         );
         setAccounts(updated)
-        saveData(KEYS.accounts, updated);
+        await saveData(KEYS.accounts, updated);
+        return updated;
     };
 
     // Transaction handling 
-    const addTransaction = (transaction) => {
+    const addTransaction = async (transaction) => {
         const newTransaction = {
             id: Date.now().toString(),
             date: new Date.toISOString(),
@@ -55,20 +62,24 @@ export function useFinanceStore(){
 
         const updated = [newTransaction, ...transactions];
         setTransactions(updated);
-        saveData(KEYS.transactions, updated);
+        await saveData(KEYS.transactions, updated);
 
         // Update acc balance
         if (transaction.type === 'income') {
-            updateAccountBalance(transaction.accountId, transaction.amount);
-        } else if (transaction.type === 'expense' && transaction.creditCardId) {
-            updateCreditCardDebt(transaction.creditCardId, transaction.amount);
+            await updateAccountBalance(transaction.accountId, transaction.amount);
+        } else if (transaction.type === 'expense' || transaction.type === 'withdrawal') {
+            await updateAccountBalance(transaction.accountId, -transaction.amount);
+        }
+
+        if (transaction.type === 'expense' && transaction.creditCardId) {
+            await updateCreditCardDebt(transaction.creditCardId, transaction.amount);
         }
 
         return newTransaction;
     };
 
     // Credit Card handling
-    const addCreditCard = (card) => {
+    const addCreditCard = async (card) => {
         const newCard = {
             id: Date.now().toString(),
             currentDebt: 0,
@@ -76,27 +87,27 @@ export function useFinanceStore(){
         };
         const updated = [...creditCards, newCard];
         setCreditCards(updated);
-        saveData(KEYS.creditCards, updated);
+        await saveData(KEYS.creditCards, updated);
     };
 
-    const updateCreditCardDebt = (cardId, amount) => {
+    const updateCreditCardDebt = async (cardId, amount) => {
         const updated = creditCards.map(card =>
             card.id === cardId
                 ? { ...card, currentDebt: card.currentDebt + amount }
                 : card
         );
         setCreditCards(updated)
-        saveData(KEYS.creditCards, updated);
+        await saveData(KEYS.creditCards, updated);
     };
 
-    const payCreditCard = (cardId, amount) => {
+    const payCreditCard = async (cardId, amount) => {
         const updated = creditCards.map(card =>
             card.id === cardId
                 ? { ...card, currentDebt: Math.max(0, card.currentDebt - amount) }
                 : card
         );
         setCreditCards(updated)
-        saveData(KEYS.creditCards, updated);
+        await saveData(KEYS.creditCards, updated);
     };
 
     // General Computed Values 
