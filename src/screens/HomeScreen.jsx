@@ -1,7 +1,7 @@
 // Main screen - where you see the general overview of your finances
 // No logic here, only pre-computed results from hook useFinanceStore
-import { 
-    View, 
+import {
+    View,
     Text,
     ScrollView,
     TouchableOpacity,
@@ -15,9 +15,9 @@ import { formatCurrency, formatCurrencyShort } from '../utils';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 
 const ACCOUNT_ICONS = {
-  cash:    '💵',
-  debit:   '💳',
-  savings: '🏦',
+    cash: '💵',
+    debit: '💳',
+    savings: '🏦',
 };
 
 export default function HomeScreen() {
@@ -111,7 +111,7 @@ export default function HomeScreen() {
                                         </Text>
                                     </View>
                                     <View style={styles.progressBar}>
-                                        <View style={[styles.progressFill, { width: `${percentage}%` }]}/> 
+                                        <View style={[styles.progressFill, { width: `${percentage}%` }]} />
                                     </View>
                                     <View style={styles.creditCardMeta}>
                                         <Text style={styles.metaText}>Corte: {card.cutoffDay} de cada mes</Text>
@@ -124,12 +124,58 @@ export default function HomeScreen() {
                 )}
 
                 {/* Recent transactions */}
-                <View>
-                    
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Recientes</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('HistoryTab')}>
+                            <Text style={styles.sectionLink}>Historial</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {recentTransactions.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyText}>Aun no hay movimientos</Text>
+                            <Text style={styles.emptySubText}>
+                                Toca "Agregar fondos" para comenzar
+                            </Text>
+                        </View>
+                    ) : (
+                        recentTransactions.map(txn => (
+                            <View key={txn.id} style={styles.txnItem}>
+                                <View style={[
+                                    styles.txnIcon,
+                                    txn.type === 'income' ? styles.txnIconIncome :
+                                        txn.type === 'expense' ? styles.txnIconExpense :
+                                            styles.txnIconWithdrawal
+                                ]}>
+                                    <Text style={styles.txnIconEmoji}>
+                                        {txn.type === 'income' ? '💰' : txn.type === 'expense' ? '🛍️' : '💸'}
+                                    </Text>
+                                </View>
+                                <View style={styles.txnInfo}>
+                                    <Text style={styles.txnName}>{txn.reason}</Text>
+                                    <Text style={styles.txnSub}>{txn.category}</Text>
+                                </View>
+                                <Text style={[
+                                    styles.txnAmount,
+                                    txn.type === 'income' ? styles.amountPos : styles.amountNeg
+                                ]}>
+                                    {txn.type === 'income' ? '+' : '-'}{formatCurrencyShort(txn.amount)}
+                                </Text>
+                            </View>
+                        ))
+                    )}
                 </View>
+                <View style={styles.bottomPadding} />
             </ScrollView>
         </SafeAreaView>
-    )
-
+    );
 }
+
+const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: Colors.paper,
+    }
+})
 
