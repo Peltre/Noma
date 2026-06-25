@@ -56,7 +56,7 @@ export function useFinanceStore(){
     const addTransaction = async (transaction) => {
         const newTransaction = {
             id: Date.now().toString(),
-            date: new Date.toISOString(),
+            date: new Date().toISOString(),
             ...transaction,
         };
 
@@ -121,6 +121,7 @@ export function useFinanceStore(){
         creditCards,
         totalBalance,
         totalDebt,
+        isLoading,
         // Actions
         addTransaction,
         addCreditCard,

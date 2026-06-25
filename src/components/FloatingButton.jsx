@@ -1,6 +1,6 @@
 // Button to add transaction, will be featured inside of homescreen
 
-import { TouchableOpacity, Text, StyleSheets } from "react-native";
+import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Colors, Shadow } from '../constants';
 
 export default function FloatingButton({ onPress }) {
