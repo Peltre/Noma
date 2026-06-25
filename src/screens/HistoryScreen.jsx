@@ -4,7 +4,6 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, parseISO, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import styles from './HistoryScreen.styles';
 
@@ -24,9 +23,10 @@ const TYPE_CONFIG = {
 };
 
 import { useState } from 'react';
+import { useFinance } from '../store/FinanceContext';
 
 export default function HistoryScreen() {
-    const { transactions } = useFinanceStore();
+    const { transactions } = useFinance();
     const [activeFilter, setFilter] = useState('all');
 
     // Filter transactions according to tab

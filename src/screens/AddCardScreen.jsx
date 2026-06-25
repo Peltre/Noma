@@ -16,9 +16,11 @@ import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrencyShort } from '../utils';
 import styles from './AddCardScreen.styles';
 
+import { useFinance } from '../store/FinanceContext';
+
 export default function AddCardScreen() {
     const navigation = useNavigation();
-    const { addCreditCard } = useFinanceStore();
+    const { addCreditCard } = useFinance();
 
     // Form state
     const [name, setName] = useState('');

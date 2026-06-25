@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 import styles from './HomeScreen.styles';
 import FloatingButton from '../components/FloatingButton';
-import { useSettings } from '../store';
+
+import { useFinance } from '../store/FinanceContext';
+
 
 const ACCOUNT_ICONS = {
     cash: '💵',
@@ -24,14 +25,15 @@ const ACCOUNT_ICONS = {
 
 export default function HomeScreen() {
     const navigation = useNavigation();
-    const { settings } = useSettings();
+
     const {
         accounts,
+        settings,
         transactions,
         creditCards,
         totalBalance,
         isLoading,
-    } = useFinanceStore();
+    } = useFinance();
 
     // While data is loading show progress bar / spinner
     if (isLoading) {

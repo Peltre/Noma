@@ -13,8 +13,10 @@ import { useSettings } from "../store";
 import { removeData } from "../store";
 import styles from './SettingsScreen.styles';
 
+import { useFinance } from "../store/FinanceContext";
+
 export default function SettingsScreen() {
-    const { settings, updateSettings } = useSettings();
+    const { settings, updateSettings } = useFinance();
     const [userName, setUserName] = useState('');
 
     // Sync input with saved value

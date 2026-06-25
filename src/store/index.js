@@ -2,3 +2,5 @@
 export * from './useFinanceStore';
 export * from './useSettings';
 export * from './storage';
+export * from './FinanceContext';
+

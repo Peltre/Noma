@@ -7,6 +7,8 @@ import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import styles from './CardsScreen.styles';
 
+import { useFinance } from '../store/FinanceContext';
+
 // Background colors, right now assigned by index of card, maybe later make it customizable
 const CARD_COLORS = [
     styles.cardBgGreen,
@@ -16,7 +18,7 @@ const CARD_COLORS = [
 
 export default function CardsScreen() {
     const navigation = useNavigation();
-    const { creditCards, payCreditCard } = useFinanceStore();
+    const { creditCards, payCreditCard } = useFinance();
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>

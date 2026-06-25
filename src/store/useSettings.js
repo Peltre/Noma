@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { saveData, loadData } from "./storage";
 
-const SETTIINGS_KEY = 'settings';
+const SETTINGS_KEY = 'settings';
 
 const defaultSettings = {
     userName: 'Usuario',
@@ -16,7 +16,7 @@ export function useSettings() {
 
     useEffect(() => {
         const load = async () => {
-            const saved = await loadData(SETTIINGS_KEY);
+            const saved = await loadData(SETTINGS_KEY);
             if (saved) setSettings(saved);
             setIsLoading(false)
         };
@@ -26,7 +26,7 @@ export function useSettings() {
     const updateSettings = async (newSettings) => {
         const updated = { ...settings, ...newSettings };
         setSettings(updated);
-        await saveData(SETTIINGS_KEY, updated);
+        await saveData(SETTINGS_KEY, updated);
     };
 
     return { settings, isLoading, updateSettings };

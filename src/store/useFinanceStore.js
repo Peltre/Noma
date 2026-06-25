@@ -14,7 +14,7 @@ const KEYS = {
 // Initial state (new user)
 const initialAccounts = [
     { id: '1', type: 'cash', name: 'Efectivo', balance: 0 },
-    { id: '2', type: 'debit', name: 'Savings', balance: 0 },
+    { id: '2', type: 'debit', name: 'Debito', balance: 0 },
     { id: '3', type: 'savings', name: 'Ahorros', balance: 0 },
 ];
 
@@ -42,7 +42,7 @@ export function useFinanceStore(){
     // Account management
     const updateAccountBalance = async (accountId, amount, currentAccounts) => {
         const base = currentAccounts || accounts;
-        const updated = accounts.map(acc =>
+        const updated = base.map(acc =>
             acc.id === accountId
                 ? { ...acc, balance: acc.balance + amount }
                 : acc
@@ -110,6 +110,15 @@ export function useFinanceStore(){
         await saveData(KEYS.creditCards, updated);
     };
 
+    const resetAll = async () => {
+        await removeData(KEYS.accounts);
+        await removeData(KEYS.transactions);
+        await removeData(KEYS.creditCards);
+        setAccounts(initialAccounts);
+        setTransactions([]);
+        setCreditCards([]);
+    }
+
     // General Computed Values 
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
     const totalDebt = creditCards.reduce((sum, card) => sum + card.currentDebt, 0);
@@ -128,5 +137,6 @@ export function useFinanceStore(){
         updateCreditCardDebt,
         payCreditCard,
         updateAccountBalance,
+        resetAll,
     };
 }
