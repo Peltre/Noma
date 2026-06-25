@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 
 import HomeScreen from "../screens/HomeScreen";
 import TransactionScreen from '../screens/TransactionScreen';
@@ -15,10 +15,8 @@ const Stack = createNativeStackNavigator();
 
 function TabIcon({ emoji }) {
   return (
-    <View>
-      <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-        {emoji}
-      </View>
+    <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: 20 }}>{emoji}</Text>
     </View>
   );
 }
@@ -48,13 +46,13 @@ export default function AppNavigator() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: Colors.white,
-          borderTopColor:  Colors.warmMid,
+          borderTopColor: Colors.warmMid,
           borderTopWidth: 1,
           paddingBottom: 20,
           paddingTop: 10,
           height: 70,
         },
-        tabBarActiveTintColor:   Colors.ink,
+        tabBarActiveTintColor: Colors.ink,
         tabBarInactiveTintColor: Colors.muted,
         tabBarLabelStyle: {
           fontSize: 10,
