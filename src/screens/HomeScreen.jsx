@@ -13,6 +13,7 @@ import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 import styles from './HomeScreen.styles';
+import { FloatingButton } from '../components/FloatingButton';
 
 const ACCOUNT_ICONS = {
     cash: '💵',
@@ -168,6 +169,11 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.bottomPadding} />
             </ScrollView>
+
+            {/* Floating btn to add transac */}
+            <FloatingButton 
+                onPress={() => navigation.navigate('AddTransaction')}
+            />
         </SafeAreaView>
     );
 }
