@@ -3,7 +3,7 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { format, parseISO, isSameMonth } from 'date-fns';
-import { es } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import styles from './HistoryScreen.styles';
@@ -20,7 +20,7 @@ const FILTERS = [
 const TYPE_CONFIG = {
     income: { emoji: '💰', badge: styles.badgeIngreso, label: 'Ingreso' },
     expense: { emoji: '🛍️', badge: styles.badgeGasto, label: 'Gasto' },
-    withdrawal: { emoji: '💸', badge: styles.badgeRetiro, label: 'Retiro' }, 
+    withdrawal: { emoji: '💸', badge: styles.badgeRetiro, label: 'Retiro' },
 };
 
 import { useState } from 'react';
@@ -43,7 +43,7 @@ export default function HistoryScreen() {
     }, {});
 
     // Calculate metrics from past months for the stats bar
-    const now = newDate();
+    const now = new Date();
     const thisMonthTxns = transactions.filter(t =>
         isSameMonth(parseISO(t.date), now)
     );
@@ -140,7 +140,42 @@ export default function HistoryScreen() {
                                                 isLast && styles.txnItemLast,
                                             ]}
                                         >
-                                        
+                                            {/* Icono */}
+                                            <View style={[
+                                                styles.txnIcon,
+                                                txn.type === 'income'
+                                                    ? styles.txnIconIncome
+                                                    : txn.type === 'expense'
+                                                        ? styles.txnIconExpense
+                                                        : styles.txnIconWithdrawal,
+                                            ]}>
+                                                <Text style={styles.txnIconEmoji}>
+                                                    {config.emoji}
+                                                </Text>
+                                            </View>
+
+                                            {/* Info */}
+                                            <View style={styles.txnInfo}>
+                                                <Text style={styles.txnName}>
+                                                    {txn.reason}
+                                                </Text>
+                                                <Text style={styles.txnSub}>
+                                                    {format(parseISO(txn.date), 'd MMM · HH:mm', { locale: es })}
+                                                </Text>
+                                            </View>
+
+                                            {/* Amount & badge */}
+                                            <View style={styles.txnRight}>
+                                                <Text style={[
+                                                    styles.txnAmount,
+                                                    isIncome ? styles.amountPos : styles.amountNeg,
+                                                ]}>
+                                                    {isIncome ? '+' : '-'}{formatCurrencyShort(txn.amount)}
+                                                </Text>
+                                                <Text style={[styles.badge, config.badge]}>
+                                                    {config.label}
+                                                </Text>
+                                            </View>
                                         </View>
                                     )
                                 })}
@@ -148,6 +183,7 @@ export default function HistoryScreen() {
                         </View>
                     ))
                 )}
+                <View style={styles.bottomPadding} />
             </ScrollView>
         </SafeAreaView>
     )
