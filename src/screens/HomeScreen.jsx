@@ -14,6 +14,7 @@ import { formatCurrency, formatCurrencyShort } from '../utils';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 import styles from './HomeScreen.styles';
 import FloatingButton from '../components/FloatingButton';
+import { useSettings } from '../store';
 
 const ACCOUNT_ICONS = {
     cash: '💵',
@@ -23,6 +24,7 @@ const ACCOUNT_ICONS = {
 
 export default function HomeScreen() {
     const navigation = useNavigation();
+    const { settings } = useSettings();
     const {
         accounts,
         transactions,
@@ -51,7 +53,7 @@ export default function HomeScreen() {
                     <View style={styles.headerTop}>
                         <View>
                             <Text style={styles.greeting}>Hola de nuevo, </Text>
-                            <Text style={styles.userName}>Name</Text>
+                            <Text style={styles.userName}>{settings.userName}</Text>
                         </View>
                         <View styles={styles.avatar}>
                             <Text style={styles.avatarText}>K</Text>
