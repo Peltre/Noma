@@ -2,13 +2,16 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./src/navigation/AppNavigator";
+import { FinanceProvider } from "./src/store/FinanceContext";
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
+      <FinanceProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </FinanceProvider>
     </SafeAreaProvider>
   )
 }
