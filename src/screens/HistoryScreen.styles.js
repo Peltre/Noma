@@ -139,7 +139,7 @@ export default StyleSheet.create({
         fontWeight: '700',
     },
     amountPos: { color: Colors.sage },
-    amountNeg: { color: Colors.red  },
+    amountNeg: { color: Colors.red },
     badge: {
         fontSize: 9,
         fontWeight: '700',
@@ -150,9 +150,9 @@ export default StyleSheet.create({
         overflow: 'hidden',
         textTransform: 'uppercase',
     },
-    badgeGasto: { backgroundColor: Colors.redLt,   color: Colors.red   },
+    badgeGasto: { backgroundColor: Colors.redLt, color: Colors.red },
     badgeRetiro: { backgroundColor: Colors.amberLt, color: Colors.amber },
-    badgeIngreso: { backgroundColor: Colors.sageLt,  color: Colors.sage  },
+    badgeIngreso: { backgroundColor: Colors.sageLt, color: Colors.sage },
     emptyState: {
         alignItems: 'center',
         paddingVertical: 60,

@@ -3,7 +3,7 @@
 import { StyleSheet } from 'react-native';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 
-export default styles = StyleSheet.create({
+export default StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: Colors.paper,
