@@ -182,6 +182,11 @@ export default StyleSheet.create({
         borderRadius: 2,
         overflow: 'hidden',
     },
+    progressFill: {
+        height: '100%',
+        backgroundColor: Colors.red,
+        borderRadius: 2,
+    },
     creditCardMeta: {
         flexDirection: 'row',
         justifyContent: 'space-between',
