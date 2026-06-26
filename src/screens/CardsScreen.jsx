@@ -3,7 +3,6 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView, SaveAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import styles from './CardsScreen.styles';
 
@@ -78,7 +77,7 @@ export default function CardsScreen() {
                                                 {formatCurrency(card.currentDebt)}
                                             </Text>
                                             <View style={styles.progressBar}>
-                                                <View styles={[
+                                                <View style={[
                                                     styles.progressFill,
                                                     { width: `${percentage}%` }
                                                 ]} />

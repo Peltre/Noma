@@ -176,7 +176,7 @@ export default StyleSheet.create({
         fontWeight: '500',
         color: Colors.red,
     },
-    progressBat: {
+    progressBar: {
         height: 4,
         backgroundColor: Colors.warmMid,
         borderRadius: 2,
@@ -238,7 +238,7 @@ export default StyleSheet.create({
     emptyText: {
         fontSize: FontSize.md,
         fontWeight: '600',
-        collor: Colors.muted,
+        color: Colors.muted,
     },
     emptySubText: {
         fontSize: FontSize.sm,

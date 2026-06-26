@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useFinanceStore } from '../store/useFinanceStore';
 import { formatCurrencyShort } from '../utils';
 import styles from './AddCardScreen.styles';
 
@@ -28,7 +27,7 @@ export default function AddCardScreen() {
     const [cutoffDay, setCutoffDay] = useState('');
     const [paymentDay, setPaymentDay] = useState('');
 
-    const handleConfirm = async() => {
+    const handleConfirm = async () => {
         // Basic validations
         if (!name.trim()) {
             Alert.alert('Falta el nombre', 'Ingresa el nombre de la tarjeta');
@@ -62,7 +61,7 @@ export default function AddCardScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
 
                 {/* Header */}
-                <View style={styles.header}>    
+                <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.backBtn}
                         onPress={() => navigation.goBack()}
@@ -83,14 +82,14 @@ export default function AddCardScreen() {
                     <View>
                         <Text style={styles.cardPreviewLimitLabel}>Limite</Text>
                         <Text style={styles.cardPreviewLimit}>
-                            {limit ? formatCurrencyShort(parseFloat(limit)) : '$0' }
+                            {limit ? formatCurrencyShort(parseFloat(limit)) : '$0'}
                         </Text>
                         <View style={styles.cardPreviewMeta}>
                             <Text style={styles.cardPreviewMetaText}>
-                                Corte: día { cutoffDay || '-' }
+                                Corte: día {cutoffDay || '-'}
                             </Text>
                             <Text style={styles.cardPreviewMetaText}>
-                                Pago: día { paymentDay || '-' }
+                                Pago: día {paymentDay || '-'}
                             </Text>
                         </View>
                     </View>
@@ -164,9 +163,9 @@ export default function AddCardScreen() {
                         </Text>
                     </TouchableOpacity>
 
-                    <View style={styles.bottomPadding}/>
+                    <View style={styles.bottomPadding} />
                 </View>
-                
+
             </ScrollView>
         </SafeAreaView>
     );

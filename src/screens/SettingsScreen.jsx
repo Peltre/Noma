@@ -9,11 +9,10 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSettings } from "../store";
-import { removeData } from "../store";
 import styles from './SettingsScreen.styles';
 
 import { useFinance } from "../store/FinanceContext";
+import { removeData } from "../store/storage";
 
 export default function SettingsScreen() {
     const { settings, updateSettings } = useFinance();
@@ -30,7 +29,7 @@ export default function SettingsScreen() {
             return;
         }
         await updateSettings({ userName: userName.trim() });
-        Alert.alert('Guardado','Tu nombre ha sido actualizado');
+        Alert.alert('Guardado', 'Tu nombre ha sido actualizado');
     };
 
     // Erase all data from the app (fresh restart)
@@ -58,7 +57,7 @@ export default function SettingsScreen() {
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             <ScrollView showsVerticalScrollIndicator={false}>
-                
+
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.title}>Configuración</Text>
@@ -122,7 +121,7 @@ export default function SettingsScreen() {
                 </View>
 
                 <Text style={styles.versionText}>Noma v1.0.0</Text>
-                <View style={styles.bottomPadding}/>
+                <View style={styles.bottomPadding} />
             </ScrollView>
         </SafeAreaView>
     )

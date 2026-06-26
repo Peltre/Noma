@@ -11,10 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useFinanceStore } from '../store/useFinanceStore';
 import { CATEGORIES } from '../constants';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 import styles from './TransactionScreen.styles';
+
+import { useFinance } from '../store/FinanceContext';
 
 // visual config for each movement
 const TYPES = {
@@ -47,7 +48,7 @@ const ACCOUNT_LABELS = {
 
 export default function TransactionScreen() {
     const navigation = useNavigation();
-    const { accounts, creditCards, addTransaction } = useFinanceStore();
+    const { accounts, creditCards, addTransaction } = useFinance();
 
     // Form state
     const [type, setType] = useState('expense');
@@ -214,7 +215,12 @@ export default function TransactionScreen() {
                                     ]}
                                     onPress={() => setCard(card.id)}
                                 >
-                                    <Text style={styles.accountOptionText}>💳 {card.name}</Text>
+                                    <Text style={[
+                                        styles.accountOptionText,
+                                        selectedCard === card.id && { color: Colors.white }
+                                    ]}>
+                                        💳 {card.name}
+                                    </Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -230,7 +236,10 @@ export default function TransactionScreen() {
                                     ]}
                                     onPress={() => setAccount(acc.id)}
                                 >
-                                    <Text style={styles.accountOptionText}>
+                                    <Text style={[
+                                        styles.accountOptionText,
+                                        selectedAccount === acc.id && { color: Colors.white }
+                                    ]}>
                                         {ACCOUNT_LABELS[acc.type]}
                                     </Text>
                                 </TouchableOpacity>

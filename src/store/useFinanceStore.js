@@ -2,7 +2,7 @@
 // This way all screens get updated when a value shifts.
 
 import { useState, useEffect } from 'react';
-import { saveData, loadData } from './storage';
+import { saveData, loadData, removeData } from './storage';
 
 // storage keys
 const KEYS = {
@@ -18,7 +18,7 @@ const initialAccounts = [
     { id: '3', type: 'savings', name: 'Ahorros', balance: 0 },
 ];
 
-export function useFinanceStore(){
+export function useFinanceStore() {
     const [accounts, setAccounts] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [creditCards, setCreditCards] = useState([]);
@@ -26,18 +26,18 @@ export function useFinanceStore(){
 
     // load data on startup
     useEffect(() => {
-    const loadAll = async () => {
-      const savedAccounts     = await loadData(KEYS.accounts);
-      const savedTransactions = await loadData(KEYS.transactions);
-      const savedCreditCards  = await loadData(KEYS.creditCards);
+        const loadAll = async () => {
+            const savedAccounts = await loadData(KEYS.accounts);
+            const savedTransactions = await loadData(KEYS.transactions);
+            const savedCreditCards = await loadData(KEYS.creditCards);
 
-      setAccounts(savedAccounts         || initialAccounts);
-      setTransactions(savedTransactions || []);
-      setCreditCards(savedCreditCards   || []);
-      setIsLoading(false);
-    };
-    loadAll();
-  }, []);
+            setAccounts(savedAccounts || initialAccounts);
+            setTransactions(savedTransactions || []);
+            setCreditCards(savedCreditCards || []);
+            setIsLoading(false);
+        };
+        loadAll();
+    }, []);
 
     // Account management
     const updateAccountBalance = async (accountId, amount, currentAccounts) => {
