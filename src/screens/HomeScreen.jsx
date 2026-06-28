@@ -15,6 +15,7 @@ import styles from './HomeScreen.styles';
 import FloatingButton from '../components/FloatingButton';
 
 import { useFinance } from '../store/FinanceContext';
+import PendingFundCard from '../components/PendingFundCard';
 
 
 const ACCOUNT_ICONS = {
@@ -33,6 +34,9 @@ export default function HomeScreen() {
         creditCards,
         totalBalance,
         isLoading,
+        pendingFunds,
+        getFundStatus,
+        confirmFund,
     } = useFinance();
 
     // While data is loading show progress bar / spinner
@@ -91,10 +95,42 @@ export default function HomeScreen() {
                     >
                         <Text style={styles.btnPrimaryText}>+ Agregar fondos</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.btnOutline}>
+                    <TouchableOpacity
+                        style={styles.btnOutline}
+                        onPress={() => navigation.navigate('ScheduledFunds')}
+                    >
                         <Text style={styles.btnOutlineText}>📅 Programar</Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* Pending funds */}
+                {pendingFunds.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Por cobrar</Text>
+                        </View>
+                        {pendingFunds.map(fund => (
+                            <PendingFundCard
+                                key={fund.id}
+                                fund={fund}
+                                status={getFundStatus(fund)}
+                                onPress={() => {
+                                    // Navega a AddTransaction prellenado con datos del fondo
+                                    navigation.navigate('AddTransaction', {
+                                        prefill: {
+                                            type: 'income',
+                                            amount: fund.amount.toString(),
+                                            reason: fund.name,
+                                            category: 'salary',
+                                            accountId: fund.accountId,
+                                            fundId: fund.id,
+                                        }
+                                    });
+                                }}
+                            />
+                        ))}
+                    </View>
+                )}
 
                 {/* Credit cards */}
                 {creditCards.length > 0 && (
@@ -175,7 +211,7 @@ export default function HomeScreen() {
             </ScrollView>
 
             {/* Floating btn to add transac */}
-            <FloatingButton 
+            <FloatingButton
                 onPress={() => navigation.navigate('AddTransaction')}
             />
         </SafeAreaView>
