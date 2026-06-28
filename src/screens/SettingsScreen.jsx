@@ -15,7 +15,7 @@ import { useFinance } from "../store/FinanceContext";
 import { removeData } from "../store/storage";
 
 export default function SettingsScreen() {
-    const { settings, updateSettings } = useFinance();
+    const { settings, updateSettings, resetAll, resetSavings } = useFinance();
     const [userName, setUserName] = useState('');
 
     // Sync input with saved value
@@ -43,10 +43,8 @@ export default function SettingsScreen() {
                     text: 'Borrar todo',
                     style: 'destructive',
                     onPress: async () => {
-                        await removeData('accounts');
-                        await removeData('transactions');
-                        await removeData('creditCards');
-                        await removeData('settings');
+                        await resetAll();
+                        await resetSavings();
                         Alert.alert('Datos borrados', 'Reinicia la app para ver los cambios.');
                     },
                 },
