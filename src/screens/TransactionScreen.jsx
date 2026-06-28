@@ -16,6 +16,7 @@ import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 import styles from './TransactionScreen.styles';
 
 import { useFinance } from '../store/FinanceContext';
+import { useRoute } from '@react-navigation/native';
 
 // visual config for each movement
 const TYPES = {
@@ -48,14 +49,18 @@ const ACCOUNT_LABELS = {
 
 export default function TransactionScreen() {
     const navigation = useNavigation();
-    const { accounts, creditCards, addTransaction } = useFinance();
+    const route = useRoute();
+    const { accounts, creditCards, addTransaction, confirmFund } = useFinance();
+
+    // Read prefilled data if coming from pending fund
+    const prefill = route.params?.prefill || null;
 
     // Form state
-    const [type, setType] = useState('expense');
-    const [amount, setAmount] = useState('');
-    const [reason, setReason] = useState('');
-    const [selectedCategory, setCategory] = useState(null);
-    const [selectedAccount, setAccount] = useState(accounts[0]?.id || null);
+    const [type, setType] = useState(prefill?.type || 'expense');
+    const [amount, setAmount] = useState(prefill?.amount || '');
+    const [reason, setReason] = useState(prefill?.reason || '');
+    const [selectedCategory, setCategory] = useState(prefill?.category || null);
+    const [selectedAccount, setAccount] = useState(prefill?.accountId || accounts[0]?.id || null);
     const [selectedCard, setCard] = useState(null);
     const [useCredit, setUseCredit] = useState(false);
 
@@ -95,6 +100,11 @@ export default function TransactionScreen() {
         };
 
         await addTransaction(transaction);
+
+        // If coming from a programmed fund, advance the date
+        if (prefill?.fundId) {
+            await confirmFund(prefill.fundId);
+        }
 
         // Return to main dashboard after saving
         navigation.goBack();
