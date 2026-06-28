@@ -8,6 +8,7 @@ import HistoryScreen from "../screens/HistoryScreen";
 import CardsScreen from "../screens/CardsScreen";
 import AddCardScreen from "../screens/AddCardScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import ScheduledFundsScreen from "../screens/ScheduledFundsScreen";
 import { Colors } from '../constants';
 
 const Tab = createBottomTabNavigator();
@@ -26,6 +27,7 @@ function HomeStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="AddTransaction" component={TransactionScreen} />
+      <Stack.Screen name="ScheduledFunds" component={ScheduledFundsScreen} />
     </Stack.Navigator>
   );
 }
