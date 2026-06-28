@@ -2,6 +2,7 @@
 import { createContext, useContext } from "react";
 import { useFinanceStore } from "./useFinanceStore";
 import { useSettings } from "./useSettings";
+import { useScheduledFunds } from "./useScheduleFunds";
 
 const FinanceContext = createContext(null);
 
@@ -9,9 +10,10 @@ const FinanceContext = createContext(null);
 export function FinanceProvider({ children }) {
     const financeStore = useFinanceStore();
     const settingsStore = useSettings();
+    const scheduledFundsStore = useScheduledFunds();
 
     return (
-        <FinanceContext.Provider value={{ ...financeStore, ...settingsStore}}>
+        <FinanceContext.Provider value={{ ...financeStore, ...settingsStore, ...scheduledFundsStore }}>
             {children}
         </FinanceContext.Provider>
     );
