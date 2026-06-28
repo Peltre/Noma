@@ -1,4 +1,3 @@
-// Stylesheet for SavingsScreen
 // SavingsScreen.styles.js
 import { StyleSheet } from 'react-native';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
@@ -10,7 +9,7 @@ export default StyleSheet.create({
         backgroundColor: Colors.paper,
     },
 
-    // Header
+    //Header
     header: {
         backgroundColor: Colors.purple,
         padding: Spacing.lg,
@@ -30,7 +29,7 @@ export default StyleSheet.create({
         letterSpacing: -1,
     },
 
-    // Sections
+    //Sections
     section: {
         padding: Spacing.lg,
         paddingBottom: 0,
@@ -52,7 +51,7 @@ export default StyleSheet.create({
         color: Colors.purple,
     },
 
-    // Empty cards
+    //Empty state
     emptyCard: {
         borderWidth: 1.5,
         borderColor: Colors.warmMid,
@@ -73,7 +72,7 @@ export default StyleSheet.create({
         marginTop: Spacing.xs,
     },
 
-    // Saving acc cards
+    //Account card
     accountCard: {
         backgroundColor: Colors.white,
         borderRadius: Radius.sm,
@@ -90,9 +89,8 @@ export default StyleSheet.create({
         gap: Spacing.sm,
         flex: 1,
     },
-    accountCardEmoji: {
-        fontSize: 28,
-    },
+    // Color dot — size/borderRadius applied inline
+    accountDot: {},
     accountCardName: {
         fontSize: FontSize.md,
         fontWeight: '600',
@@ -128,7 +126,7 @@ export default StyleSheet.create({
         paddingHorizontal: Spacing.xs,
     },
 
-    // Goal card
+    //Goal card
     goalCard: {
         backgroundColor: Colors.white,
         borderRadius: Radius.sm,
@@ -143,11 +141,7 @@ export default StyleSheet.create({
     goalCardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.sm,
         marginBottom: Spacing.md,
-    },
-    goalEmoji: {
-        fontSize: 28,
     },
     goalInfo: {
         flex: 1,
@@ -161,6 +155,7 @@ export default StyleSheet.create({
         fontSize: FontSize.xs,
         color: Colors.muted,
         marginTop: 2,
+        textTransform: 'capitalize',
     },
     goalDeleteBtn: {
         padding: Spacing.xs,
@@ -172,21 +167,20 @@ export default StyleSheet.create({
 
     // Progress bar
     progressBarBg: {
-        height: 8,
+        height: 6,
         backgroundColor: Colors.warmMid,
-        borderRadius: 4,
+        borderRadius: 3,
         overflow: 'hidden',
         marginBottom: Spacing.xs,
     },
     progressBarFill: {
         height: '100%',
         backgroundColor: Colors.purple,
-        borderRadius: 4,
+        borderRadius: 3,
     },
     progressBarFillComplete: {
         backgroundColor: Colors.sage,
     },
-
     goalAmounts: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -207,8 +201,6 @@ export default StyleSheet.create({
         fontSize: FontSize.sm,
         color: Colors.muted,
     },
-
-    // Monthly suggestion
     suggestionRow: {
         backgroundColor: Colors.purpleLt,
         borderRadius: Radius.sm,
@@ -221,7 +213,6 @@ export default StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
     },
-
     completeRow: {
         alignItems: 'center',
         marginBottom: Spacing.sm,
@@ -230,9 +221,8 @@ export default StyleSheet.create({
         fontSize: FontSize.sm,
         fontWeight: '700',
         color: Colors.sage,
+        letterSpacing: 0.5,
     },
-
-    // Goal buttons
     goalBtns: {
         flexDirection: 'row',
         gap: Spacing.sm,
@@ -282,11 +272,17 @@ export default StyleSheet.create({
         paddingBottom: 40,
         ...Shadow.float,
     },
+    sheetTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.xs,
+    },
     sheetTitle: {
         fontSize: FontSize.xl,
         fontWeight: '700',
         color: Colors.ink,
-        marginBottom: Spacing.xs,
         textAlign: 'center',
     },
     sheetSubtitle: {
@@ -319,31 +315,43 @@ export default StyleSheet.create({
         textAlign: 'center',
     },
 
-    // Emoji picker
-    emojiRow: {
+    // Color picker
+    colorRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: Spacing.xs,
+        gap: Spacing.sm,
+        marginTop: Spacing.xs,
     },
-    emojiBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: Radius.sm,
-        backgroundColor: Colors.white,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+    colorDot: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
     },
-    emojiBtnActive: {
-        borderColor: Colors.purple,
-        backgroundColor: Colors.purpleLt,
-    },
-    emojiBtnText: {
-        fontSize: 20,
+    colorDotActive: {
+        borderWidth: 3,
+        borderColor: Colors.ink,
     },
 
-    // Account picker chips
+    // Preview inside AddAccountModal
+    accountPreview: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        backgroundColor: Colors.white,
+        borderRadius: Radius.sm,
+        padding: Spacing.md,
+        marginBottom: Spacing.xs,
+        borderWidth: 1,
+        borderColor: Colors.warmMid,
+    },
+    accountPreviewName: {
+        fontSize: FontSize.md,
+        fontWeight: '600',
+        color: Colors.ink,
+        flex: 1,
+    },
+
+    // Account picker chips 
     accountPickerRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -353,7 +361,7 @@ export default StyleSheet.create({
     accountChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: Spacing.xs,
         paddingHorizontal: Spacing.md,
         paddingVertical: Spacing.sm,
         borderRadius: Radius.full,
@@ -365,8 +373,10 @@ export default StyleSheet.create({
         backgroundColor: Colors.purpleLt,
         borderColor: Colors.purple,
     },
-    accountChipEmoji: {
-        fontSize: 14,
+    accountChipDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
     },
     accountChipText: {
         fontSize: FontSize.sm,

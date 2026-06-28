@@ -4,14 +4,26 @@
 // and which goals have funds earmarked inside those accounts.
 
 import { useState, useEffect } from "react";
-import { saveData, loadData } from "./storage";
+import { saveData, loadData, removeData } from "./storage";
 
 const KEYS = {
     savingsAccounts: 'savingsAccounts',
     savingsGoals: 'savingsGoals',
 };
 
-export const SAVINGS_EMOJIS = ['🏦', '🟣', '💜', '🔵', '🟢', '⭐', '🐷', '🫙', '💰', '📦'];
+// palette for savings account color dots
+export const SAVINGS_COLORS = [
+    '#6B5B9E', // purple (default)
+    '#3D5A4C', // sage
+    '#C9822A', // amber
+    '#B94040', // red
+    '#4A7FA5', // blue
+    '#5A9E6B', // green
+    '#A0522D', // brown
+    '#7B7B7B', // gray
+    '#C45FAB', // pink
+    '#2C7BB5', // ocean
+];
 
 export function useSavings(updateAccountBalance) {
     const [savingsAccounts, setSavingsAccounts] = useState([]);
@@ -29,20 +41,20 @@ export function useSavings(updateAccountBalance) {
         load();
     }, []);
 
-    // ── Savings accounts ──────────────────────────────────────────
+    // Savings accounts 
 
-    const addSavingsAccount = async ({ name, emoji, initialBalance = 0 }) => {
+    const addSavingsAccount = async ({ name, color, initialBalance = 0 }) => {
         const newAcc = {
             id: Date.now().toString(),
             name,
-            emoji: emoji || '🏦',
-            balance: initialBalance,
+            color: color || '#6B5B9E',
+            balance: 0,             // siempre empieza en 0; el saldo se mueve aparte
             createdAt: new Date().toISOString(),
         };
         const updated = [...savingsAccounts, newAcc];
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
-        return newAcc;
+        return { newAcc, updatedAccounts: updated }; // devuelve la lista ya actualizada
     };
 
     const deleteSavingsAccount = async (accountId) => {
@@ -57,12 +69,14 @@ export function useSavings(updateAccountBalance) {
     };
 
     // Move money from a general acc (cash/debit) → named savings acc
-    // Also updates the main 'savings' account balance so Home stays in sync
-    const depositToSavingsAccount = async ({ fromAccountId, toSavingsAccountId, amount }) => {
+    // Accepts an optional currentAccounts list for when it's called right after
+    // addSavingsAccount (before React re-renders with the new state)
+    const depositToSavingsAccount = async ({ fromAccountId, toSavingsAccountId, amount, currentAccounts }) => {
         // Subtract from origin (cash or debit)
         await updateAccountBalance(fromAccountId, -amount);
-        // Add to the named savings acc breakdown
-        const updated = savingsAccounts.map(a =>
+        // Use the passed list if available, otherwise fall back to current state
+        const base = currentAccounts || savingsAccounts;
+        const updated = base.map(a =>
             a.id === toSavingsAccountId
                 ? { ...a, balance: a.balance + amount }
                 : a
@@ -88,7 +102,7 @@ export function useSavings(updateAccountBalance) {
         return { ok: true };
     };
 
-    // ── Goals ─────────────────────────────────────────────────────
+    // Goals
 
     const addSavingsGoal = async ({ name, targetAmount, emoji, deadline = null }) => {
         const newGoal = {
@@ -185,7 +199,13 @@ export function useSavings(updateAccountBalance) {
         return { ok: true };
     };
 
-    // ── Computed ──────────────────────────────────────────────────
+    // Wipe all savings data (called from Settings global reset)
+    const resetSavings = async () => {
+        await removeData(KEYS.savingsAccounts);
+        await removeData(KEYS.savingsGoals);
+        setSavingsAccounts([]);
+        setSavingsGoals([]);
+    };
 
     // Sum of all named savings accounts — used as the breakdown total
     const savingsBreakdownTotal = savingsAccounts.reduce((sum, a) => sum + a.balance, 0);
@@ -219,5 +239,6 @@ export function useSavings(updateAccountBalance) {
         contributeToGoal,
         withdrawFromGoal,
         getMonthlySuggestion,
+        resetSavings,
     };
 }

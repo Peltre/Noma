@@ -8,25 +8,30 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useFinance } from "../store/FinanceContext";
-import { SAVINGS_EMOJIS } from "../store/useSavings";
+import { SAVINGS_COLORS } from "../store/useSavings";
 import { formatCurrency, formatCurrencyShort } from "../utils";
 import { Colors, Spacing } from "../constants";
 import styles from './SavingsScreen.styles';
 
-// Emoji picker - will be replaced by just color selector
-function EmojiPicker({ selected, onSelect }) {
+// Color picker
+function ColorPicker({ selected, onSelect }) {
     return (
-        <View style={styles.emojiRow}>
-            {SAVINGS_EMOJIS.map(e => (
+        <View style={styles.colorRow}>
+            {SAVINGS_COLORS.map(c => (
                 <TouchableOpacity
-                    key={e}
-                    style={[styles.emojiBtn, selected === e && styles.emojiBtnActive]}
-                    onPress={() => onSelect(e)}
-                >
-                    <Text style={styles.emojiBtnText}>{e}</Text>
-                </TouchableOpacity>
+                    key={c}
+                    style={[styles.colorDot, { backgroundColor: c }, selected === c && styles.colorDotActive]}
+                    onPress={() => onSelect(c)}
+                />
             ))}
         </View>
+    );
+}
+
+// Small colored circle used in account cards and chips
+function AccountDot({ color, size = 40 }) {
+    return (
+        <View style={[styles.accountDot, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]} />
     );
 }
 
@@ -34,7 +39,7 @@ function EmojiPicker({ selected, onSelect }) {
 function AddAccountModal({ visible, onClose, generalAccounts }) {
     const { addSavingsAccount, depositToSavingsAccount } = useFinance();
     const [name, setName] = useState('');
-    const [emoji, setEmoji] = useState('🏦');
+    const [color, setColor] = useState(SAVINGS_COLORS[0]);
     const [initialBalance, setInitialBalance] = useState('');
     const [fromAccountId, setFromAccountId] = useState(
         generalAccounts.find(a => a.type !== 'savings')?.id || '1'
@@ -42,7 +47,7 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
     const [loading, setLoading] = useState(false);
 
     const reset = () => {
-        setName(''); setEmoji('🏦'); setInitialBalance('');
+        setName(''); setColor(SAVINGS_COLORS[0]); setInitialBalance('');
         setFromAccountId(generalAccounts.find(a => a.type !== 'savings')?.id || '1');
     };
 
@@ -50,13 +55,15 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
         if (!name.trim() || loading) return;
         setLoading(true);
         const balance = parseFloat(initialBalance) || 0;
-        const newAcc = await addSavingsAccount({ name: name.trim(), emoji, initialBalance: balance });
-        // If initial balance, move it from the selected general account
+        // addSavingsAccount now returns the new account AND the already-updated list
+        const { newAcc, updatedAccounts } = await addSavingsAccount({ name: name.trim(), color, initialBalance: 0 });
         if (balance > 0 && newAcc?.id) {
+            // Pass updatedAccounts so depositToSavingsAccount doesn't read stale state
             await depositToSavingsAccount({
                 fromAccountId,
                 toSavingsAccountId: newAcc.id,
                 amount: balance,
+                currentAccounts: updatedAccounts,
             });
         }
         setLoading(false);
@@ -72,8 +79,14 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
                 <View style={styles.sheet}>
                     <Text style={styles.sheetTitle}>Nueva cuenta de ahorro</Text>
 
-                    <Text style={styles.sheetLabel}>EMOJI</Text>
-                    <EmojiPicker selected={emoji} onSelect={setEmoji} />
+                    {/* Preview */}
+                    <View style={styles.accountPreview}>
+                        <AccountDot color={color} size={48} />
+                        <Text style={styles.accountPreviewName}>{name || 'Nombre de la cuenta'}</Text>
+                    </View>
+
+                    <Text style={styles.sheetLabel}>COLOR</Text>
+                    <ColorPicker selected={color} onSelect={setColor} />
 
                     <Text style={styles.sheetLabel}>NOMBRE</Text>
                     <TextInput
@@ -94,7 +107,7 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
                         keyboardType="decimal-pad"
                     />
 
-                    {hasBalance && (
+                    {parseFloat(initialBalance) > 0 && (
                         <>
                             <Text style={styles.sheetLabel}>DESCONTAR DE</Text>
                             <View style={styles.accountPickerRow}>
@@ -131,20 +144,18 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
     );
 }
 
-// Move money from one savings acc to another
+// Move money from / to a savings account
 function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mode }) {
     const { depositToSavingsAccount, withdrawFromSavingsAccount } = useFinance();
     const [amount, setAmount] = useState('');
     const [selectedAccountId, setSelectedAccountId] = useState(
         generalAccounts.find(a => a.type !== 'savings')?.id || ''
     );
-
     const isDeposit = mode === 'deposit';
 
     const handleConfirm = async () => {
         const amt = parseFloat(amount);
         if (!amt || amt <= 0) return;
-
         const result = isDeposit
             ? await depositToSavingsAccount({
                 fromAccountId: selectedAccountId,
@@ -156,7 +167,6 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
                 toAccountId: selectedAccountId,
                 amount: amt,
             });
-
         if (result?.error) { Alert.alert('Error', result.error); return; }
         setAmount('');
         onClose();
@@ -166,8 +176,10 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 <View style={styles.sheet}>
-                    <Text style={styles.sheetTitle}>{isDeposit ? 'Mover a ahorros' : 'Retirar de ahorros'}</Text>
-                    <Text style={styles.sheetSubtitle}>{savingsAccount?.emoji} {savingsAccount?.name}</Text>
+                    <View style={styles.sheetTitleRow}>
+                        <AccountDot color={savingsAccount?.color} size={32} />
+                        <Text style={styles.sheetTitle}>{isDeposit ? 'Mover a' : 'Retirar de'} {savingsAccount?.name}</Text>
+                    </View>
 
                     <Text style={styles.sheetLabel}>CANTIDAD</Text>
                     <TextInput
@@ -213,18 +225,17 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
     );
 }
 
-// Add new goal modal
+// Add new Goal modal
 function AddGoalModal({ visible, onClose }) {
     const { addSavingsGoal } = useFinance();
     const [name, setName] = useState('');
-    const [emoji, setEmoji] = useState('🎯');
     const [targetAmount, setTargetAmount] = useState('');
     const [hasDeadline, setHasDeadline] = useState(false);
     const [deadlineMonth, setDeadlineMonth] = useState('');
     const [deadlineYear, setDeadlineYear] = useState('');
 
     const reset = () => {
-        setName(''); setEmoji('🎯'); setTargetAmount('');
+        setName(''); setTargetAmount('');
         setHasDeadline(false); setDeadlineMonth(''); setDeadlineYear('');
     };
 
@@ -233,7 +244,7 @@ function AddGoalModal({ visible, onClose }) {
         const deadline = (hasDeadline && deadlineMonth && deadlineYear)
             ? new Date(parseInt(deadlineYear), parseInt(deadlineMonth) - 1, 1).toISOString()
             : null;
-        await addSavingsGoal({ name: name.trim(), emoji, targetAmount: parseFloat(targetAmount), deadline });
+        await addSavingsGoal({ name: name.trim(), targetAmount: parseFloat(targetAmount), deadline });
         reset();
         onClose();
     };
@@ -247,9 +258,6 @@ function AddGoalModal({ visible, onClose }) {
                 <ScrollView contentContainerStyle={styles.sheetScroll} keyboardShouldPersistTaps="handled">
                     <View style={styles.sheet}>
                         <Text style={styles.sheetTitle}>Nuevo objetivo</Text>
-
-                        <Text style={styles.sheetLabel}>EMOJI</Text>
-                        <EmojiPicker selected={emoji} onSelect={setEmoji} />
 
                         <Text style={styles.sheetLabel}>¿QUÉ QUIERES?</Text>
                         <TextInput
@@ -325,7 +333,7 @@ function AddGoalModal({ visible, onClose }) {
     );
 }
 
-// Add / withdraw from an ongoing goal
+// Add / Withdraw from a Goal
 function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) {
     const { contributeToGoal, withdrawFromGoal } = useFinance();
     const [amount, setAmount] = useState('');
@@ -348,7 +356,7 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 <View style={styles.sheet}>
                     <Text style={styles.sheetTitle}>{isDeposit ? 'Aportar al objetivo' : 'Retirar del objetivo'}</Text>
-                    <Text style={styles.sheetSubtitle}>{goal?.emoji} {goal?.name}</Text>
+                    <Text style={styles.sheetSubtitle}>{goal?.name}</Text>
 
                     <Text style={styles.sheetLabel}>CANTIDAD</Text>
                     <TextInput
@@ -372,7 +380,7 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
                                     style={[styles.accountChip, selectedAccId === a.id && styles.accountChipActive]}
                                     onPress={() => setSelectedAccId(a.id)}
                                 >
-                                    <Text style={styles.accountChipEmoji}>{a.emoji}</Text>
+                                    <View style={[styles.accountChipDot, { backgroundColor: a.color }]} />
                                     <Text style={[styles.accountChipText, selectedAccId === a.id && styles.accountChipTextActive]}>
                                         {a.name}
                                     </Text>
@@ -399,7 +407,7 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
     );
 }
 
-// Goal view card shown on savings tab
+// Goal card
 function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
     const [showContribute, setShowContribute] = useState(false);
     const [showWithdraw, setShowWithdraw] = useState(false);
@@ -426,12 +434,11 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
     return (
         <View style={[styles.goalCard, isComplete && styles.goalCardComplete]}>
             <View style={styles.goalCardHeader}>
-                <Text style={styles.goalEmoji}>{goal.emoji}</Text>
                 <View style={styles.goalInfo}>
                     <Text style={styles.goalName}>{goal.name}</Text>
                     {goal.deadline && (
                         <Text style={styles.goalDeadline}>
-                            📅 {format(parseISO(goal.deadline), 'MMM yyyy', { locale: es })}
+                            {format(parseISO(goal.deadline), "MMMM 'de' yyyy", { locale: es })}
                         </Text>
                     )}
                 </View>
@@ -457,21 +464,21 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
             {suggestion && !isComplete && (
                 <View style={styles.suggestionRow}>
                     <Text style={styles.suggestionText}>
-                        💡 Ahorra {formatCurrencyShort(suggestion)}/mes para llegar a tiempo
+                        Ahorra {formatCurrencyShort(suggestion)}/mes para llegar a tiempo
                     </Text>
                 </View>
             )}
 
             {isComplete && (
                 <View style={styles.completeRow}>
-                    <Text style={styles.completeText}>🎉 ¡Meta alcanzada!</Text>
+                    <Text style={styles.completeText}>Meta alcanzada</Text>
                 </View>
             )}
 
             {!isComplete && (
                 <View style={styles.goalBtns}>
                     <TouchableOpacity style={styles.goalBtnDeposit} onPress={() => setShowContribute(true)}>
-                        <Text style={styles.goalBtnDepositText}>＋ Aportar</Text>
+                        <Text style={styles.goalBtnDepositText}>+ Aportar</Text>
                     </TouchableOpacity>
                     {goal.savedAmount > 0 && (
                         <TouchableOpacity style={styles.goalBtnWithdraw} onPress={() => setShowWithdraw(true)}>
@@ -499,11 +506,11 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
     );
 }
 
-// Main rendered screen 
+// Main screen
 export default function SavingsScreen() {
     const {
-        accounts, // general accounts from main store
-        savingsAccounts, // named breakdown accounts (Cajita Nu, etc.)
+        accounts,
+        savingsAccounts,
         savingsGoals,
         savingsBreakdownTotal,
         deleteSavingsAccount,
@@ -511,7 +518,6 @@ export default function SavingsScreen() {
         getMonthlySuggestion,
     } = useFinance();
 
-    // The real savings total comes from the main accounts store same number shown in Home
     const mainSavingsBalance = accounts.find(a => a.type === 'savings')?.balance ?? 0;
 
     const [showAddAccount, setShowAddAccount] = useState(false);
@@ -537,15 +543,9 @@ export default function SavingsScreen() {
         <SafeAreaView style={styles.safeArea} edges={['top']}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Header — shows the real total from the main store */}
                 <View style={styles.header}>
                     <Text style={styles.headerLabel}>Total en ahorros</Text>
                     <Text style={styles.headerAmount}>{formatCurrency(mainSavingsBalance)}</Text>
-                    {savingsBreakdownTotal !== mainSavingsBalance && savingsAccounts.length > 0 && (
-                        <Text style={styles.headerSub}>
-                            Desglosado: {formatCurrencyShort(savingsBreakdownTotal)}
-                        </Text>
-                    )}
                 </View>
 
                 {/* Savings accounts breakdown */}
@@ -559,14 +559,14 @@ export default function SavingsScreen() {
 
                     {savingsAccounts.length === 0 ? (
                         <TouchableOpacity style={styles.emptyCard} onPress={() => setShowAddAccount(true)}>
-                            <Text style={styles.emptyCardText}>＋ Agrega tu primera cuenta de ahorro</Text>
+                            <Text style={styles.emptyCardText}>+ Agrega tu primera cuenta de ahorro</Text>
                             <Text style={styles.emptyCardSub}>Cajita Nu, apartado BBVA, etc.</Text>
                         </TouchableOpacity>
                     ) : (
                         savingsAccounts.map(acc => (
                             <View key={acc.id} style={styles.accountCard}>
                                 <View style={styles.accountCardLeft}>
-                                    <Text style={styles.accountCardEmoji}>{acc.emoji}</Text>
+                                    <View style={[styles.accountDot, { backgroundColor: acc.color, width: 40, height: 40, borderRadius: 20 }]} />
                                     <View>
                                         <Text style={styles.accountCardName}>{acc.name}</Text>
                                         <Text style={styles.accountCardBalance}>{formatCurrency(acc.balance)}</Text>
@@ -577,7 +577,7 @@ export default function SavingsScreen() {
                                         style={styles.accountActionBtn}
                                         onPress={() => setMoveMoneyTarget({ account: acc, mode: 'deposit' })}
                                     >
-                                        <Text style={styles.accountActionBtnText}>＋</Text>
+                                        <Text style={styles.accountActionBtnText}>+</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={styles.accountActionBtn}
@@ -605,7 +605,7 @@ export default function SavingsScreen() {
 
                     {savingsGoals.length === 0 ? (
                         <TouchableOpacity style={styles.emptyCard} onPress={() => setShowAddGoal(true)}>
-                            <Text style={styles.emptyCardText}>＋ Crea tu primer objetivo</Text>
+                            <Text style={styles.emptyCardText}>+ Crea tu primer objetivo</Text>
                             <Text style={styles.emptyCardSub}>AirPods, viaje, fondo de emergencia...</Text>
                         </TouchableOpacity>
                     ) : (
