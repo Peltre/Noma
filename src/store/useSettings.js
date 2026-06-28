@@ -8,6 +8,7 @@ const SETTINGS_KEY = 'settings';
 const defaultSettings = {
     userName: 'Usuario',
     currency: 'MXN',
+    onboardingCompleted: false,
 };
 
 export function useSettings() {
@@ -17,7 +18,7 @@ export function useSettings() {
     useEffect(() => {
         const load = async () => {
             const saved = await loadData(SETTINGS_KEY);
-            if (saved) setSettings(saved);
+            if (saved) setSettings({ ...defaultSettings, ...saved });
             setIsLoading(false)
         };
         load()
@@ -29,5 +30,10 @@ export function useSettings() {
         await saveData(SETTINGS_KEY, updated);
     };
 
-    return { settings, isLoading, updateSettings };
+    // Mark onboarding as done
+    const completeOnboarding = async () => {
+        await updateSettings({ onboardingCompleted: true });
+    };
+
+    return { settings, isLoading, updateSettings, completeOnboarding };
 }
