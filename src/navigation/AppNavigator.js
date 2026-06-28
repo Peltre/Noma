@@ -9,6 +9,7 @@ import CardsScreen from "../screens/CardsScreen";
 import AddCardScreen from "../screens/AddCardScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import ScheduledFundsScreen from "../screens/ScheduledFundsScreen";
+import SavingsScreen from "../screens/SavingsScreen";
 import { Colors } from '../constants';
 
 const Tab = createBottomTabNavigator();
@@ -77,6 +78,14 @@ export default function AppNavigator() {
         options={{
           tabBarLabel: 'Historial',
           tabBarIcon: () => <TabIcon emoji="📋" />,
+        }}
+      />
+      <Tab.Screen
+        name="SavingsTab"
+        component={SavingsScreen}
+        options={{
+          tabBarLabel: 'Ahorros',
+          tabBarIcon: () => <TabIcon emoji="🏦" />,
         }}
       />
       <Tab.Screen
