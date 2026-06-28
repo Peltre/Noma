@@ -110,6 +110,17 @@ export function useFinanceStore() {
         await saveData(KEYS.creditCards, updated);
     };
 
+    // Sets initial balances for new users during onboarding
+    // **Does NOT create transactions, just sets the starting point
+    const setInitialBalances = async (balances) => {
+        const updated = accounts.map(acc => {
+            const found = balances.find(b => b.accountId === acc.id);
+            return found ? { ...acc, balance: found.balance } : acc;
+        });
+        setAccounts(updated);
+        await saveData(KEYS.accounts, updated);
+    }
+
     const resetAll = async () => {
         await removeData(KEYS.accounts);
         await removeData(KEYS.transactions);
@@ -138,5 +149,6 @@ export function useFinanceStore() {
         payCreditCard,
         updateAccountBalance,
         resetAll,
+        setInitialBalances,
     };
 }

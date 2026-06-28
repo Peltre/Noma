@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 import { useFinanceStore } from "./useFinanceStore";
 import { useSettings } from "./useSettings";
 import { useScheduledFunds } from "./useScheduleFunds";
+import { useSavings } from "./useSavings";
 
 const FinanceContext = createContext(null);
 
@@ -11,9 +12,11 @@ export function FinanceProvider({ children }) {
     const financeStore = useFinanceStore();
     const settingsStore = useSettings();
     const scheduledFundsStore = useScheduledFunds();
+    // useSavings needs updateAccBalance to move money from accs
+    const savingsStore = useSavings(financeStore.updateAccountBalance);
 
     return (
-        <FinanceContext.Provider value={{ ...financeStore, ...settingsStore, ...scheduledFundsStore }}>
+        <FinanceContext.Provider value={{ ...financeStore, ...settingsStore, ...scheduledFundsStore, ...savingsStore }}>
             {children}
         </FinanceContext.Provider>
     );
