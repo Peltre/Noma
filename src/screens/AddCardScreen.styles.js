@@ -1,135 +1,121 @@
-// Stylesheet for the AddCardScreen screen, lol
-
-// src/screens/AddCardScreen.styles.js
 import { StyleSheet } from 'react-native';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 
 export default StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: Colors.paper,
-    },
+
+    safeArea: { flex: 1, backgroundColor: Colors.paper },
+
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: 'row', alignItems: 'center',
         gap: Spacing.md,
-        padding: Spacing.lg,
-        paddingBottom: Spacing.md,
+        paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
     },
     backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: Colors.warmMid,
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: 36, height: 36, borderRadius: 10,
+        backgroundColor: Colors.mid,
+        justifyContent: 'center', alignItems: 'center',
     },
-    backText: {
-        fontSize: FontSize.lg,
-        color: Colors.ink,
-        fontWeight: '600',
-    },
-    title: {
-        fontSize: FontSize.xl,
-        fontWeight: '700',
-        color: Colors.ink,
-    },
+    backText: { fontSize: FontSize.lg, color: Colors.ink, fontWeight: '600' },
+    title: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.ink, letterSpacing: -0.3 },
 
-    // Preview de la tarjeta en tiempo real
+    // Card preview
     cardPreview: {
         marginHorizontal: Spacing.lg,
         marginBottom: Spacing.lg,
-        borderRadius: 20,
+        borderRadius: Radius.lg,
         padding: Spacing.lg,
-        minHeight: 160,
-        backgroundColor: Colors.sage,
+        height: 190,
         justifyContent: 'space-between',
-        ...Shadow.float,
+        overflow: 'hidden',
+        position: 'relative',
     },
-    cardPreviewTop: {
+    // Decorative orbs inside preview
+    previewOrbA: {
+        position: 'absolute', width: 160, height: 160,
+        borderRadius: 80,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        top: -40, right: -40,
+    },
+    previewOrbB: {
+        position: 'absolute', width: 100, height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        bottom: -20, left: 20,
+    },
+    previewTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
+        zIndex: 2,
     },
-    cardPreviewName: {
-        fontSize: FontSize.md,
-        fontWeight: '700',
-        color: Colors.white,
-        letterSpacing: 0.5,
+    previewBank: {
+        fontSize: FontSize.lg, fontWeight: '800',
+        color: Colors.white, letterSpacing: -0.3,
+        flex: 1,
     },
-    cardPreviewEmoji: { fontSize: 24 },
-    cardPreviewLimitLabel: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 4,
+    // SIM chip visual
+    previewChip: {
+        width: 32, height: 24, borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center', alignItems: 'center',
     },
-    cardPreviewLimit: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: Colors.white,
-        letterSpacing: -0.5,
+    previewChipInner: {
+        width: 20, height: 14, borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
     },
-    cardPreviewMeta: {
+    previewBottom: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: Spacing.sm,
+        alignItems: 'flex-end',
+        zIndex: 2,
     },
-    cardPreviewMetaText: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.5)',
+    previewLimitLbl: {
+        fontSize: FontSize.xs, color: 'rgba(255,255,255,0.5)',
+        fontWeight: '600', letterSpacing: 1,
+        textTransform: 'uppercase', marginBottom: 2,
+    },
+    previewLimit: {
+        fontSize: FontSize.xxl, fontWeight: '800',
+        color: Colors.white, letterSpacing: -1,
+    },
+    previewDates: { alignItems: 'flex-end', gap: 3 },
+    previewDateText: {
+        fontSize: FontSize.xs, color: 'rgba(255,255,255,0.5)',
+        fontWeight: '600',
     },
 
-    // Formulario
-    form: {
-        paddingHorizontal: Spacing.lg,
-        gap: Spacing.md,
-    },
-    fieldGroup: {
-        gap: Spacing.xs,
-    },
+    // Form
+    form: { paddingHorizontal: Spacing.lg },
+
     fieldLabel: {
-        fontSize: FontSize.xs,
-        fontWeight: '700',
-        color: Colors.muted,
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
+        fontSize: FontSize.xs, fontWeight: '800',
+        color: Colors.muted, textTransform: 'uppercase',
+        letterSpacing: 1, marginBottom: Spacing.xs,
+        marginTop: Spacing.md,
     },
     input: {
         backgroundColor: Colors.white,
         borderRadius: Radius.sm,
         padding: Spacing.md,
-        fontSize: FontSize.md,
-        color: Colors.ink,
-        borderWidth: 1,
-        borderColor: Colors.warmMid,
-        ...Shadow.card,
+        fontSize: FontSize.md, color: Colors.ink,
+        borderWidth: 1, borderColor: Colors.mid,
     },
     inputHint: {
-        fontSize: FontSize.xs,
-        color: Colors.muted,
-        marginTop: 2,
+        fontSize: FontSize.xs, color: Colors.muted,
+        marginTop: 4, fontWeight: '500',
     },
-    row: {
-        flexDirection: 'row',
-        gap: Spacing.md,
-    },
-    rowField: {
-        flex: 1,
-        gap: Spacing.xs,
-    },
+
+    row: { flexDirection: 'row', gap: Spacing.md },
+
     confirmBtn: {
+        marginTop: Spacing.lg,
         backgroundColor: Colors.ink,
         borderRadius: Radius.sm,
-        padding: Spacing.md,
+        paddingVertical: 16,
         alignItems: 'center',
-        marginTop: Spacing.sm,
     },
     confirmBtnText: {
-        color: Colors.white,
-        fontSize: FontSize.md,
-        fontWeight: '700',
+        color: Colors.white, fontSize: FontSize.md, fontWeight: '700',
     },
-    bottomPadding: { height: Spacing.xl },
 });

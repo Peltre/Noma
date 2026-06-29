@@ -1,29 +1,32 @@
-// Style definition for the app
+// Noma Design System — tokens
 
 export const Colors = {
     // Base
     ink: '#0F0E0C',
-    paper: '#F7F4EE',
-    warmMid: '#E8E2D5',
+    paper: '#F6F3EE',
+    mid: '#E6E0D4',   // Dividers, borders & secondary buttons
     white: '#FFFFFF',
-    muted: '#8C8880',
-    background: '#DEDAD3',
+    muted: '#8A8480',
 
-    // Accents
-    sage: '#3D5A4C',
-    sageLt: '#EBF2EE',
+    // Violet - savings, MSI, main accent
+    violet: '#6B54C4',
+    violetLt: '#EDEAFB',
 
-    // Expenses
-    red: '#B94040',
-    redLt: '#FAEAEA',
+    // ── Teal — income, positive balance
+    teal: '#0D8B85',
+    tealLt: '#E0F5F4',
 
-    // Withdraws
-    amber: '#C9822A',
-    amberLt: '#FDF0E0',
+    // ── Coral — expenses, debt
+    coral: '#C04848',
+    coralLt: '#FAEAEA',
 
-    // Savings
-    purple: '#6B5B9E',
-    purpleLt: '#EEE8F7'
+    // ── Gold — withdrawals, alerts
+    gold: '#B87D1A',
+    goldLt: '#FBF0DC',
+
+    // ── Slate debit / bank acc
+    slate: '#4A6E8A',
+    slateLt: '#E4EEF5',
 };
 
 export const FontSize = {
@@ -39,7 +42,7 @@ export const FontSize = {
 export const Radius = {
     sm: 12,
     md: 18,
-    lg: 28,
+    lg: 24,
     xl: 36,
     full: 999,
 };
@@ -55,15 +58,15 @@ export const Spacing = {
 export const Shadow = {
     card: {
         shadowColor: '#0F0E0C',
-        shadowOffset: { width: 0, height: 2},
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 2,
     },
     float: {
         shadowColor: '#0F0E0C',
-        shadowOffset: { width: 0, height: 8},
-        shadowOpacity: 0.14,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
         shadowRadius: 20,
         elevation: 8,
     },

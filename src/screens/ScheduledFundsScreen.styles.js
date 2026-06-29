@@ -1,6 +1,4 @@
 // Stylesheet for scheduled funds screen
-
-// src/screens/ScheduledFundsScreen.styles.js
 import { StyleSheet } from 'react-native';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 
@@ -25,7 +23,7 @@ export default StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: Colors.warmMid,
+        backgroundColor: Colors.mid,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -63,7 +61,7 @@ export default StyleSheet.create({
     fundAmount: {
         fontSize: FontSize.md,
         fontWeight: '700',
-        color: Colors.sage,
+        color: Colors.teal,
     },
     fundMeta: {
         flexDirection: 'row',
@@ -72,14 +70,14 @@ export default StyleSheet.create({
         alignItems: 'center',
     },
     fundMetaBadge: {
-        backgroundColor: Colors.sageLt,
+        backgroundColor: Colors.tealLt,
         borderRadius: Radius.full,
         paddingVertical: 2,
         paddingHorizontal: Spacing.sm,
     },
     fundMetaBadgeText: {
         fontSize: FontSize.xs,
-        color: Colors.sage,
+        color: Colors.teal,
         fontWeight: '600',
     },
     fundMetaText: {
@@ -92,12 +90,12 @@ export default StyleSheet.create({
     },
     deleteBtnText: {
         fontSize: FontSize.xs,
-        color: Colors.red,
+        color: Colors.coral,
         fontWeight: '600',
     },
     divider: {
         height: 1,
-        backgroundColor: Colors.warmMid,
+        backgroundColor: Colors.mid,
         marginHorizontal: Spacing.lg,
         marginVertical: Spacing.lg,
     },
@@ -126,7 +124,7 @@ export default StyleSheet.create({
         fontSize: FontSize.md,
         color: Colors.ink,
         borderWidth: 1,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         ...Shadow.card,
     },
     frequencyRow: {
@@ -138,13 +136,13 @@ export default StyleSheet.create({
         padding: Spacing.sm,
         borderRadius: Radius.sm,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         backgroundColor: Colors.white,
         alignItems: 'center',
     },
     frequencyBtnActive: {
-        backgroundColor: Colors.sageLt,
-        borderColor: Colors.sage,
+        backgroundColor: Colors.tealLt,
+        borderColor: Colors.teal,
     },
     frequencyBtnText: {
         fontSize: FontSize.xs,
@@ -152,7 +150,7 @@ export default StyleSheet.create({
         color: Colors.muted,
     },
     frequencyBtnTextActive: {
-        color: Colors.sage,
+        color: Colors.teal,
     },
     accountList: {
         flexDirection: 'row',
@@ -164,7 +162,7 @@ export default StyleSheet.create({
         paddingHorizontal: Spacing.md,
         borderRadius: Radius.sm,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         backgroundColor: Colors.white,
         ...Shadow.card,
     },

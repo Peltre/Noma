@@ -1,174 +1,148 @@
-// Stylesheet for card screen
-
-// src/screens/CardsScreen.styles.js
 import { StyleSheet } from 'react-native';
 import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
 
 export default StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: Colors.paper,
-    },
+
+    safeArea: { flex: 1, backgroundColor: Colors.paper },
+
+    // Header
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center',
-        padding: Spacing.lg,
-        paddingBottom: Spacing.md,
+        paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
     },
-    title: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: Colors.ink,
-    },
+    title: { fontSize: FontSize.xxl, fontWeight: '900', color: Colors.ink, letterSpacing: -1 },
     addBtn: {
+        paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+        borderRadius: Radius.full,
         backgroundColor: Colors.ink,
-        borderRadius: Radius.sm,
-        paddingVertical: Spacing.sm,
-        paddingHorizontal: Spacing.md,
     },
-    addBtnText: {
-        color: Colors.white,
-        fontSize: FontSize.sm,
-        fontWeight: '600',
+    addBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
+
+    // Empty state
+    emptyState: {
+        alignItems: 'center', paddingTop: 60, paddingHorizontal: Spacing.xl,
     },
-    cardContainer: {
-        paddingHorizontal: Spacing.lg,
-        gap: Spacing.lg,
-        paddingBottom: Spacing.xl,
+    emptyIconWrap: {
+        width: 64, height: 64, borderRadius: 20,
+        backgroundColor: Colors.mid,
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: Spacing.md,
     },
-    creditCard: {
-        borderRadius: 20,
+    emptyTitle: {
+        fontSize: FontSize.lg, fontWeight: '800',
+        color: Colors.ink, marginBottom: Spacing.xs,
+    },
+    emptySub: {
+        fontSize: FontSize.sm, color: Colors.muted,
+        textAlign: 'center', lineHeight: 20,
+        marginBottom: Spacing.lg,
+    },
+    emptyBtn: {
+        backgroundColor: Colors.ink, borderRadius: Radius.sm,
+        paddingVertical: 12, paddingHorizontal: Spacing.lg,
+    },
+    emptyBtnText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.sm },
+
+    // Card list
+    list: { paddingHorizontal: Spacing.lg, gap: Spacing.lg },
+    cardWrap: {},
+
+    // Visual card (dark, like a real credit card)
+    visualCard: {
+        borderRadius: Radius.lg,
         padding: Spacing.lg,
-        minHeight: 170,
-        justifyContent: 'space-between',
-        ...Shadow.float,
-    },
-    cardBgGreen: {
-        backgroundColor: Colors.sage,
-    },
-    cardBgDark: {
-        backgroundColor: Colors.ink,
-    },
-    cardBgAmber: {
-        backgroundColor: Colors.amber,
-    },
-    cardTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    cardBank: {
-        fontSize: FontSize.md,
-        fontWeight: '700',
-        color: Colors.white,
-        letterSpacing: 0.5,
-    },
-    cardTypeEmoji: {
-        fontSize: 24,
-    },
-    cardDebtLabel: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 4,
-    },
-    cardDebtAmount: {
-        fontSize: 32,
-        fontWeight: '700',
-        color: Colors.white,
-        letterSpacing: -0.5,
-    },
-    progressBar: {
-        height: 3,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 2,
-        marginTop: Spacing.sm,
+        marginBottom: Spacing.sm,
         overflow: 'hidden',
+        position: 'relative',
+    },
+    visualCardOrb: {
+        position: 'absolute', width: 200, height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        top: -60, right: -60,
+    },
+    visualCardTop: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'flex-start', marginBottom: Spacing.xl,
+        zIndex: 2,
+    },
+    visualCardName: {
+        fontSize: FontSize.lg, fontWeight: '800',
+        color: Colors.white, letterSpacing: -0.3, flex: 1,
+    },
+    chipWrap: {
+        width: 30, height: 22, borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        justifyContent: 'center', alignItems: 'center',
+    },
+    chipInner: {
+        width: 18, height: 13, borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    },
+    visualCardBottom: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'flex-end', zIndex: 2, marginBottom: Spacing.md,
+    },
+    debtLbl: {
+        fontSize: FontSize.xs, color: 'rgba(255,255,255,0.45)',
+        fontWeight: '600', letterSpacing: 1,
+        textTransform: 'uppercase', marginBottom: 2,
+    },
+    debtAmt: {
+        fontSize: FontSize.xxl, fontWeight: '900',
+        color: Colors.white, letterSpacing: -1,
+    },
+    limitBlock: { alignItems: 'flex-end' },
+    limitLbl: {
+        fontSize: FontSize.xs, color: 'rgba(255,255,255,0.4)',
+        fontWeight: '600', textTransform: 'uppercase',
+        letterSpacing: 1, marginBottom: 2,
+    },
+    limitAmt: {
+        fontSize: FontSize.lg, fontWeight: '700',
+        color: 'rgba(255,255,255,0.7)',
+    },
+    progressTrack: {
+        height: 3, borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        overflow: 'hidden', marginBottom: 6, zIndex: 2,
     },
     progressFill: {
-        height: '100%',
-        backgroundColor: 'rgba(255,255,255,0.7)',
+        height: '100%', backgroundColor: Colors.coral,
         borderRadius: 2,
     },
-    cardMeta: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: Spacing.xs,
+    pctText: {
+        fontSize: FontSize.xs, color: 'rgba(255,255,255,0.35)',
+        fontWeight: '600', zIndex: 2,
     },
-    cardMetaText: {
-        fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.5)',
-    },
+
+    // Detail rows card
     detailCard: {
         backgroundColor: Colors.white,
-        borderRadius: Radius.md,
+        borderRadius: Radius.sm,
         overflow: 'hidden',
+        marginBottom: Spacing.sm,
+        borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)',
         ...Shadow.card,
     },
     detailRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.warmMid,
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', padding: Spacing.md,
+        borderBottomWidth: 1, borderBottomColor: Colors.mid,
     },
-    detailRowLast: {
-        borderBottomWidth: 0,
-    },
-    detailKey: {
-        fontSize: FontSize.sm,
-        color: Colors.muted,
-    },
-    detailVal: {
-        fontSize: FontSize.sm,
-        fontWeight: '600',
-        color: Colors.ink,
-    },
-    detailValAlert: {
-        color: Colors.amber,
-    },
+    detailKey: { fontSize: FontSize.sm, color: Colors.muted, fontWeight: '500' },
+    detailVal: { fontSize: FontSize.sm, color: Colors.ink, fontWeight: '700' },
+
+    // Pay button
     payBtn: {
-        backgroundColor: Colors.sageLt,
-        borderRadius: Radius.sm,
-        padding: Spacing.md,
-        alignItems: 'center',
-        marginTop: Spacing.sm,
-    },
-    payBtnText: {
-        color: Colors.sage,
-        fontWeight: '700',
-        fontSize: FontSize.sm,
-    },
-    emptyState: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 80,
-        gap: Spacing.md,
-    },
-    emptyEmoji: { fontSize: 48 },
-    emptyText: {
-        fontSize: FontSize.md,
-        fontWeight: '600',
-        color: Colors.muted,
-    },
-    emptySubtext: {
-        fontSize: FontSize.sm,
-        color: Colors.muted,
-    },
-    emptyBtn: {
         backgroundColor: Colors.ink,
         borderRadius: Radius.sm,
-        paddingVertical: Spacing.sm,
-        paddingHorizontal: Spacing.lg,
-        marginTop: Spacing.sm,
+        paddingVertical: 14,
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
     },
-    emptyBtnText: {
-        color: Colors.white,
-        fontWeight: '600',
-        fontSize: FontSize.sm,
-    },
+    payBtnDone: { backgroundColor: Colors.mid },
+    payBtnText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.sm },
 });

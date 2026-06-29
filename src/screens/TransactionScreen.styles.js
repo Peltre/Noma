@@ -1,177 +1,186 @@
-// Stylesheet for TransactionScreens
+import { StyleSheet, Dimensions } from 'react-native';
+import { Colors, FontSize, Spacing, Radius } from '../constants';
 
-import { StyleSheet } from 'react-native';
-import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
+const { height: SCREEN_H } = Dimensions.get('window');
 
 export default StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: Colors.paper,
+
+    root: { flex: 1, backgroundColor: Colors.ink },
+
+    // Dark hero
+    hero: {
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: Spacing.lg,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    heroGlow: {
+        position: 'absolute',
+        width: 300, height: 300,
+        borderRadius: 150,
+        bottom: -100, right: -80,
     },
 
-    // Header
-    header: {
+    heroTop: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.md,
-        padding: Spacing.lg,
-        paddingBottom: Spacing.md,
+        justifyContent: 'space-between',
+        marginBottom: Spacing.lg,
     },
     backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: Colors.warmMid,
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: 36, height: 36, borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center', alignItems: 'center',
     },
-    backText: {
-        fontSize: FontSize.lg,
-        color: Colors.ink,
-        fontWeight: '600',
-    },
-    title: {
-        fontSize: FontSize.xl,
-        fontWeight: '700',
-        color: Colors.ink,
+    backText: { fontSize: FontSize.lg, color: Colors.white, fontWeight: '600' },
+    heroTitle: {
+        fontSize: FontSize.md, fontWeight: '700',
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: 0.2,
     },
 
-    // Type
+    // Type pills — inside hero
     typeRow: {
         flexDirection: 'row',
         gap: Spacing.sm,
-        paddingHorizontal: Spacing.lg,
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.lg,
     },
-    typeBtn: {
+    typePill: {
         flex: 1,
+        paddingVertical: 9,
+        borderRadius: Radius.full,
         alignItems: 'center',
-        padding: Spacing.sm,
-        borderRadius: Radius.sm,
-        borderWidth: 1.5,
-        borderColor: Colors.warmMid,
-        backgroundColor: Colors.white,
-        gap: 4,
+        backgroundColor: 'rgba(255,255,255,0.08)',
     },
-    typeEmoji: { fontSize: 18 },
-    typeLabel: {
-        fontSize: FontSize.xs,
-        fontWeight: '600',
-        color: Colors.muted,
+    typePillText: {
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: 0.2,
     },
 
-    // Amount
-    amountContainer: {
+    // Amount — big and centered
+    amountRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: Spacing.lg,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: Colors.warmMid,
-        marginBottom: Spacing.md,
         gap: Spacing.xs,
+        marginBottom: Spacing.md,
+        zIndex: 2,
     },
-    currencySymbol: {
+    currencySign: {
         fontSize: 36,
         fontWeight: '300',
-        color: Colors.muted,
+        lineHeight: 80,
     },
     amountInput: {
-        fontSize: 52,
-        fontWeight: '700',
-        color: Colors.ink,
+        fontSize: 64,
+        fontWeight: '900',
+        color: Colors.white,
         minWidth: 120,
         textAlign: 'center',
+        letterSpacing: -3,
+        height: 80,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
     },
 
-    // Fields
-    fieldContainer: {
-        paddingHorizontal: Spacing.lg,
-        marginBottom: Spacing.md,
+    // MSI preview banner inside hero
+    msiBanner: {
+        borderWidth: 1,
+        borderRadius: Radius.sm,
+        padding: Spacing.sm + 2,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        marginBottom: Spacing.sm,
+        zIndex: 2,
     },
+    msiBannerText: {
+        fontSize: FontSize.sm,
+        color: 'rgba(255,255,255,0.7)',
+        fontWeight: '600',
+    },
+    msiBannerAmt: { fontWeight: '800' },
+    msiBannerSub: {
+        fontSize: FontSize.xs,
+        color: 'rgba(255,255,255,0.35)',
+        marginTop: 3,
+    },
+
+    // White sheet
+    sheet: {
+        flex: 1,
+        backgroundColor: Colors.paper,
+        borderTopLeftRadius: Radius.lg,
+        borderTopRightRadius: Radius.lg,
+    },
+    sheetContent: {
+        padding: Spacing.lg,
+        paddingTop: Spacing.lg + Spacing.sm,
+    },
+
+    // Field label
     fieldLabel: {
         fontSize: FontSize.xs,
-        fontWeight: '700',
+        fontWeight: '800',
         color: Colors.muted,
         textTransform: 'uppercase',
-        letterSpacing: 0.8,
+        letterSpacing: 1.2,
         marginBottom: Spacing.sm,
+        marginTop: Spacing.md,
     },
-    reasonInput: {
+
+    // Text input
+    input: {
         backgroundColor: Colors.white,
         borderRadius: Radius.sm,
         padding: Spacing.md,
         fontSize: FontSize.md,
         color: Colors.ink,
         borderWidth: 1,
-        borderColor: Colors.warmMid,
-        ...Shadow.card,
+        borderColor: Colors.mid,
     },
 
-    // Categories
-    categoryGrid: {
+    // Category / account pills
+    pillsWrap: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: Spacing.sm,
     },
-    categoryItem: {
-        width: '22%',
-        alignItems: 'center',
-        padding: Spacing.sm,
-        borderRadius: Radius.sm,
+    catPill: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm - 1,
+        borderRadius: Radius.full,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
         backgroundColor: Colors.white,
-        gap: 4,
-        ...Shadow.card,
     },
-    categoryEmoji: { fontSize: 22 },
-    categoryLabel: {
-        fontSize: FontSize.xs,
-        color: Colors.muted,
-        fontWeight: '500',
-        textAlign: 'center',
+    catPillText: {
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        letterSpacing: 0.2,
     },
 
-    // Account
-    creditToggle: {
+    // Toggle (credit card / MSI) 
+    toggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginTop: Spacing.md,
         marginBottom: Spacing.sm,
     },
-    creditToggleText: {
-        fontSize: FontSize.sm,
-        color: Colors.ink,
-        fontWeight: '500',
-    },
-    accountList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-    },
-    accountOption: {
-        paddingVertical: Spacing.sm,
-        paddingHorizontal: Spacing.sm,
-        borderRadius: Radius.sm,
-        borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+    toggleText: { fontSize: FontSize.sm, color: Colors.ink, fontWeight: '500' },
+    checkbox: {
+        width: 22, height: 22, borderRadius: 6,
+        borderWidth: 2, borderColor: Colors.mid,
         backgroundColor: Colors.white,
-        ...Shadow.card,
+        justifyContent: 'center', alignItems: 'center',
     },
-    accountOptionSelected: {
-        backgroundColor: Colors.ink,
-        borderColor: Colors.ink,
-    },
-    accountOptionText: {
-        fontSize: FontSize.sm,
-        fontWeight: '600',
-        color: Colors.ink,
-    },
+    checkboxOn: { backgroundColor: Colors.ink, borderColor: Colors.ink },
+    checkmark: { color: Colors.white, fontSize: 13, fontWeight: '700' },
 
-    // Confirm
+    // Confirm button 
     confirmBtn: {
-        marginHorizontal: Spacing.lg,
-        marginTop: Spacing.md,
-        padding: Spacing.md,
+        marginTop: Spacing.lg,
+        paddingVertical: 16,
         borderRadius: Radius.sm,
         alignItems: 'center',
     },
@@ -179,98 +188,6 @@ export default StyleSheet.create({
         color: Colors.white,
         fontSize: FontSize.md,
         fontWeight: '700',
+        letterSpacing: 0.2,
     },
-
-    bottonPadding: { height: Spacing.xl },
-
-    // MSI preview banner
-    msiPreview: {
-        marginHorizontal: 24,
-        marginBottom: 12,
-        backgroundColor: '#EEE8F7',
-        borderRadius: 12,
-        padding: 14,
-        borderLeftWidth: 3,
-        borderLeftColor: '#6B5B9E',
-    },
-    msiPreviewText: {
-        fontSize: 14,
-        color: '#0F0E0C',
-        fontWeight: '600',
-    },
-    msiPreviewAmount: {
-        color: '#6B5B9E',
-        fontWeight: '700',
-    },
-    msiPreviewSub: {
-        fontSize: 12,
-        color: '#8C8880',
-        marginTop: 4,
-    },
-
-    // MSI month selector
-    msiMonthsRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 4,
-    },
-    msiMonthBtn: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#E8E2D5',
-        backgroundColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    msiMonthBtnActive: {
-        backgroundColor: '#6B5B9E',
-        borderColor: '#6B5B9E',
-    },
-    msiMonthText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#8C8880',
-    },
-    msiMonthTextActive: {
-        color: '#FFFFFF',
-    },
-
-    // Credit & MSI toggles (checkbox style)
-    creditToggle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 10,
-    },
-    creditToggleText: {
-        fontSize: 14,
-        color: '#0F0E0C',
-        fontWeight: '500',
-    },
-    checkbox: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: '#E8E2D5',
-        backgroundColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    checkboxActive: {
-        backgroundColor: '#0F0E0C',
-        borderColor: '#0F0E0C',
-    },
-    checkboxActiveMsi: {
-        backgroundColor: '#6B5B9E',
-        borderColor: '#6B5B9E',
-    },
-    checkmark: {
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-})
+});

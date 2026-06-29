@@ -1,10 +1,10 @@
-// Full log of transactions — tap any row to see detail, edit, or delete
+// Full log of transactions — tap any row for detail, edit, or delete
 import { useState } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    Modal, TextInput, Alert, Platform, KeyboardAvoidingView,
+    Modal, TextInput, Alert, Platform, KeyboardAvoidingView, StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format, parseISO, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
@@ -20,26 +20,48 @@ const FILTERS = [
 ];
 
 const TYPE_CONFIG = {
-    income: { emoji: '💰', badge: styles.badgeIngreso, label: 'Ingreso', color: Colors.sage },
-    expense: { emoji: '🛍️', badge: styles.badgeGasto, label: 'Gasto', color: Colors.red },
-    withdrawal: { emoji: '💸', badge: styles.badgeRetiro, label: 'Retiro', color: Colors.amber },
+    income: { glyph: '↓', bgColor: Colors.tealLt, fgColor: Colors.teal, label: 'Ingreso' },
+    expense: { glyph: '↑', bgColor: Colors.coralLt, fgColor: Colors.coral, label: 'Gasto' },
+    withdrawal: { glyph: '→', bgColor: Colors.goldLt, fgColor: Colors.gold, label: 'Retiro' },
 };
 
+// Small colored icon — glyph in colored box, no emoji
+function TxnIcon({ type, size = 36 }) {
+    const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.expense;
+    return (
+        <View style={[
+            sheet.txnIcon,
+            { width: size, height: size, borderRadius: size * 0.3, backgroundColor: cfg.bgColor },
+        ]}>
+            <Text style={[sheet.txnGlyph, { color: cfg.fgColor }]}>{cfg.glyph}</Text>
+        </View>
+    );
+}
 
-// Transaction detail / edit bottom sheet 
+// Dot + text badge
+function TxnBadge({ type }) {
+    const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.expense;
+    return (
+        <View style={sheet.badge}>
+            <View style={[sheet.badgeDot, { backgroundColor: cfg.fgColor }]} />
+            <Text style={sheet.badgeText}>{cfg.label}</Text>
+        </View>
+    );
+}
+
+// ── Detail / edit bottom sheet ────────────────────────────────────
 function TransactionSheet({ txn, onClose, accounts, creditCards }) {
     const { deleteTransaction, updateTransaction } = useFinance();
     const [editing, setEditing] = useState(false);
-    const [editReason, setEditReason] = useState(txn.reason);
-    const [editAmount, setEditAmount] = useState(txn.amount.toString());
+    const [editReason, setReason] = useState(txn.reason);
+    const [editAmount, setAmount] = useState(txn.amount.toString());
 
-    if (!txn) return null;
-    const config = TYPE_CONFIG[txn.type];
+    const cfg = TYPE_CONFIG[txn.type] || TYPE_CONFIG.expense;
     const isIncome = txn.type === 'income';
 
     const accountName = txn.creditCardId
-        ? creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta'
-        : ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—';
+        ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta')
+        : (ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—');
 
     const handleDelete = () => {
         Alert.alert(
@@ -48,11 +70,10 @@ function TransactionSheet({ txn, onClose, accounts, creditCards }) {
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
-                    text: 'Eliminar', style: 'destructive',
-                    onPress: async () => {
+                    text: 'Eliminar', style: 'destructive', onPress: async () => {
                         await deleteTransaction(txn.id);
                         onClose();
-                    },
+                    }
                 },
             ]
         );
@@ -70,89 +91,79 @@ function TransactionSheet({ txn, onClose, accounts, creditCards }) {
     return (
         <Modal visible transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView
-                style={styles.sheetBg}
+                style={sheet.backdrop}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                {/* Tap outside to close */}
-                <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={onClose} />
+                <TouchableOpacity style={sheet.scrim} activeOpacity={1} onPress={onClose} />
 
-                <View style={styles.sheet}>
-                    {/* Drag handle */}
-                    <View style={styles.sheetHandle} />
+                <View style={sheet.panel}>
+                    <View style={sheet.handle} />
 
                     {/* Icon + type */}
-                    <View style={[styles.sheetIconWrap, {
-                        backgroundColor: txn.type === 'income' ? Colors.sageLt
-                            : txn.type === 'expense' ? Colors.redLt : Colors.amberLt
-                    }]}>
-                        <Text style={styles.sheetIcon}>{config.emoji}</Text>
-                    </View>
-                    <Text style={[styles.sheetType, { color: config.color }]}>{config.label}</Text>
+                    <TxnIcon type={txn.type} size={52} />
+                    <Text style={[sheet.typeLabel, { color: cfg.fgColor }]}>{cfg.label}</Text>
 
                     {editing ? (
-                        /* Edit mode */
                         <>
-                            <Text style={styles.sheetFieldLabel}>RAZÓN</Text>
+                            <Text style={sheet.fieldLabel}>RAZÓN</Text>
                             <TextInput
-                                style={styles.sheetInput}
+                                style={sheet.input}
                                 value={editReason}
-                                onChangeText={setEditReason}
+                                onChangeText={setReason}
                                 placeholder="Describe el movimiento"
                                 placeholderTextColor={Colors.muted}
                                 autoFocus
                             />
-                            <Text style={styles.sheetFieldLabel}>MONTO</Text>
+                            <Text style={sheet.fieldLabel}>MONTO</Text>
                             <TextInput
-                                style={[styles.sheetInput, styles.sheetInputLarge]}
+                                style={[sheet.input, sheet.inputLarge]}
                                 value={editAmount}
-                                onChangeText={setEditAmount}
+                                onChangeText={setAmount}
                                 keyboardType="decimal-pad"
                                 placeholder="0.00"
                                 placeholderTextColor={Colors.muted}
                             />
-                            <View style={styles.sheetBtnRow}>
-                                <TouchableOpacity style={styles.sheetBtnSecondary} onPress={() => setEditing(false)}>
-                                    <Text style={styles.sheetBtnSecondaryText}>Cancelar</Text>
+                            <View style={sheet.btnRow}>
+                                <TouchableOpacity style={sheet.btnCancel} onPress={() => setEditing(false)}>
+                                    <Text style={sheet.btnCancelText}>Cancelar</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.sheetBtnPrimary} onPress={handleSave}>
-                                    <Text style={styles.sheetBtnPrimaryText}>Guardar</Text>
+                                <TouchableOpacity style={sheet.btnPrimary} onPress={handleSave}>
+                                    <Text style={sheet.btnPrimaryText}>Guardar</Text>
                                 </TouchableOpacity>
                             </View>
                         </>
                     ) : (
-                        /* Detail mode */
                         <>
-                            <Text style={styles.sheetAmount}>
-                                {isIncome ? '+' : '-'}{formatCurrency(txn.amount)}
+                            <Text style={sheet.amount}>
+                                {isIncome ? '+' : '−'}{formatCurrency(txn.amount)}
                             </Text>
-                            <Text style={styles.sheetReason}>{txn.reason}</Text>
+                            <Text style={sheet.reason}>{txn.reason}</Text>
 
-                            {/* Detail rows */}
-                            <View style={styles.detailRows}>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailKey}>Fecha</Text>
-                                    <Text style={styles.detailVal}>
+                            <View style={sheet.detailList}>
+                                <View style={sheet.detailRow}>
+                                    <Text style={sheet.detailKey}>Fecha</Text>
+                                    <Text style={sheet.detailVal}>
                                         {format(parseISO(txn.date), "d 'de' MMMM yyyy · HH:mm", { locale: es })}
                                     </Text>
                                 </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailKey}>Cuenta</Text>
-                                    <Text style={styles.detailVal}>{accountName}</Text>
+                                <View style={sheet.detailRow}>
+                                    <Text style={sheet.detailKey}>Cuenta</Text>
+                                    <Text style={sheet.detailVal}>{accountName}</Text>
                                 </View>
                                 {txn.category && (
-                                    <View style={styles.detailRow}>
-                                        <Text style={styles.detailKey}>Categoría</Text>
-                                        <Text style={styles.detailVal}>{txn.category}</Text>
+                                    <View style={[sheet.detailRow, { borderBottomWidth: 0 }]}>
+                                        <Text style={sheet.detailKey}>Categoría</Text>
+                                        <Text style={sheet.detailVal}>{txn.category}</Text>
                                     </View>
                                 )}
                             </View>
 
-                            <View style={styles.sheetBtnRow}>
-                                <TouchableOpacity style={styles.sheetBtnDanger} onPress={handleDelete}>
-                                    <Text style={styles.sheetBtnDangerText}>Eliminar</Text>
+                            <View style={sheet.btnRow}>
+                                <TouchableOpacity style={sheet.btnDanger} onPress={handleDelete}>
+                                    <Text style={sheet.btnDangerText}>Eliminar</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.sheetBtnPrimary} onPress={() => setEditing(true)}>
-                                    <Text style={styles.sheetBtnPrimaryText}>Editar</Text>
+                                <TouchableOpacity style={sheet.btnPrimary} onPress={() => setEditing(true)}>
+                                    <Text style={sheet.btnPrimaryText}>Editar</Text>
                                 </TouchableOpacity>
                             </View>
                         </>
@@ -168,6 +179,7 @@ export default function HistoryScreen() {
     const { transactions, accounts, creditCards } = useFinance();
     const [activeFilter, setFilter] = useState('all');
     const [selectedTxn, setSelectedTxn] = useState(null);
+    const insets = useSafeAreaInsets();
 
     const filtered = activeFilter === 'all'
         ? transactions
@@ -182,26 +194,57 @@ export default function HistoryScreen() {
 
     const now = new Date();
     const thisMonth = transactions.filter(t => isSameMonth(parseISO(t.date), now));
-    const totalExpenses = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const totalWithdrawals = thisMonth.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
-    const totalIncome = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const totalExp = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const totalWd = thisMonth.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
+    const totalInc = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Header & filters */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>Historial</Text>
+                {/* Dark hero header — paddingTop absorbs status bar */}
+                <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+                    <View style={styles.heroBar1} />
+                    <View style={styles.heroBar2} />
+                    <View style={styles.heroBar3} />
+                    <Text style={styles.heroTitle}>Historial</Text>
+                    <Text style={styles.heroSub}>
+                        {format(now, "MMMM yyyy", { locale: es })} · {thisMonth.length} movimientos
+                    </Text>
+
+                    <View style={styles.statsRow}>
+                        <View style={styles.statCell}>
+                            <Text style={[styles.statVal, { color: '#E07070' }]}>
+                                {formatCurrencyShort(totalExp)}
+                            </Text>
+                            <Text style={styles.statLbl}>Gastos</Text>
+                        </View>
+                        <View style={[styles.statCell, styles.statCellMid]}>
+                            <Text style={[styles.statVal, { color: '#CFA040' }]}>
+                                {formatCurrencyShort(totalWd)}
+                            </Text>
+                            <Text style={styles.statLbl}>Retiros</Text>
+                        </View>
+                        <View style={styles.statCell}>
+                            <Text style={[styles.statVal, { color: '#3EC4BE' }]}>
+                                {formatCurrencyShort(totalInc)}
+                            </Text>
+                            <Text style={styles.statLbl}>Ingresos</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Filters */}
+                <View style={styles.filterWrap}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View style={styles.filterRow}>
                             {FILTERS.map(f => (
                                 <TouchableOpacity
                                     key={f.key}
-                                    style={[styles.filterChip, activeFilter === f.key && styles.filterChipActive]}
+                                    style={[styles.chip, activeFilter === f.key && styles.chipActive]}
                                     onPress={() => setFilter(f.key)}
                                 >
-                                    <Text style={[styles.filterChipText, activeFilter === f.key && styles.filterChipTextActive]}>
+                                    <Text style={[styles.chipText, activeFilter === f.key && styles.chipTextActive]}>
                                         {f.label}
                                     </Text>
                                 </TouchableOpacity>
@@ -210,64 +253,44 @@ export default function HistoryScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Stats bar */}
-                <View style={styles.statsBar}>
-                    <View style={styles.statCell}>
-                        <Text style={[styles.statValue, styles.statValueNeg]}>{formatCurrency(totalExpenses)}</Text>
-                        <Text style={styles.statLabel}>Gastos</Text>
-                    </View>
-                    <View style={styles.statCell}>
-                        <Text style={[styles.statValue, styles.statValueNeg]}>{formatCurrencyShort(totalWithdrawals)}</Text>
-                        <Text style={styles.statLabel}>Retiros</Text>
-                    </View>
-                    <View style={[styles.statCell, styles.statCellLast]}>
-                        <Text style={[styles.statValue, styles.statValuePos]}>{formatCurrencyShort(totalIncome)}</Text>
-                        <Text style={styles.statLabel}>Ingresos</Text>
-                    </View>
-                </View>
-
-                {/* Transactions grouped by month */}
+                {/* Grouped transactions */}
                 {Object.keys(grouped).length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyEmoji}>📋</Text>
                         <Text style={styles.emptyText}>Sin movimientos</Text>
-                        <Text style={styles.emptySubtext}>Tus transacciones aparecerán aquí</Text>
+                        <Text style={styles.emptySub}>Tus transacciones aparecerán aquí</Text>
                     </View>
                 ) : (
                     Object.entries(grouped).map(([month, txns]) => (
                         <View key={month}>
                             <Text style={styles.monthLabel}>{month}</Text>
                             <View style={styles.txnCard}>
-                                {txns.map((txn, index) => {
-                                    const config = TYPE_CONFIG[txn.type];
-                                    const isLast = index === txns.length - 1;
+                                {txns.map((txn, i) => {
                                     const isIncome = txn.type === 'income';
+                                    const isLast = i === txns.length - 1;
                                     return (
                                         <TouchableOpacity
                                             key={txn.id}
-                                            style={[styles.txnItem, isLast && styles.txnItemLast]}
+                                            style={[styles.txnRow, isLast && styles.txnRowLast]}
                                             onPress={() => setSelectedTxn(txn)}
                                             activeOpacity={0.7}
                                         >
-                                            <View style={[
-                                                styles.txnIcon,
-                                                txn.type === 'income' ? styles.txnIconIncome
-                                                    : txn.type === 'expense' ? styles.txnIconExpense
-                                                        : styles.txnIconWithdrawal,
-                                            ]}>
-                                                <Text style={styles.txnIconEmoji}>{config.emoji}</Text>
-                                            </View>
+                                            <TxnIcon type={txn.type} />
                                             <View style={styles.txnInfo}>
-                                                <Text style={styles.txnName} numberOfLines={1}>{txn.reason}</Text>
-                                                <Text style={styles.txnSub}>
+                                                <Text style={styles.txnName} numberOfLines={1}>
+                                                    {txn.reason}
+                                                </Text>
+                                                <Text style={styles.txnDate}>
                                                     {format(parseISO(txn.date), 'd MMM · HH:mm', { locale: es })}
                                                 </Text>
                                             </View>
                                             <View style={styles.txnRight}>
-                                                <Text style={[styles.txnAmount, isIncome ? styles.amountPos : styles.amountNeg]}>
-                                                    {isIncome ? '+' : '-'}{formatCurrencyShort(txn.amount)}
+                                                <Text style={[
+                                                    styles.txnAmount,
+                                                    isIncome ? styles.amountPos : styles.amountNeg,
+                                                ]}>
+                                                    {isIncome ? '+' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
-                                                <Text style={[styles.badge, config.badge]}>{config.label}</Text>
+                                                <TxnBadge type={txn.type} />
                                             </View>
                                         </TouchableOpacity>
                                     );
@@ -276,7 +299,8 @@ export default function HistoryScreen() {
                         </View>
                     ))
                 )}
-                <View style={styles.bottomPadding} />
+
+                <View style={{ height: Spacing.xl }} />
             </ScrollView>
 
             {selectedTxn && (
@@ -287,6 +311,146 @@ export default function HistoryScreen() {
                     creditCards={creditCards}
                 />
             )}
-        </SafeAreaView>
+        </View>
     );
 }
+
+// Sheet styles (local, not shared)
+const sheet = StyleSheet.create({
+    backdrop: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    scrim: { ...StyleSheet.absoluteFillObject },
+    panel: {
+        backgroundColor: Colors.paper,
+        borderTopLeftRadius: Radius.lg,
+        borderTopRightRadius: Radius.lg,
+        padding: Spacing.lg,
+        paddingBottom: 40,
+        alignItems: 'center',
+    },
+    handle: {
+        width: 36, height: 4,
+        borderRadius: 2,
+        backgroundColor: Colors.mid,
+        marginBottom: Spacing.lg,
+    },
+    txnIcon: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+    },
+    txnGlyph: {
+        fontSize: 22,
+        fontWeight: '800',
+    },
+    typeLabel: {
+        fontSize: FontSize.xs,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginBottom: Spacing.xs,
+    },
+    amount: {
+        fontSize: 36,
+        fontWeight: '900',
+        color: Colors.ink,
+        letterSpacing: -1.5,
+        marginBottom: Spacing.xs,
+    },
+    reason: {
+        fontSize: FontSize.md,
+        color: Colors.muted,
+        textAlign: 'center',
+        marginBottom: Spacing.lg,
+        paddingHorizontal: Spacing.md,
+    },
+    detailList: {
+        width: '100%',
+        backgroundColor: Colors.white,
+        borderRadius: Radius.sm,
+        marginBottom: Spacing.lg,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.mid,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: Spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.mid,
+    },
+    detailKey: { fontSize: FontSize.sm, color: Colors.muted, fontWeight: '500' },
+    detailVal: { fontSize: FontSize.sm, color: Colors.ink, fontWeight: '700', textAlign: 'right', flex: 1, marginLeft: Spacing.md },
+    fieldLabel: {
+        alignSelf: 'flex-start',
+        fontSize: FontSize.xs,
+        fontWeight: '800',
+        color: Colors.muted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.xs,
+    },
+    input: {
+        width: '100%',
+        backgroundColor: Colors.white,
+        borderRadius: Radius.sm,
+        padding: Spacing.md,
+        fontSize: FontSize.md,
+        color: Colors.ink,
+        borderWidth: 1,
+        borderColor: Colors.mid,
+    },
+    inputLarge: {
+        fontSize: 28,
+        fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: Spacing.md,
+    },
+    btnRow: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+        width: '100%',
+        marginTop: Spacing.sm,
+    },
+    btnPrimary: {
+        flex: 2, height: 52, borderRadius: Radius.sm,
+        backgroundColor: Colors.ink,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    btnPrimaryText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+    btnCancel: {
+        flex: 1, height: 52, borderRadius: Radius.sm,
+        backgroundColor: Colors.mid,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    btnCancelText: { fontSize: FontSize.md, fontWeight: '600', color: Colors.ink },
+    btnDanger: {
+        flex: 1, height: 52, borderRadius: Radius.sm,
+        backgroundColor: Colors.coralLt,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    btnDangerText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.coral },
+    badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(15,14,12,0.07)',
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: Radius.full,
+    },
+    badgeDot: { width: 5, height: 5, borderRadius: 3 },
+    badgeText: {
+        fontSize: FontSize.xs - 1,
+        fontWeight: '700',
+        color: Colors.ink,
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
+    },
+});

@@ -16,6 +16,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useFinance } from "../store/FinanceContext";
 import { formatCurrencyShort } from "../utils";
+import { ACCOUNT_LABELS, FREQUENCY_LABELS } from '../constants';
 import styles from './ScheduledFundsScreen.styles';
 
 const FREQUENCIES = [

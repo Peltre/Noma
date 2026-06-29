@@ -13,110 +13,108 @@ export default function PendingFundCard({ fund, status, onPress }) {
         ? `Venció el ${format(parseISO(fund.nextDate), 'd MMM', { locale: es })}`
         : `Próximo ${format(parseISO(fund.nextDate), 'd MMM', { locale: es })}`;
 
+    // Accent color: overdue always coral, otherwise by type
+    const accentColor = isOverdue
+        ? Colors.coral
+        : isMSI ? Colors.violet : Colors.teal;
+
+    const iconBg = isOverdue
+        ? Colors.coralLt
+        : isMSI ? Colors.violetLt : Colors.tealLt;
+
     return (
         <TouchableOpacity
-            style={[
-                styles.card,
-                isMSI
-                    ? (isOverdue ? styles.cardMsiOverdue : styles.cardMsi)
-                    : (isOverdue ? styles.cardOverdue : styles.cardUpcoming),
-            ]}
+            style={[styles.card, { borderLeftColor: accentColor }]}
             onPress={onPress}
-            activeOpacity={0.85}
+            activeOpacity={0.75}
         >
+            {/* Colored icon box */}
+            <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
+                <Text style={[styles.iconGlyph, { color: accentColor }]}>
+                    {isMSI ? 'M' : '↓'}
+                </Text>
+            </View>
+
+            {/* Info */}
             <View style={styles.info}>
                 <View style={styles.titleRow}>
-                    <Text style={styles.title}>{fund.name}</Text>
+                    <Text style={styles.title} numberOfLines={1}>{fund.name}</Text>
                     {isMSI && (
-                        <View style={styles.msiBadge}>
+                        <View style={[styles.msiBadge, { backgroundColor: Colors.ink }]}>
                             <Text style={styles.msiBadgeText}>
-                                MSI {fund.paidMonths + 1}/{fund.months}
+                                {fund.paidMonths + 1}/{fund.months}
                             </Text>
                         </View>
                     )}
                 </View>
                 <Text style={styles.subtitle}>{dateLabel}</Text>
             </View>
-            <View style={styles.right}>
-                <Text style={[styles.amount, isMSI && styles.amountMsi]}>
-                    {isMSI ? `-${formatCurrencyShort(fund.monthlyAmount)}` : `+${formatCurrencyShort(fund.amount)}`}
-                </Text>
-                <Text style={styles.action}>{isMSI ? 'Confirmar →' : 'Registrar →'}</Text>
-            </View>
+
+            {/* Amount */}
+            <Text style={[styles.amount, { color: accentColor }]}>
+                {isMSI ? '−' : '+'}{formatCurrencyShort(isMSI ? fund.monthlyAmount : fund.amount)}
+            </Text>
         </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
     card: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        backgroundColor: Colors.white,
         borderRadius: Radius.sm,
         padding: Spacing.md,
         marginBottom: Spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: Spacing.sm,
+        borderLeftWidth: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
         ...Shadow.card,
     },
-    cardUpcoming: {
-        backgroundColor: Colors.sageLt,
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.sage,
+    iconBox: {
+        width: 36, height: 36,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexShrink: 0,
     },
-    cardOverdue: {
-        backgroundColor: Colors.redLt,
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.red,
-    },
-    cardMsi: {
-        backgroundColor: '#EEE8F7',
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.purple,
-    },
-    cardMsiOverdue: {
-        backgroundColor: Colors.redLt,
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.red,
+    iconGlyph: {
+        fontSize: 15,
+        fontWeight: '900',
     },
     info: { flex: 1 },
     titleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.xs,
-        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 3,
     },
     title: {
         fontSize: FontSize.sm,
         fontWeight: '700',
         color: Colors.ink,
+        flex: 1,
     },
     msiBadge: {
-        backgroundColor: Colors.purple,
-        borderRadius: 99,
         paddingHorizontal: 6,
         paddingVertical: 2,
+        borderRadius: Radius.full,
     },
     msiBadgeText: {
-        fontSize: FontSize.xs,
-        fontWeight: '700',
+        fontSize: FontSize.xs - 1,
+        fontWeight: '800',
         color: Colors.white,
+        letterSpacing: 0.3,
     },
     subtitle: {
         fontSize: FontSize.xs,
         color: Colors.muted,
-        marginTop: 2,
+        fontWeight: '500',
     },
-    right: { alignItems: 'flex-end' },
     amount: {
-        fontSize: FontSize.sm,
-        fontWeight: '700',
-        color: Colors.sage,
-    },
-    amountMsi: {
-        color: Colors.purple,
-    },
-    action: {
-        fontSize: FontSize.xs,
-        color: Colors.muted,
-        marginTop: 2,
+        fontSize: FontSize.md,
+        fontWeight: '900',
+        letterSpacing: -0.5,
     },
 });

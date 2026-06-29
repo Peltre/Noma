@@ -45,7 +45,6 @@ const TOUR_TIPS = [
 export default function Onboarding({ visible, onComplete }) {
     const {
         updateSettings,
-        completeOnboarding,
         setInitialBalances,
     } = useFinance();
 

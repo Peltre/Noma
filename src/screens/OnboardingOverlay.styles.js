@@ -50,7 +50,7 @@ export default StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: Colors.warmMid,
+        backgroundColor: Colors.mid,
     },
     progressDotActive: {
         backgroundColor: Colors.ink,
@@ -97,7 +97,7 @@ export default StyleSheet.create({
         fontSize: FontSize.md,
         color: Colors.ink,
         borderWidth: 1,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         ...Shadow.card,
     },
     inputLarge: {
@@ -130,7 +130,7 @@ export default StyleSheet.create({
     },
     removeBtn: {
         fontSize: FontSize.xs,
-        color: Colors.red,
+        color: Colors.coral,
         fontWeight: '600',
     },
 
@@ -143,7 +143,7 @@ export default StyleSheet.create({
         padding: Spacing.md,
         borderRadius: Radius.sm,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         borderStyle: 'dashed',
         marginTop: Spacing.xs,
     },
@@ -164,13 +164,13 @@ export default StyleSheet.create({
         padding: Spacing.md,
         borderRadius: Radius.sm,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         backgroundColor: Colors.white,
         alignItems: 'center',
     },
     yesNoBtnActive: {
-        backgroundColor: Colors.sageLt,
-        borderColor: Colors.sage,
+        backgroundColor: Colors.tealLt,
+        borderColor: Colors.teal,
     },
     yesNoBtnText: {
         fontSize: FontSize.md,
@@ -178,7 +178,7 @@ export default StyleSheet.create({
         color: Colors.muted,
     },
     yesNoBtnTextActive: {
-        color: Colors.sage,
+        color: Colors.teal,
     },
 
     // Tour highlight tooltip
@@ -214,7 +214,7 @@ export default StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: Radius.sm,
-        backgroundColor: Colors.warmMid,
+        backgroundColor: Colors.mid,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -237,7 +237,7 @@ export default StyleSheet.create({
         color: Colors.white,
     },
     nextBtnDisabled: {
-        backgroundColor: Colors.warmMid,
+        backgroundColor: Colors.mid,
     },
     laterBtn: {
         alignItems: 'center',

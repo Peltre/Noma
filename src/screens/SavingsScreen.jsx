@@ -4,23 +4,24 @@ import {
     View, Text, ScrollView, TouchableOpacity,
     TextInput, Alert, Modal, Platform, KeyboardAvoidingView,
 } from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useFinance } from "../store/FinanceContext";
 import { SAVINGS_COLORS } from "../store/useSavings";
 import { formatCurrency, formatCurrencyShort } from "../utils";
-import { Colors, Spacing } from "../constants";
+import { Colors, FontSize, Spacing, Radius, Shadow } from "../constants";
 import styles from './SavingsScreen.styles';
 
-// Color picker
+// Color picker (bye bye emoji picker)
 function ColorPicker({ selected, onSelect }) {
     return (
         <View style={styles.colorRow}>
             {SAVINGS_COLORS.map(c => (
                 <TouchableOpacity
                     key={c}
-                    style={[styles.colorDot, { backgroundColor: c }, selected === c && styles.colorDotActive]}
+                    style={[styles.colorDot, { backgroundColor: c },
+                    selected === c && styles.colorDotActive]}
                     onPress={() => onSelect(c)}
                 />
             ))}
@@ -28,14 +29,37 @@ function ColorPicker({ selected, onSelect }) {
     );
 }
 
-// Small colored circle used in account cards and chips
+// Colored circle dot used in cards and chips
 function AccountDot({ color, size = 40 }) {
     return (
-        <View style={[styles.accountDot, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]} />
+        <View style={{
+            width: size, height: size, borderRadius: size / 2,
+            backgroundColor: color,
+        }} />
     );
 }
 
-// Modal to add a new Savings Acc
+// Sheet wrapper
+function Sheet({ children, scroll = false }) {
+    if (scroll) {
+        return (
+            <View style={styles.sheet}>
+                <View style={styles.sheetHandle} />
+                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                    {children}
+                </ScrollView>
+            </View>
+        );
+    }
+    return (
+        <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            {children}
+        </View>
+    );
+}
+
+// New account modal
 function AddAccountModal({ visible, onClose, generalAccounts }) {
     const { addSavingsAccount, depositToSavingsAccount } = useFinance();
     const [name, setName] = useState('');
@@ -55,15 +79,11 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
         if (!name.trim() || loading) return;
         setLoading(true);
         const balance = parseFloat(initialBalance) || 0;
-        // addSavingsAccount now returns the new account AND the already-updated list
         const { newAcc, updatedAccounts } = await addSavingsAccount({ name: name.trim(), color, initialBalance: 0 });
         if (balance > 0 && newAcc?.id) {
-            // Pass updatedAccounts so depositToSavingsAccount doesn't read stale state
             await depositToSavingsAccount({
-                fromAccountId,
-                toSavingsAccountId: newAcc.id,
-                amount: balance,
-                currentAccounts: updatedAccounts,
+                fromAccountId, toSavingsAccountId: newAcc.id,
+                amount: balance, currentAccounts: updatedAccounts,
             });
         }
         setLoading(false);
@@ -71,18 +91,18 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
         onClose();
     };
 
-    const hasBalance = parseFloat(initialBalance) > 0;
-
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <View style={styles.sheet}>
-                    <Text style={styles.sheetTitle}>Nueva cuenta de ahorro</Text>
+                <Sheet>
+                    <Text style={styles.sheetTitle}>Nueva cuenta</Text>
 
-                    {/* Preview */}
+                    {/* Live preview */}
                     <View style={styles.accountPreview}>
-                        <AccountDot color={color} size={48} />
-                        <Text style={styles.accountPreviewName}>{name || 'Nombre de la cuenta'}</Text>
+                        <AccountDot color={color} size={44} />
+                        <Text style={styles.accountPreviewName} numberOfLines={1}>
+                            {name || 'Nombre de la cuenta'}
+                        </Text>
                     </View>
 
                     <Text style={styles.sheetLabel}>COLOR</Text>
@@ -110,14 +130,14 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
                     {parseFloat(initialBalance) > 0 && (
                         <>
                             <Text style={styles.sheetLabel}>DESCONTAR DE</Text>
-                            <View style={styles.accountPickerRow}>
+                            <View style={styles.chipRow}>
                                 {generalAccounts.filter(a => a.type !== 'savings').map(a => (
                                     <TouchableOpacity
                                         key={a.id}
-                                        style={[styles.accountChip, fromAccountId === a.id && styles.accountChipActive]}
+                                        style={[styles.chip, fromAccountId === a.id && styles.chipActive]}
                                         onPress={() => setFromAccountId(a.id)}
                                     >
-                                        <Text style={[styles.accountChipText, fromAccountId === a.id && styles.accountChipTextActive]}>
+                                        <Text style={[styles.chipText, fromAccountId === a.id && styles.chipTextActive]}>
                                             {a.name}
                                         </Text>
                                     </TouchableOpacity>
@@ -127,24 +147,24 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
                     )}
 
                     <View style={styles.sheetBtns}>
-                        <TouchableOpacity style={styles.cancelBtn} onPress={() => { reset(); onClose(); }}>
-                            <Text style={styles.cancelBtnText}>Cancelar</Text>
+                        <TouchableOpacity style={styles.btnCancel} onPress={() => { reset(); onClose(); }}>
+                            <Text style={styles.btnCancelText}>Cancelar</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.confirmBtn, (!name.trim() || loading) && styles.confirmBtnDisabled]}
+                            style={[styles.btnPrimary, (!name.trim() || loading) && styles.btnDisabled]}
                             onPress={handleAdd}
                             disabled={!name.trim() || loading}
                         >
-                            <Text style={styles.confirmBtnText}>{loading ? 'Creando...' : 'Crear cuenta'}</Text>
+                            <Text style={styles.btnPrimaryText}>{loading ? 'Creando...' : 'Crear cuenta'}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </Sheet>
             </KeyboardAvoidingView>
         </Modal>
     );
 }
 
-// Move money from / to a savings account
+// Move money modal
 function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mode }) {
     const { depositToSavingsAccount, withdrawFromSavingsAccount } = useFinance();
     const [amount, setAmount] = useState('');
@@ -157,16 +177,8 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
         const amt = parseFloat(amount);
         if (!amt || amt <= 0) return;
         const result = isDeposit
-            ? await depositToSavingsAccount({
-                fromAccountId: selectedAccountId,
-                toSavingsAccountId: savingsAccount.id,
-                amount: amt,
-            })
-            : await withdrawFromSavingsAccount({
-                fromSavingsAccountId: savingsAccount.id,
-                toAccountId: selectedAccountId,
-                amount: amt,
-            });
+            ? await depositToSavingsAccount({ fromAccountId: selectedAccountId, toSavingsAccountId: savingsAccount.id, amount: amt })
+            : await withdrawFromSavingsAccount({ fromSavingsAccountId: savingsAccount.id, toAccountId: selectedAccountId, amount: amt });
         if (result?.error) { Alert.alert('Error', result.error); return; }
         setAmount('');
         onClose();
@@ -175,10 +187,13 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <View style={styles.sheet}>
+                <Sheet>
+                    {/* Account dot + title */}
                     <View style={styles.sheetTitleRow}>
-                        <AccountDot color={savingsAccount?.color} size={32} />
-                        <Text style={styles.sheetTitle}>{isDeposit ? 'Mover a' : 'Retirar de'} {savingsAccount?.name}</Text>
+                        <AccountDot color={savingsAccount?.color} size={28} />
+                        <Text style={styles.sheetTitle}>
+                            {isDeposit ? 'Mover a' : 'Retirar de'} {savingsAccount?.name}
+                        </Text>
                     </View>
 
                     <Text style={styles.sheetLabel}>CANTIDAD</Text>
@@ -193,14 +208,14 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
                     />
 
                     <Text style={styles.sheetLabel}>{isDeposit ? 'DE QUÉ CUENTA' : 'A QUÉ CUENTA'}</Text>
-                    <View style={styles.accountPickerRow}>
+                    <View style={styles.chipRow}>
                         {generalAccounts.filter(a => a.type !== 'savings').map(a => (
                             <TouchableOpacity
                                 key={a.id}
-                                style={[styles.accountChip, selectedAccountId === a.id && styles.accountChipActive]}
+                                style={[styles.chip, selectedAccountId === a.id && styles.chipActive]}
                                 onPress={() => setSelectedAccountId(a.id)}
                             >
-                                <Text style={[styles.accountChipText, selectedAccountId === a.id && styles.accountChipTextActive]}>
+                                <Text style={[styles.chipText, selectedAccountId === a.id && styles.chipTextActive]}>
                                     {a.name}
                                 </Text>
                             </TouchableOpacity>
@@ -208,24 +223,24 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
                     </View>
 
                     <View style={styles.sheetBtns}>
-                        <TouchableOpacity style={styles.cancelBtn} onPress={() => { setAmount(''); onClose(); }}>
-                            <Text style={styles.cancelBtnText}>Cancelar</Text>
+                        <TouchableOpacity style={styles.btnCancel} onPress={() => { setAmount(''); onClose(); }}>
+                            <Text style={styles.btnCancelText}>Cancelar</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.confirmBtn, (!amount || parseFloat(amount) <= 0) && styles.confirmBtnDisabled]}
+                            style={[styles.btnPrimary, (!amount || parseFloat(amount) <= 0) && styles.btnDisabled]}
                             onPress={handleConfirm}
                             disabled={!amount || parseFloat(amount) <= 0}
                         >
-                            <Text style={styles.confirmBtnText}>{isDeposit ? 'Mover →' : 'Retirar'}</Text>
+                            <Text style={styles.btnPrimaryText}>{isDeposit ? 'Mover' : 'Retirar'}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </Sheet>
             </KeyboardAvoidingView>
         </Modal>
     );
 }
 
-// Add new Goal modal
+// New Goal modal
 function AddGoalModal({ visible, onClose }) {
     const { addSavingsGoal } = useFinance();
     const [name, setName] = useState('');
@@ -255,85 +270,83 @@ function AddGoalModal({ visible, onClose }) {
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <ScrollView contentContainerStyle={styles.sheetScroll} keyboardShouldPersistTaps="handled">
-                    <View style={styles.sheet}>
-                        <Text style={styles.sheetTitle}>Nuevo objetivo</Text>
+                <Sheet scroll>
+                    <Text style={styles.sheetTitle}>Nuevo objetivo</Text>
 
-                        <Text style={styles.sheetLabel}>¿QUÉ QUIERES?</Text>
-                        <TextInput
-                            style={styles.sheetInput}
-                            value={name}
-                            onChangeText={setName}
-                            placeholder="Ej. AirPods 4, Viaje NYC..."
-                            placeholderTextColor={Colors.muted}
-                        />
+                    <Text style={styles.sheetLabel}>¿QUÉ QUIERES?</Text>
+                    <TextInput
+                        style={styles.sheetInput}
+                        value={name}
+                        onChangeText={setName}
+                        placeholder="Ej. AirPods 4, Viaje NYC..."
+                        placeholderTextColor={Colors.muted}
+                    />
 
-                        <Text style={styles.sheetLabel}>¿CUÁNTO CUESTA?</Text>
-                        <TextInput
-                            style={[styles.sheetInput, styles.sheetInputLarge]}
-                            value={targetAmount}
-                            onChangeText={setTargetAmount}
-                            placeholder="$0.00"
-                            placeholderTextColor={Colors.muted}
-                            keyboardType="decimal-pad"
-                        />
+                    <Text style={styles.sheetLabel}>¿CUÁNTO CUESTA?</Text>
+                    <TextInput
+                        style={[styles.sheetInput, styles.sheetInputLarge]}
+                        value={targetAmount}
+                        onChangeText={setTargetAmount}
+                        placeholder="$0.00"
+                        placeholderTextColor={Colors.muted}
+                        keyboardType="decimal-pad"
+                    />
 
-                        <TouchableOpacity style={styles.toggleDeadline} onPress={() => setHasDeadline(!hasDeadline)}>
-                            <View style={[styles.checkbox, hasDeadline && styles.checkboxActive]}>
-                                {hasDeadline && <Text style={styles.checkmark}>✓</Text>}
-                            </View>
-                            <Text style={styles.toggleDeadlineText}>Establecer fecha límite</Text>
-                        </TouchableOpacity>
-
-                        {hasDeadline && (
-                            <View style={styles.dateRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.sheetLabel}>MES</Text>
-                                    <TextInput
-                                        style={styles.sheetInput}
-                                        value={deadlineMonth}
-                                        onChangeText={setDeadlineMonth}
-                                        placeholder="1-12"
-                                        placeholderTextColor={Colors.muted}
-                                        keyboardType="number-pad"
-                                        maxLength={2}
-                                    />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.sheetLabel}>AÑO</Text>
-                                    <TextInput
-                                        style={styles.sheetInput}
-                                        value={deadlineYear}
-                                        onChangeText={setDeadlineYear}
-                                        placeholder="2026"
-                                        placeholderTextColor={Colors.muted}
-                                        keyboardType="number-pad"
-                                        maxLength={4}
-                                    />
-                                </View>
-                            </View>
-                        )}
-
-                        <View style={styles.sheetBtns}>
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => { reset(); onClose(); }}>
-                                <Text style={styles.cancelBtnText}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.confirmBtn, !canSave && styles.confirmBtnDisabled]}
-                                onPress={handleAdd}
-                                disabled={!canSave}
-                            >
-                                <Text style={styles.confirmBtnText}>Crear objetivo</Text>
-                            </TouchableOpacity>
+                    <TouchableOpacity style={styles.toggle} onPress={() => setHasDeadline(!hasDeadline)}>
+                        <View style={[styles.checkbox, hasDeadline && styles.checkboxActive]}>
+                            {hasDeadline && <Text style={styles.checkmark}>✓</Text>}
                         </View>
+                        <Text style={styles.toggleText}>Establecer fecha límite</Text>
+                    </TouchableOpacity>
+
+                    {hasDeadline && (
+                        <View style={styles.dateRow}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.sheetLabel}>MES</Text>
+                                <TextInput
+                                    style={styles.sheetInput}
+                                    value={deadlineMonth}
+                                    onChangeText={setDeadlineMonth}
+                                    placeholder="1-12"
+                                    placeholderTextColor={Colors.muted}
+                                    keyboardType="number-pad"
+                                    maxLength={2}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.sheetLabel}>AÑO</Text>
+                                <TextInput
+                                    style={styles.sheetInput}
+                                    value={deadlineYear}
+                                    onChangeText={setDeadlineYear}
+                                    placeholder="2026"
+                                    placeholderTextColor={Colors.muted}
+                                    keyboardType="number-pad"
+                                    maxLength={4}
+                                />
+                            </View>
+                        </View>
+                    )}
+
+                    <View style={styles.sheetBtns}>
+                        <TouchableOpacity style={styles.btnCancel} onPress={() => { reset(); onClose(); }}>
+                            <Text style={styles.btnCancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.btnPrimary, !canSave && styles.btnDisabled]}
+                            onPress={handleAdd}
+                            disabled={!canSave}
+                        >
+                            <Text style={styles.btnPrimaryText}>Crear objetivo</Text>
+                        </TouchableOpacity>
                     </View>
-                </ScrollView>
+                </Sheet>
             </KeyboardAvoidingView>
         </Modal>
     );
 }
 
-// Add / Withdraw from a Goal
+// Contribute to a Goal
 function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) {
     const { contributeToGoal, withdrawFromGoal } = useFinance();
     const [amount, setAmount] = useState('');
@@ -354,8 +367,10 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <View style={styles.sheet}>
-                    <Text style={styles.sheetTitle}>{isDeposit ? 'Aportar al objetivo' : 'Retirar del objetivo'}</Text>
+                <Sheet>
+                    <Text style={styles.sheetTitle}>
+                        {isDeposit ? 'Aportar al objetivo' : 'Retirar del objetivo'}
+                    </Text>
                     <Text style={styles.sheetSubtitle}>{goal?.name}</Text>
 
                     <Text style={styles.sheetLabel}>CANTIDAD</Text>
@@ -371,17 +386,17 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
 
                     <Text style={styles.sheetLabel}>{isDeposit ? 'DESDE QUÉ CUENTA' : 'REGRESAR A'}</Text>
                     {savingsAccounts.length === 0 ? (
-                        <Text style={styles.noAccountsText}>Primero agrega una cuenta de ahorro</Text>
+                        <Text style={styles.emptyChipText}>Primero agrega una cuenta de ahorro</Text>
                     ) : (
-                        <View style={styles.accountPickerRow}>
+                        <View style={styles.chipRow}>
                             {savingsAccounts.map(a => (
                                 <TouchableOpacity
                                     key={a.id}
-                                    style={[styles.accountChip, selectedAccId === a.id && styles.accountChipActive]}
+                                    style={[styles.chip, selectedAccId === a.id && styles.chipActive]}
                                     onPress={() => setSelectedAccId(a.id)}
                                 >
-                                    <View style={[styles.accountChipDot, { backgroundColor: a.color }]} />
-                                    <Text style={[styles.accountChipText, selectedAccId === a.id && styles.accountChipTextActive]}>
+                                    <View style={[styles.chipDot, { backgroundColor: a.color }]} />
+                                    <Text style={[styles.chipText, selectedAccId === a.id && styles.chipTextActive]}>
                                         {a.name}
                                     </Text>
                                 </TouchableOpacity>
@@ -390,18 +405,18 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
                     )}
 
                     <View style={styles.sheetBtns}>
-                        <TouchableOpacity style={styles.cancelBtn} onPress={() => { setAmount(''); onClose(); }}>
-                            <Text style={styles.cancelBtnText}>Cancelar</Text>
+                        <TouchableOpacity style={styles.btnCancel} onPress={() => { setAmount(''); onClose(); }}>
+                            <Text style={styles.btnCancelText}>Cancelar</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.confirmBtn, (!amount || !selectedAccId) && styles.confirmBtnDisabled]}
+                            style={[styles.btnPrimary, (!amount || !selectedAccId) && styles.btnDisabled]}
                             onPress={handleConfirm}
                             disabled={!amount || !selectedAccId}
                         >
-                            <Text style={styles.confirmBtnText}>{isDeposit ? 'Aportar' : 'Retirar'}</Text>
+                            <Text style={styles.btnPrimaryText}>{isDeposit ? 'Aportar' : 'Retirar'}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </Sheet>
             </KeyboardAvoidingView>
         </Modal>
     );
@@ -433,7 +448,8 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
 
     return (
         <View style={[styles.goalCard, isComplete && styles.goalCardComplete]}>
-            <View style={styles.goalCardHeader}>
+            {/* Header */}
+            <View style={styles.goalHeader}>
                 <View style={styles.goalInfo}>
                     <Text style={styles.goalName}>{goal.name}</Text>
                     {goal.deadline && (
@@ -442,25 +458,27 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
                         </Text>
                     )}
                 </View>
-                <TouchableOpacity onPress={handleDelete} style={styles.goalDeleteBtn}>
+                <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <Text style={styles.goalDeleteText}>✕</Text>
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.progressBarBg}>
+            {/* Progress */}
+            <View style={styles.progressBg}>
                 <View style={[
-                    styles.progressBarFill,
+                    styles.progressFill,
                     { width: `${percentage}%` },
-                    isComplete && styles.progressBarFillComplete,
+                    isComplete && styles.progressFillComplete,
                 ]} />
             </View>
 
             <View style={styles.goalAmounts}>
                 <Text style={styles.goalSaved}>{formatCurrencyShort(goal.savedAmount)}</Text>
-                <Text style={styles.goalPercentage}>{percentage}%</Text>
+                <Text style={styles.goalPct}>{percentage}%</Text>
                 <Text style={styles.goalTarget}>{formatCurrencyShort(goal.targetAmount)}</Text>
             </View>
 
+            {/* Monthly suggestion */}
             {suggestion && !isComplete && (
                 <View style={styles.suggestionRow}>
                     <Text style={styles.suggestionText}>
@@ -475,6 +493,7 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
                 </View>
             )}
 
+            {/* Actions */}
             {!isComplete && (
                 <View style={styles.goalBtns}>
                     <TouchableOpacity style={styles.goalBtnDeposit} onPress={() => setShowContribute(true)}>
@@ -488,20 +507,10 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
                 </View>
             )}
 
-            <GoalContributeModal
-                visible={showContribute}
-                onClose={() => setShowContribute(false)}
-                goal={goal}
-                savingsAccounts={savingsAccounts}
-                mode="deposit"
-            />
-            <GoalContributeModal
-                visible={showWithdraw}
-                onClose={() => setShowWithdraw(false)}
-                goal={goal}
-                savingsAccounts={savingsAccounts}
-                mode="withdraw"
-            />
+            <GoalContributeModal visible={showContribute} onClose={() => setShowContribute(false)}
+                goal={goal} savingsAccounts={savingsAccounts} mode="deposit" />
+            <GoalContributeModal visible={showWithdraw} onClose={() => setShowWithdraw(false)}
+                goal={goal} savingsAccounts={savingsAccounts} mode="withdraw" />
         </View>
     );
 }
@@ -509,15 +518,11 @@ function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
 // Main screen
 export default function SavingsScreen() {
     const {
-        accounts,
-        savingsAccounts,
-        savingsGoals,
-        savingsBreakdownTotal,
-        deleteSavingsAccount,
-        deleteSavingsGoal,
-        getMonthlySuggestion,
+        accounts, savingsAccounts, savingsGoals,
+        deleteSavingsAccount, deleteSavingsGoal, getMonthlySuggestion,
     } = useFinance();
 
+    const insets = useSafeAreaInsets();
     const mainSavingsBalance = accounts.find(a => a.type === 'savings')?.balance ?? 0;
 
     const [showAddAccount, setShowAddAccount] = useState(false);
@@ -540,15 +545,18 @@ export default function SavingsScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                <View style={styles.header}>
-                    <Text style={styles.headerLabel}>Total en ahorros</Text>
-                    <Text style={styles.headerAmount}>{formatCurrency(mainSavingsBalance)}</Text>
+                {/* ── Dark hero ── */}
+                <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+                    <View style={styles.heroArc} />
+                    <View style={styles.heroDot} />
+                    <Text style={styles.heroLabel}>Total en ahorros</Text>
+                    <Text style={styles.heroAmount}>{formatCurrency(mainSavingsBalance)}</Text>
                 </View>
 
-                {/* Savings accounts breakdown */}
+                {/* ── Mis cuentas ── */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Mis cuentas</Text>
@@ -559,42 +567,51 @@ export default function SavingsScreen() {
 
                     {savingsAccounts.length === 0 ? (
                         <TouchableOpacity style={styles.emptyCard} onPress={() => setShowAddAccount(true)}>
-                            <Text style={styles.emptyCardText}>+ Agrega tu primera cuenta de ahorro</Text>
+                            <Text style={styles.emptyCardText}>+ Agrega tu primera cuenta</Text>
                             <Text style={styles.emptyCardSub}>Cajita Nu, apartado BBVA, etc.</Text>
                         </TouchableOpacity>
                     ) : (
-                        savingsAccounts.map(acc => (
-                            <View key={acc.id} style={styles.accountCard}>
-                                <View style={styles.accountCardLeft}>
-                                    <View style={[styles.accountDot, { backgroundColor: acc.color, width: 40, height: 40, borderRadius: 20 }]} />
-                                    <View>
-                                        <Text style={styles.accountCardName}>{acc.name}</Text>
-                                        <Text style={styles.accountCardBalance}>{formatCurrency(acc.balance)}</Text>
+                        <View style={styles.accountsGroup}>
+                            {savingsAccounts.map((acc, i) => (
+                                <View
+                                    key={acc.id}
+                                    style={[
+                                        styles.accountRow,
+                                        i === savingsAccounts.length - 1 && styles.accountRowLast,
+                                    ]}
+                                >
+                                    <AccountDot color={acc.color} size={38} />
+                                    <View style={styles.accountInfo}>
+                                        <Text style={styles.accountName}>{acc.name}</Text>
+                                        <Text style={styles.accountBalance}>{formatCurrency(acc.balance)}</Text>
+                                    </View>
+                                    <View style={styles.accountActions}>
+                                        <TouchableOpacity
+                                            style={styles.actionBtn}
+                                            onPress={() => setMoveMoneyTarget({ account: acc, mode: 'deposit' })}
+                                        >
+                                            <Text style={styles.actionBtnText}>+</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.actionBtn}
+                                            onPress={() => setMoveMoneyTarget({ account: acc, mode: 'withdraw' })}
+                                        >
+                                            <Text style={styles.actionBtnText}>−</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => handleDeleteAccount(acc)}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        >
+                                            <Text style={styles.deleteText}>✕</Text>
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
-                                <View style={styles.accountCardRight}>
-                                    <TouchableOpacity
-                                        style={styles.accountActionBtn}
-                                        onPress={() => setMoveMoneyTarget({ account: acc, mode: 'deposit' })}
-                                    >
-                                        <Text style={styles.accountActionBtnText}>+</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.accountActionBtn}
-                                        onPress={() => setMoveMoneyTarget({ account: acc, mode: 'withdraw' })}
-                                    >
-                                        <Text style={styles.accountActionBtnText}>−</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDeleteAccount(acc)}>
-                                        <Text style={styles.accountDeleteText}>✕</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        ))
+                            ))}
+                        </View>
                     )}
                 </View>
 
-                {/* Goals */}
+                {/* ── Objetivos ── */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Objetivos</Text>
@@ -621,7 +638,7 @@ export default function SavingsScreen() {
                     )}
                 </View>
 
-                <View style={{ height: Spacing.xl }} />
+                <View style={{ height: Spacing.xl + Spacing.lg }} />
             </ScrollView>
 
             <AddAccountModal
@@ -642,6 +659,6 @@ export default function SavingsScreen() {
                     mode={moveMoneyTarget.mode}
                 />
             )}
-        </SafeAreaView>
+        </View>
     );
 }

@@ -9,27 +9,50 @@ export default StyleSheet.create({
         backgroundColor: Colors.paper,
     },
 
-    //Header
-    header: {
-        backgroundColor: Colors.purple,
-        padding: Spacing.lg,
-        paddingBottom: Spacing.xl,
+    // Hero
+    hero: {
+        backgroundColor: Colors.ink,
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: Spacing.lg + Spacing.sm,
+        position: 'relative',
+        overflow: 'hidden',
     },
-    headerLabel: {
+    // Large arc peeking from bottom-right — like a coin
+    heroArc: {
+        position: 'absolute',
+        width: 200, height: 200,
+        borderRadius: 100,
+        borderWidth: 28,
+        borderColor: 'rgba(107,84,196,0.18)',
+        backgroundColor: 'transparent',
+        bottom: -80, right: -60,
+    },
+    // Small solid dot top-left — counterpoint
+    heroDot: {
+        position: 'absolute',
+        width: 10, height: 10,
+        borderRadius: 5,
+        backgroundColor: 'rgba(13,139,133,0.35)',
+        top: 20, left: 0,
+    },
+    heroLabel: {
         fontSize: FontSize.xs,
-        color: 'rgba(255,255,255,0.6)',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-        marginBottom: Spacing.xs,
-    },
-    headerAmount: {
-        fontSize: 40,
         fontWeight: '700',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.3)',
+        marginBottom: Spacing.xs,
+        zIndex: 2,
+    },
+    heroAmount: {
+        fontSize: 44,
+        fontWeight: '900',
         color: Colors.white,
-        letterSpacing: -1,
+        letterSpacing: -2,
+        zIndex: 2,
     },
 
-    //Sections
+    // Sections
     section: {
         padding: Spacing.lg,
         paddingBottom: 0,
@@ -41,20 +64,22 @@ export default StyleSheet.create({
         marginBottom: Spacing.sm,
     },
     sectionTitle: {
-        fontSize: FontSize.md,
-        fontWeight: '700',
+        fontSize: FontSize.xs,
+        fontWeight: '800',
         color: Colors.ink,
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
     },
     sectionAction: {
         fontSize: FontSize.sm,
-        fontWeight: '600',
-        color: Colors.purple,
+        fontWeight: '700',
+        color: Colors.violet,
     },
 
-    //Empty state
+    // Empty state
     emptyCard: {
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         borderStyle: 'dashed',
         borderRadius: Radius.sm,
         padding: Spacing.lg,
@@ -62,125 +87,123 @@ export default StyleSheet.create({
         marginBottom: Spacing.sm,
     },
     emptyCardText: {
-        fontSize: FontSize.md,
+        fontSize: FontSize.sm,
         fontWeight: '600',
         color: Colors.muted,
     },
     emptyCardSub: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.xs,
         color: Colors.muted,
         marginTop: Spacing.xs,
     },
 
-    //Account card
-    accountCard: {
+    // Accounts group
+    accountsGroup: {
         backgroundColor: Colors.white,
         borderRadius: Radius.sm,
-        padding: Spacing.md,
+        overflow: 'hidden',
         marginBottom: Spacing.sm,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
         ...Shadow.card,
     },
-    accountCardLeft: {
+    accountRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.sm,
-        flex: 1,
+        padding: Spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.mid,
     },
-    // Color dot — size/borderRadius applied inline
-    accountDot: {},
-    accountCardName: {
-        fontSize: FontSize.md,
-        fontWeight: '600',
-        color: Colors.ink,
-    },
-    accountCardBalance: {
+    accountRowLast: { borderBottomWidth: 0 },
+    accountInfo: { flex: 1 },
+    accountName: {
         fontSize: FontSize.sm,
-        color: Colors.muted,
-        marginTop: 2,
+        fontWeight: '700',
+        color: Colors.ink,
+        marginBottom: 2,
     },
-    accountCardRight: {
+    accountBalance: {
+        fontSize: FontSize.xs,
+        color: Colors.muted,
+        fontWeight: '500',
+    },
+    accountActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.sm,
+        gap: Spacing.xs,
     },
-    accountActionBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: Colors.purpleLt,
+    actionBtn: {
+        width: 30, height: 30,
+        borderRadius: 9,
+        backgroundColor: Colors.violetLt,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    accountActionBtnText: {
-        fontSize: FontSize.lg,
+    actionBtnText: {
+        fontSize: FontSize.md,
         fontWeight: '700',
-        color: Colors.purple,
-        lineHeight: 20,
+        color: Colors.violet,
+        lineHeight: 18,
     },
-    accountDeleteText: {
-        fontSize: FontSize.sm,
+    deleteText: {
+        fontSize: FontSize.xs,
         color: Colors.muted,
         paddingHorizontal: Spacing.xs,
     },
 
-    //Goal card
+    // Goal card
     goalCard: {
         backgroundColor: Colors.white,
         borderRadius: Radius.sm,
         padding: Spacing.md,
         marginBottom: Spacing.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
         ...Shadow.card,
     },
     goalCardComplete: {
+        borderColor: Colors.teal,
         borderWidth: 1.5,
-        borderColor: Colors.sage,
     },
-    goalCardHeader: {
+    goalHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginBottom: Spacing.md,
     },
-    goalInfo: {
-        flex: 1,
-    },
+    goalInfo: { flex: 1 },
     goalName: {
         fontSize: FontSize.md,
         fontWeight: '700',
         color: Colors.ink,
+        marginBottom: 2,
     },
     goalDeadline: {
         fontSize: FontSize.xs,
         color: Colors.muted,
-        marginTop: 2,
         textTransform: 'capitalize',
     },
-    goalDeleteBtn: {
-        padding: Spacing.xs,
-    },
     goalDeleteText: {
-        fontSize: FontSize.sm,
+        fontSize: FontSize.xs,
         color: Colors.muted,
+        paddingLeft: Spacing.sm,
     },
 
     // Progress bar
-    progressBarBg: {
-        height: 6,
-        backgroundColor: Colors.warmMid,
+    progressBg: {
+        height: 5,
+        backgroundColor: Colors.mid,
         borderRadius: 3,
         overflow: 'hidden',
         marginBottom: Spacing.xs,
     },
-    progressBarFill: {
+    progressFill: {
         height: '100%',
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.violet,
         borderRadius: 3,
     },
-    progressBarFillComplete: {
-        backgroundColor: Colors.sage,
-    },
+    progressFillComplete: { backgroundColor: Colors.teal },
+
     goalAmounts: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -189,10 +212,11 @@ export default StyleSheet.create({
     },
     goalSaved: {
         fontSize: FontSize.sm,
-        fontWeight: '700',
-        color: Colors.purple,
+        fontWeight: '800',
+        color: Colors.violet,
+        letterSpacing: -0.3,
     },
-    goalPercentage: {
+    goalPct: {
         fontSize: FontSize.sm,
         fontWeight: '700',
         color: Colors.ink,
@@ -200,29 +224,29 @@ export default StyleSheet.create({
     goalTarget: {
         fontSize: FontSize.sm,
         color: Colors.muted,
+        fontWeight: '500',
     },
+
     suggestionRow: {
-        backgroundColor: Colors.purpleLt,
-        borderRadius: Radius.sm,
+        backgroundColor: Colors.violetLt,
+        borderRadius: Radius.sm - 2,
         padding: Spacing.sm,
         marginBottom: Spacing.sm,
     },
     suggestionText: {
         fontSize: FontSize.xs,
-        color: Colors.purple,
+        color: Colors.violet,
         fontWeight: '600',
         textAlign: 'center',
     },
-    completeRow: {
-        alignItems: 'center',
-        marginBottom: Spacing.sm,
-    },
+    completeRow: { alignItems: 'center', marginBottom: Spacing.sm },
     completeText: {
         fontSize: FontSize.sm,
         fontWeight: '700',
-        color: Colors.sage,
-        letterSpacing: 0.5,
+        color: Colors.teal,
+        letterSpacing: 0.3,
     },
+
     goalBtns: {
         flexDirection: 'row',
         gap: Spacing.sm,
@@ -230,9 +254,9 @@ export default StyleSheet.create({
     },
     goalBtnDeposit: {
         flex: 1,
-        backgroundColor: Colors.purple,
-        borderRadius: Radius.sm,
-        padding: Spacing.sm,
+        backgroundColor: Colors.violet,
+        borderRadius: Radius.sm - 2,
+        paddingVertical: 10,
         alignItems: 'center',
     },
     goalBtnDepositText: {
@@ -242,10 +266,10 @@ export default StyleSheet.create({
     },
     goalBtnWithdraw: {
         paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
-        borderRadius: Radius.sm,
+        paddingVertical: 10,
+        borderRadius: Radius.sm - 2,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
         alignItems: 'center',
     },
     goalBtnWithdrawText: {
@@ -254,49 +278,53 @@ export default StyleSheet.create({
         color: Colors.muted,
     },
 
-    // Modals / Sheets
+    // Bottom sheet
     modalBg: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
-    },
-    sheetScroll: {
-        justifyContent: 'flex-end',
-        flexGrow: 1,
     },
     sheet: {
         backgroundColor: Colors.paper,
         borderTopLeftRadius: Radius.lg,
         borderTopRightRadius: Radius.lg,
         padding: Spacing.lg,
-        paddingBottom: 40,
+        paddingBottom: 44,
         ...Shadow.float,
+        maxHeight: '90%',
+    },
+    sheetHandle: {
+        width: 36, height: 4,
+        backgroundColor: Colors.mid,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: Spacing.lg,
     },
     sheetTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
         gap: Spacing.sm,
         marginBottom: Spacing.xs,
     },
     sheetTitle: {
         fontSize: FontSize.xl,
-        fontWeight: '700',
+        fontWeight: '800',
         color: Colors.ink,
-        textAlign: 'center',
+        letterSpacing: -0.3,
+        marginBottom: Spacing.xs,
     },
     sheetSubtitle: {
         fontSize: FontSize.md,
         color: Colors.muted,
-        textAlign: 'center',
         marginBottom: Spacing.lg,
+        fontWeight: '500',
     },
     sheetLabel: {
         fontSize: FontSize.xs,
-        fontWeight: '700',
+        fontWeight: '800',
         color: Colors.muted,
         textTransform: 'uppercase',
-        letterSpacing: 0.8,
+        letterSpacing: 1,
         marginTop: Spacing.md,
         marginBottom: Spacing.xs,
     },
@@ -307,12 +335,13 @@ export default StyleSheet.create({
         fontSize: FontSize.md,
         color: Colors.ink,
         borderWidth: 1,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
     },
     sheetInputLarge: {
         fontSize: 28,
-        fontWeight: '700',
+        fontWeight: '800',
         textAlign: 'center',
+        letterSpacing: -1,
     },
 
     // Color picker
@@ -323,16 +352,15 @@ export default StyleSheet.create({
         marginTop: Spacing.xs,
     },
     colorDot: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 34, height: 34,
+        borderRadius: 17,
     },
     colorDotActive: {
         borderWidth: 3,
         borderColor: Colors.ink,
     },
 
-    // Preview inside AddAccountModal
+    // Account preview (in AddAccountModal)
     accountPreview: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -342,7 +370,7 @@ export default StyleSheet.create({
         padding: Spacing.md,
         marginBottom: Spacing.xs,
         borderWidth: 1,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
     },
     accountPreviewName: {
         fontSize: FontSize.md,
@@ -351,14 +379,14 @@ export default StyleSheet.create({
         flex: 1,
     },
 
-    // Account picker chips 
-    accountPickerRow: {
+    // Chips (account picker)
+    chipRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: Spacing.sm,
         marginTop: Spacing.xs,
     },
-    accountChip: {
+    chip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.xs,
@@ -367,26 +395,20 @@ export default StyleSheet.create({
         borderRadius: Radius.full,
         backgroundColor: Colors.white,
         borderWidth: 1.5,
-        borderColor: Colors.warmMid,
+        borderColor: Colors.mid,
     },
-    accountChipActive: {
-        backgroundColor: Colors.purpleLt,
-        borderColor: Colors.purple,
+    chipActive: {
+        backgroundColor: Colors.violetLt,
+        borderColor: Colors.violet,
     },
-    accountChipDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-    },
-    accountChipText: {
+    chipDot: { width: 8, height: 8, borderRadius: 4 },
+    chipText: {
         fontSize: FontSize.sm,
         fontWeight: '600',
         color: Colors.muted,
     },
-    accountChipTextActive: {
-        color: Colors.purple,
-    },
-    noAccountsText: {
+    chipTextActive: { color: Colors.violet },
+    emptyChipText: {
         fontSize: FontSize.sm,
         color: Colors.muted,
         textAlign: 'center',
@@ -394,7 +416,7 @@ export default StyleSheet.create({
     },
 
     // Deadline toggle
-    toggleDeadline: {
+    toggle: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.sm,
@@ -402,33 +424,18 @@ export default StyleSheet.create({
         marginBottom: Spacing.xs,
     },
     checkbox: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: Colors.warmMid,
+        width: 22, height: 22, borderRadius: 6,
+        borderWidth: 2, borderColor: Colors.mid,
         backgroundColor: Colors.white,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: 'center', alignItems: 'center',
     },
     checkboxActive: {
-        backgroundColor: Colors.purple,
-        borderColor: Colors.purple,
+        backgroundColor: Colors.violet,
+        borderColor: Colors.violet,
     },
-    checkmark: {
-        color: Colors.white,
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    toggleDeadlineText: {
-        fontSize: FontSize.md,
-        color: Colors.ink,
-        fontWeight: '500',
-    },
-    dateRow: {
-        flexDirection: 'row',
-        gap: Spacing.sm,
-    },
+    checkmark: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+    toggleText: { fontSize: FontSize.md, color: Colors.ink, fontWeight: '500' },
+    dateRow: { flexDirection: 'row', gap: Spacing.sm },
 
     // Sheet buttons
     sheetBtns: {
@@ -436,33 +443,21 @@ export default StyleSheet.create({
         gap: Spacing.sm,
         marginTop: Spacing.lg,
     },
-    cancelBtn: {
-        flex: 1,
-        height: 52,
-        borderRadius: Radius.sm,
-        backgroundColor: Colors.warmMid,
-        justifyContent: 'center',
-        alignItems: 'center',
+    btnCancel: {
+        flex: 1, height: 52, borderRadius: Radius.sm,
+        backgroundColor: Colors.mid,
+        justifyContent: 'center', alignItems: 'center',
     },
-    cancelBtnText: {
-        fontSize: FontSize.md,
-        fontWeight: '600',
-        color: Colors.ink,
+    btnCancelText: {
+        fontSize: FontSize.md, fontWeight: '600', color: Colors.ink,
     },
-    confirmBtn: {
-        flex: 2,
-        height: 52,
-        borderRadius: Radius.sm,
-        backgroundColor: Colors.purple,
-        justifyContent: 'center',
-        alignItems: 'center',
+    btnPrimary: {
+        flex: 2, height: 52, borderRadius: Radius.sm,
+        backgroundColor: Colors.violet,
+        justifyContent: 'center', alignItems: 'center',
     },
-    confirmBtnDisabled: {
-        backgroundColor: Colors.warmMid,
-    },
-    confirmBtnText: {
-        fontSize: FontSize.md,
-        fontWeight: '700',
-        color: Colors.white,
+    btnDisabled: { backgroundColor: Colors.mid },
+    btnPrimaryText: {
+        fontSize: FontSize.md, fontWeight: '700', color: Colors.white,
     },
 });
