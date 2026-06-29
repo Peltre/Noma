@@ -15,7 +15,7 @@ import { useFinance } from "../store/FinanceContext";
 import { removeData } from "../store/storage";
 
 export default function SettingsScreen() {
-    const { settings, updateSettings, resetAll, resetSavings } = useFinance();
+    const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds } = useFinance();
     const [userName, setUserName] = useState('');
 
     // Sync input with saved value
@@ -45,6 +45,7 @@ export default function SettingsScreen() {
                     onPress: async () => {
                         await resetAll();
                         await resetSavings();
+                        await resetScheduledFunds();
                         Alert.alert('Datos borrados', 'Reinicia la app para ver los cambios.');
                     },
                 },
