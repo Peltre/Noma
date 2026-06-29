@@ -1,8 +1,9 @@
-// File to manage programmed incomem doenst execute anything, its just the custom hook that makes & stores
+// Manages scheduled income reminders AND MSI (months without interest) installments
+// Nothing executes automatically — user confirms each payment from the Home screen
 
 import { useState, useEffect } from "react";
-import { saveData, loadData } from "./storage";
-import { addDays, addMonths, parseISO, startOfDay, differenceInDays, parse } from "date-fns";
+import { saveData, loadData, removeData } from "./storage";
+import { addMonths, parseISO, startOfDay, differenceInDays, addDays } from "date-fns";
 
 const KEY = 'scheduledFunds';
 
@@ -11,38 +12,40 @@ export function useScheduledFunds() {
 
     useEffect(() => {
         const load = async () => {
-            const saved = await loadData(KEY)
+            const saved = await loadData(KEY);
             setScheduledFunds(saved || []);
         };
         load();
     }, []);
 
-    // Calculate next date based on frequency
+    // Date helpers
+
     const getNextDate = (frequency, fromDate) => {
         switch (frequency) {
             case 'weekly': return addDays(fromDate, 7);
             case 'biweekly': return addDays(fromDate, 14);
             case 'monthly': return addMonths(fromDate, 1);
-            default: return addDays(fromDate, 14); // set biweekly to default
+            default: return addDays(fromDate, 14);
         }
     };
 
-    // Return status of a fund based on its next date
-    // 'overdue' - date has passed, 'upcoming' within 3 days, 'ok' more than 3 days away
+    // Status
+
     const getFundStatus = (fund) => {
         const today = startOfDay(new Date());
         const next = startOfDay(parseISO(fund.nextDate));
         const diff = differenceInDays(next, today);
-
         if (diff < 0) return 'overdue';
         if (diff <= 3) return 'upcoming';
         return 'ok';
     };
 
-    // Create a new scheduled fund
+    // Scheduled income funds
+
     const addScheduledFund = async (fund) => {
         const newFund = {
             id: Date.now().toString(),
+            type: 'income',         // explicit type for income funds
             createdAt: new Date().toISOString(),
             ...fund,
         };
@@ -51,32 +54,78 @@ export function useScheduledFunds() {
         await saveData(KEY, updated);
     };
 
-    // Called after user confirms a fund payment
     const confirmFund = async (fundId) => {
         const updated = scheduledFunds.map(f => {
             if (f.id !== fundId) return f;
-            const currentNext = parseISO(f.nextDate);
-            return {
-                ...f,
-                nextDate: getNextDate(f.frequency, currentNext).toISOString(),
-                lastConfirmed: new Date().toISOString(),
-            };
+            const next = getNextDate(f.frequency, parseISO(f.nextDate));
+            return { ...f, nextDate: next.toISOString(), lastConfirmed: new Date().toISOString() };
         });
         setScheduledFunds(updated);
         await saveData(KEY, updated);
     };
 
-    // Delete a scheduled fund
     const removeScheduledFund = async (fundId) => {
         const updated = scheduledFunds.filter(f => f.id !== fundId);
         setScheduledFunds(updated);
         await saveData(KEY, updated);
     };
 
-    // Funds that need attention (overdye / upcoming)
-    const pendingFunds = scheduledFunds.filter(f =>
-        getFundStatus(f) !== 'ok'
-    );
+    // MSI Installments
+
+    const addMSI = async ({ name, totalAmount, months, firstDate, accountId, creditCardId }) => {
+        const monthly = totalAmount / months;
+        const newMSI = {
+            id: Date.now().toString(),
+            type: 'msi',
+            name,
+            totalAmount,
+            months,
+            monthlyAmount: parseFloat(monthly.toFixed(2)),
+            paidMonths: 0,
+            nextDate: firstDate, // ISO string of first payment date
+            accountId: accountId || null,
+            creditCardId: creditCardId || null,
+            createdAt: new Date().toISOString(),
+        };
+        const updated = [...scheduledFunds, newMSI];
+        setScheduledFunds(updated);
+        await saveData(KEY, updated);
+        return newMSI;
+    };
+
+    // Confirm one MSI payment auto-removes when all months are paid
+    const confirmMSI = async (msiId) => {
+        let removed = false;
+        const updated = scheduledFunds.reduce((acc, f) => {
+            if (f.id !== msiId) { acc.push(f); return acc; }
+            const newPaid = f.paidMonths + 1;
+            if (newPaid >= f.months) {
+                // All installments paid — drop it
+                removed = true;
+                return acc;
+            }
+            acc.push({
+                ...f,
+                paidMonths: newPaid,
+                nextDate: addMonths(parseISO(f.nextDate), 1).toISOString(),
+                lastConfirmed: new Date().toISOString(),
+            });
+            return acc;
+        }, []);
+        setScheduledFunds(updated);
+        await saveData(KEY, updated);
+        return { removed };
+    };
+
+    // Reset 
+
+    const resetScheduledFunds = async () => {
+        await removeData(KEY);
+        setScheduledFunds([]);
+    };
+
+    // Funds that need attention (overdue or within 3 days) — both types
+    const pendingFunds = scheduledFunds.filter(f => getFundStatus(f) !== 'ok');
 
     return {
         scheduledFunds,
@@ -84,6 +133,9 @@ export function useScheduledFunds() {
         addScheduledFund,
         confirmFund,
         removeScheduledFund,
+        addMSI,
+        confirmMSI,
         getFundStatus,
+        resetScheduledFunds,
     };
 }
