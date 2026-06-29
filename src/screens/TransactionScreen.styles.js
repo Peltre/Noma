@@ -181,5 +181,96 @@ export default StyleSheet.create({
         fontWeight: '700',
     },
 
-    bottonPadding: { height: Spacing.xl }
+    bottonPadding: { height: Spacing.xl },
+
+    // MSI preview banner
+    msiPreview: {
+        marginHorizontal: 24,
+        marginBottom: 12,
+        backgroundColor: '#EEE8F7',
+        borderRadius: 12,
+        padding: 14,
+        borderLeftWidth: 3,
+        borderLeftColor: '#6B5B9E',
+    },
+    msiPreviewText: {
+        fontSize: 14,
+        color: '#0F0E0C',
+        fontWeight: '600',
+    },
+    msiPreviewAmount: {
+        color: '#6B5B9E',
+        fontWeight: '700',
+    },
+    msiPreviewSub: {
+        fontSize: 12,
+        color: '#8C8880',
+        marginTop: 4,
+    },
+
+    // MSI month selector
+    msiMonthsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 4,
+    },
+    msiMonthBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#E8E2D5',
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    msiMonthBtnActive: {
+        backgroundColor: '#6B5B9E',
+        borderColor: '#6B5B9E',
+    },
+    msiMonthText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#8C8880',
+    },
+    msiMonthTextActive: {
+        color: '#FFFFFF',
+    },
+
+    // Credit & MSI toggles (checkbox style)
+    creditToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 10,
+    },
+    creditToggleText: {
+        fontSize: 14,
+        color: '#0F0E0C',
+        fontWeight: '500',
+    },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#E8E2D5',
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkboxActive: {
+        backgroundColor: '#0F0E0C',
+        borderColor: '#0F0E0C',
+    },
+    checkboxActiveMsi: {
+        backgroundColor: '#6B5B9E',
+        borderColor: '#6B5B9E',
+    },
+    checkmark: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
+    },
 })

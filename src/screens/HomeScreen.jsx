@@ -5,7 +5,8 @@ import {
     Text,
     ScrollView,
     TouchableOpacity,
-    ActivityIndicator
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -34,9 +35,11 @@ export default function HomeScreen() {
         creditCards,
         totalBalance,
         isLoading,
+        addTransaction,
         pendingFunds,
         getFundStatus,
         confirmFund,
+        confirmMSI,
     } = useFinance();
 
     // While data is loading show progress bar / spinner
@@ -103,19 +106,57 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Pending funds */}
-                {pendingFunds.length > 0 && (
+                {/* MSI installments due */}
+                {pendingFunds.filter(f => f.type === 'msi').length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Por cobrar</Text>
+                            <Text style={styles.sectionTitle}>Cargos MSI</Text>
                         </View>
-                        {pendingFunds.map(fund => (
+                        {pendingFunds.filter(f => f.type === 'msi').map(fund => (
                             <PendingFundCard
                                 key={fund.id}
                                 fund={fund}
                                 status={getFundStatus(fund)}
                                 onPress={() => {
-                                    // Navega a AddTransaction prellenado con datos del fondo
+                                    Alert.alert(
+                                        `MSI — ${fund.name}`,
+                                        `Pago ${fund.paidMonths + 1} de ${fund.months}\n$${fund.monthlyAmount.toFixed(2)} de $${fund.totalAmount.toFixed(2)} total`,
+                                        [
+                                            { text: 'Cancelar', style: 'cancel' },
+                                            {
+                                                text: 'Confirmar pago',
+                                                onPress: async () => {
+                                                    await addTransaction({
+                                                        type: 'expense',
+                                                        amount: fund.monthlyAmount,
+                                                        reason: `${fund.name} MSI ${fund.paidMonths + 1}/${fund.months}`,
+                                                        category: 'services',
+                                                        accountId: null,
+                                                        creditCardId: fund.creditCardId,
+                                                    });
+                                                    await confirmMSI(fund.id);
+                                                },
+                                            },
+                                        ]
+                                    );
+                                }}
+                            />
+                        ))}
+                    </View>
+                )}
+
+                {/* Pending income funds */}
+                {pendingFunds.filter(f => f.type !== 'msi').length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Por cobrar</Text>
+                        </View>
+                        {pendingFunds.filter(f => f.type !== 'msi').map(fund => (
+                            <PendingFundCard
+                                key={fund.id}
+                                fund={fund}
+                                status={getFundStatus(fund)}
+                                onPress={() => {
                                     navigation.navigate('AddTransaction', {
                                         prefill: {
                                             type: 'income',
