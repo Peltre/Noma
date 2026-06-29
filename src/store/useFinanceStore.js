@@ -78,6 +78,50 @@ export function useFinanceStore() {
         return newTransaction;
     };
 
+    const deleteTransaction = async (txnId) => {
+        const txn = transactions.find(t => t.id === txnId);
+        if (!txn) return;
+
+        // reverse balance effect
+        if (txn.accountId) {
+            if (txn.type === 'income') {
+                await updateAccountBalance(txn.accountId, -txn.amount);
+            } else if (txn.type === 'expense' || txn.type === 'withdrawal') {
+                await updateAccountBalance(txn.accountId, txn.amount);
+            }
+        }
+        if (txn.type === 'expense' && txn.creditCardId) {
+            await updateCreditCardDebt(txn.creditCardId, -txn.amount);
+        }
+        const updated = transactions.filter(t => t.id !== txnId);
+        setTransactions(updated);
+        await saveData(KEYS.transactions, updated);
+    };
+
+    // Edit a transaction's reason and/or amount (category stays the same)
+    const updateTransaction = async (txnId, changes) => {
+        const txn = transactions.find(t => t.id === txnId);
+        if (!txn) return;
+
+        // If amount changed, adjust balances by the delta
+        if (changes.amount !== undefined && changes.amount !== txn.amount) {
+            const delta = changes.amount - txn.amount;
+            if (txn.accountId) {
+                const balanceDelta = txn.type === 'income' ? delta : -delta;
+                await updateAccountBalance(txn.accountId, balanceDelta);
+            }
+            if (txn.type === 'expense' && txn.creditCardId) {
+                await updateCreditCardDebt(txn.creditCardId, delta);
+            }
+        }
+
+        const updated = transactions.map(t =>
+            t.id === txnId ? { ...t, ...changes } : t
+        );
+        setTransactions(updated);
+        await saveData(KEYS.transactions, updated);
+    };
+
     // Credit Card handling
     const addCreditCard = async (card) => {
         const newCard = {
@@ -144,6 +188,8 @@ export function useFinanceStore() {
         isLoading,
         // Actions
         addTransaction,
+        updateTransaction,
+        deleteTransaction,
         addCreditCard,
         updateCreditCardDebt,
         payCreditCard,
