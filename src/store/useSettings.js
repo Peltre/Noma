@@ -1,7 +1,7 @@
 // Custom hook to handle general app settings
 
 import { useState, useEffect } from "react";
-import { saveData, loadData } from "./storage";
+import { saveData, loadData, removeData } from "./storage";
 
 const SETTINGS_KEY = 'settings';
 
@@ -35,5 +35,10 @@ export function useSettings() {
         await updateSettings({ onboardingCompleted: true });
     };
 
-    return { settings, isLoading, updateSettings, completeOnboarding };
+    const resetSettings = async () => {
+        await removeData(SETTINGS_KEY);
+        setSettings(defaultSettings);
+    };
+
+    return { settings, isLoading, updateSettings, completeOnboarding, resetSettings };
 }
