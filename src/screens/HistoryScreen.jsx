@@ -9,7 +9,7 @@ import { format, parseISO, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { useFinance } from '../store/FinanceContext';
-import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
+import { Colors, FontSize, Spacing, Radius, Shadow, ACCOUNT_LABELS } from '../constants';
 import styles from './HistoryScreen.styles';
 
 const FILTERS = [
@@ -25,7 +25,6 @@ const TYPE_CONFIG = {
     withdrawal: { emoji: '💸', badge: styles.badgeRetiro, label: 'Retiro', color: Colors.amber },
 };
 
-const ACCOUNT_LABELS = { cash: 'Efectivo', debit: 'Débito', savings: 'Ahorros' };
 
 // Transaction detail / edit bottom sheet 
 function TransactionSheet({ txn, onClose, accounts, creditCards }) {

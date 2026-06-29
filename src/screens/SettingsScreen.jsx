@@ -12,7 +12,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import styles from './SettingsScreen.styles';
 
 import { useFinance } from "../store/FinanceContext";
-import { removeData } from "../store/storage";
 
 export default function SettingsScreen() {
     const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings } = useFinance();

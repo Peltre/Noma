@@ -28,7 +28,6 @@ export const SAVINGS_COLORS = [
 export function useSavings(updateAccountBalance) {
     const [savingsAccounts, setSavingsAccounts] = useState([]);
     const [savingsGoals, setSavingsGoals] = useState([]);
-    const [savingsLoading, setSavingsLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
@@ -36,7 +35,6 @@ export function useSavings(updateAccountBalance) {
             const goals = await loadData(KEYS.savingsGoals);
             setSavingsAccounts(accs || []);
             setSavingsGoals(goals || []);
-            setSavingsLoading(false);
         };
         load();
     }, []);
@@ -103,7 +101,6 @@ export function useSavings(updateAccountBalance) {
     };
 
     // Goals
-
     const addSavingsGoal = async ({ name, targetAmount, emoji, deadline = null }) => {
         const newGoal = {
             id: Date.now().toString(),
@@ -226,7 +223,6 @@ export function useSavings(updateAccountBalance) {
     return {
         savingsAccounts,
         savingsGoals,
-        savingsLoading,
         savingsBreakdownTotal,
         // Accounts
         addSavingsAccount,

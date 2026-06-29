@@ -24,17 +24,7 @@ const FREQUENCIES = [
     { key: 'monthly', label: 'Mensual' },
 ];
 
-const ACCOUNT_LABELS = {
-    cash: 'Efectivo',
-    debit: 'Tarjeta',
-    savings: 'Ahorros',
-};
 
-const FREQUENCY_LABELS = {
-    weekly: 'Semanal',
-    biweekly: 'Quincenal',
-    monthly: 'Mensual',
-};
 
 export default function ScheduledFundsScreen() {
     const navigation = useNavigation();

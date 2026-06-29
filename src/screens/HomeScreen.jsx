@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { formatCurrency, formatCurrencyShort } from '../utils';
-import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
+import { Colors } from '../constants';
 import styles from './HomeScreen.styles';
 import FloatingButton from '../components/FloatingButton';
 
@@ -64,8 +64,8 @@ export default function HomeScreen() {
                             <Text style={styles.greeting}>Hola de nuevo, </Text>
                             <Text style={styles.userName}>{settings.userName}</Text>
                         </View>
-                        <View styles={styles.avatar}>
-                            <Text style={styles.avatarText}>K</Text>
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>{settings.userName?.[0]?.toUpperCase() ?? '?'}</Text>
                         </View>
                     </View>
 

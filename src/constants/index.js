@@ -2,3 +2,16 @@
 
 export * from './theme';
 export * from './categories';
+
+// Shared label maps used across multiple screens
+export const ACCOUNT_LABELS = {
+    cash: 'Efectivo',
+    debit: 'Débito',
+    savings: 'Ahorros',
+};
+
+export const FREQUENCY_LABELS = {
+    weekly: 'Semanal',
+    biweekly: 'Quincenal',
+    monthly: 'Mensual',
+};

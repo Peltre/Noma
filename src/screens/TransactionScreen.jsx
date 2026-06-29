@@ -9,8 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CATEGORIES } from '../constants';
-import { Colors, FontSize, Spacing, Radius } from '../constants';
+import { CATEGORIES, ACCOUNT_LABELS, Colors, FontSize, Spacing, Radius } from '../constants';
 import styles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 
@@ -20,11 +19,6 @@ const TYPES = {
     withdrawal: { label: 'Retiro', color: Colors.amber, colorsLt: Colors.amberLt },
 };
 
-const ACCOUNT_LABELS = {
-    cash: 'Efectivo',
-    debit: 'Débito',
-    savings: 'Ahorros',
-};
 
 const MSI_OPTIONS = [3, 6, 9, 12, 18, 24];
 
