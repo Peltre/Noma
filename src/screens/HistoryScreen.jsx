@@ -1,16 +1,18 @@
 // Full log of transactions — tap any row for detail, edit, or delete
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    Modal, TextInput, Alert, Platform, KeyboardAvoidingView, StyleSheet,
+    Modal, TextInput, Alert, Platform, KeyboardAvoidingView,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format, parseISO, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { useFinance } from '../store/FinanceContext';
-import { Colors, FontSize, Spacing, Radius, Shadow, ACCOUNT_LABELS } from '../constants';
-import styles from './HistoryScreen.styles';
+import { useTheme } from '../store/useTheme';
+import { Spacing, ACCOUNT_LABELS } from '../constants';
+import createHistoryStyles from './HistoryScreen.styles';
+import createSheetStyles from './HistorySheet.styles';
 
 const FILTERS = [
     { key: 'all', label: 'Todos' },
@@ -19,44 +21,46 @@ const FILTERS = [
     { key: 'income', label: 'Ingresos' },
 ];
 
-const TYPE_CONFIG = {
-    income: { glyph: '↓', bgColor: Colors.tealLt, fgColor: Colors.teal, label: 'Ingreso' },
-    expense: { glyph: '↑', bgColor: Colors.coralLt, fgColor: Colors.coral, label: 'Gasto' },
-    withdrawal: { glyph: '→', bgColor: Colors.goldLt, fgColor: Colors.gold, label: 'Retiro' },
-};
+// Only two accents with fixed meaning across the app: moneyIn/moneyOut.
+// A withdrawal is neither, so it stays neutral — same rule as Home.
+function getTypeConfig(theme, type) {
+    if (type === 'income') return { glyph: '↓', bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
+    if (type === 'expense') return { glyph: '↑', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
+    return { glyph: '→', bg: theme.border, fg: theme.muted, label: 'Retiro' };
+}
 
 // Small colored icon — glyph in colored box, no emoji
-function TxnIcon({ type, size = 36 }) {
-    const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.expense;
+function TxnIcon({ type, theme, sheet, size = 36 }) {
+    const cfg = getTypeConfig(theme, type);
     return (
         <View style={[
             sheet.txnIcon,
-            { width: size, height: size, borderRadius: size * 0.3, backgroundColor: cfg.bgColor },
+            { width: size, height: size, borderRadius: size * 0.3, backgroundColor: cfg.bg },
         ]}>
-            <Text style={[sheet.txnGlyph, { color: cfg.fgColor }]}>{cfg.glyph}</Text>
+            <Text style={[sheet.txnGlyph, { color: cfg.fg }]}>{cfg.glyph}</Text>
         </View>
     );
 }
 
 // Dot + text badge
-function TxnBadge({ type }) {
-    const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.expense;
+function TxnBadge({ type, theme, sheet }) {
+    const cfg = getTypeConfig(theme, type);
     return (
         <View style={sheet.badge}>
-            <View style={[sheet.badgeDot, { backgroundColor: cfg.fgColor }]} />
+            <View style={[sheet.badgeDot, { backgroundColor: cfg.fg }]} />
             <Text style={sheet.badgeText}>{cfg.label}</Text>
         </View>
     );
 }
 
 // ── Detail / edit bottom sheet ────────────────────────────────────
-function TransactionSheet({ txn, onClose, accounts, creditCards }) {
+function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet }) {
     const { deleteTransaction, updateTransaction } = useFinance();
     const [editing, setEditing] = useState(false);
     const [editReason, setReason] = useState(txn.reason);
     const [editAmount, setAmount] = useState(txn.amount.toString());
 
-    const cfg = TYPE_CONFIG[txn.type] || TYPE_CONFIG.expense;
+    const cfg = getTypeConfig(theme, txn.type);
     const isIncome = txn.type === 'income';
 
     const accountName = txn.creditCardId
@@ -100,8 +104,8 @@ function TransactionSheet({ txn, onClose, accounts, creditCards }) {
                     <View style={sheet.handle} />
 
                     {/* Icon + type */}
-                    <TxnIcon type={txn.type} size={52} />
-                    <Text style={[sheet.typeLabel, { color: cfg.fgColor }]}>{cfg.label}</Text>
+                    <TxnIcon type={txn.type} theme={theme} sheet={sheet} size={52} />
+                    <Text style={[sheet.typeLabel, { color: cfg.fg }]}>{cfg.label}</Text>
 
                     {editing ? (
                         <>
@@ -111,7 +115,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards }) {
                                 value={editReason}
                                 onChangeText={setReason}
                                 placeholder="Describe el movimiento"
-                                placeholderTextColor={Colors.muted}
+                                placeholderTextColor={theme.muted}
                                 autoFocus
                             />
                             <Text style={sheet.fieldLabel}>MONTO</Text>
@@ -121,7 +125,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards }) {
                                 onChangeText={setAmount}
                                 keyboardType="decimal-pad"
                                 placeholder="0.00"
-                                placeholderTextColor={Colors.muted}
+                                placeholderTextColor={theme.muted}
                             />
                             <View style={sheet.btnRow}>
                                 <TouchableOpacity style={sheet.btnCancel} onPress={() => setEditing(false)}>
@@ -177,6 +181,9 @@ function TransactionSheet({ txn, onClose, accounts, creditCards }) {
 // Main screen
 export default function HistoryScreen() {
     const { transactions, accounts, creditCards } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createHistoryStyles(theme), [theme]);
+    const sheet = useMemo(() => createSheetStyles(theme), [theme]);
     const [activeFilter, setFilter] = useState('all');
     const [selectedTxn, setSelectedTxn] = useState(null);
     const insets = useSafeAreaInsets();
@@ -202,7 +209,7 @@ export default function HistoryScreen() {
         <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Dark hero header — paddingTop absorbs status bar */}
+                {/* Hero header — paddingTop absorbs status bar */}
                 <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
                     <View style={styles.heroBar1} />
                     <View style={styles.heroBar2} />
@@ -214,19 +221,19 @@ export default function HistoryScreen() {
 
                     <View style={styles.statsRow}>
                         <View style={styles.statCell}>
-                            <Text style={[styles.statVal, { color: '#E07070' }]}>
+                            <Text style={[styles.statVal, { color: theme.moneyOut }]}>
                                 {formatCurrencyShort(totalExp)}
                             </Text>
                             <Text style={styles.statLbl}>Gastos</Text>
                         </View>
                         <View style={[styles.statCell, styles.statCellMid]}>
-                            <Text style={[styles.statVal, { color: '#CFA040' }]}>
+                            <Text style={[styles.statVal, { color: theme.ink }]}>
                                 {formatCurrencyShort(totalWd)}
                             </Text>
                             <Text style={styles.statLbl}>Retiros</Text>
                         </View>
                         <View style={styles.statCell}>
-                            <Text style={[styles.statVal, { color: '#3EC4BE' }]}>
+                            <Text style={[styles.statVal, { color: theme.moneyIn }]}>
                                 {formatCurrencyShort(totalInc)}
                             </Text>
                             <Text style={styles.statLbl}>Ingresos</Text>
@@ -274,7 +281,7 @@ export default function HistoryScreen() {
                                             onPress={() => setSelectedTxn(txn)}
                                             activeOpacity={0.7}
                                         >
-                                            <TxnIcon type={txn.type} />
+                                            <TxnIcon type={txn.type} theme={theme} sheet={sheet} />
                                             <View style={styles.txnInfo}>
                                                 <Text style={styles.txnName} numberOfLines={1}>
                                                     {txn.reason}
@@ -290,7 +297,7 @@ export default function HistoryScreen() {
                                                 ]}>
                                                     {isIncome ? '+' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
-                                                <TxnBadge type={txn.type} />
+                                                <TxnBadge type={txn.type} theme={theme} sheet={sheet} />
                                             </View>
                                         </TouchableOpacity>
                                     );
@@ -309,148 +316,10 @@ export default function HistoryScreen() {
                     onClose={() => setSelectedTxn(null)}
                     accounts={accounts}
                     creditCards={creditCards}
+                    theme={theme}
+                    sheet={sheet}
                 />
             )}
         </View>
     );
 }
-
-// Sheet styles (local, not shared)
-const sheet = StyleSheet.create({
-    backdrop: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    scrim: { ...StyleSheet.absoluteFillObject },
-    panel: {
-        backgroundColor: Colors.paper,
-        borderTopLeftRadius: Radius.lg,
-        borderTopRightRadius: Radius.lg,
-        padding: Spacing.lg,
-        paddingBottom: 40,
-        alignItems: 'center',
-    },
-    handle: {
-        width: 36, height: 4,
-        borderRadius: 2,
-        backgroundColor: Colors.mid,
-        marginBottom: Spacing.lg,
-    },
-    txnIcon: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: Spacing.sm,
-    },
-    txnGlyph: {
-        fontSize: 22,
-        fontWeight: '800',
-    },
-    typeLabel: {
-        fontSize: FontSize.xs,
-        fontWeight: '800',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-        marginBottom: Spacing.xs,
-    },
-    amount: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: Colors.ink,
-        letterSpacing: -1.5,
-        marginBottom: Spacing.xs,
-    },
-    reason: {
-        fontSize: FontSize.md,
-        color: Colors.muted,
-        textAlign: 'center',
-        marginBottom: Spacing.lg,
-        paddingHorizontal: Spacing.md,
-    },
-    detailList: {
-        width: '100%',
-        backgroundColor: Colors.white,
-        borderRadius: Radius.sm,
-        marginBottom: Spacing.lg,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: Colors.mid,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.mid,
-    },
-    detailKey: { fontSize: FontSize.sm, color: Colors.muted, fontWeight: '500' },
-    detailVal: { fontSize: FontSize.sm, color: Colors.ink, fontWeight: '700', textAlign: 'right', flex: 1, marginLeft: Spacing.md },
-    fieldLabel: {
-        alignSelf: 'flex-start',
-        fontSize: FontSize.xs,
-        fontWeight: '800',
-        color: Colors.muted,
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginTop: Spacing.sm,
-        marginBottom: Spacing.xs,
-    },
-    input: {
-        width: '100%',
-        backgroundColor: Colors.white,
-        borderRadius: Radius.sm,
-        padding: Spacing.md,
-        fontSize: FontSize.md,
-        color: Colors.ink,
-        borderWidth: 1,
-        borderColor: Colors.mid,
-    },
-    inputLarge: {
-        fontSize: 28,
-        fontWeight: '700',
-        textAlign: 'center',
-        marginBottom: Spacing.md,
-    },
-    btnRow: {
-        flexDirection: 'row',
-        gap: Spacing.sm,
-        width: '100%',
-        marginTop: Spacing.sm,
-    },
-    btnPrimary: {
-        flex: 2, height: 52, borderRadius: Radius.sm,
-        backgroundColor: Colors.ink,
-        justifyContent: 'center', alignItems: 'center',
-    },
-    btnPrimaryText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
-    btnCancel: {
-        flex: 1, height: 52, borderRadius: Radius.sm,
-        backgroundColor: Colors.mid,
-        justifyContent: 'center', alignItems: 'center',
-    },
-    btnCancelText: { fontSize: FontSize.md, fontWeight: '600', color: Colors.ink },
-    btnDanger: {
-        flex: 1, height: 52, borderRadius: Radius.sm,
-        backgroundColor: Colors.coralLt,
-        justifyContent: 'center', alignItems: 'center',
-    },
-    btnDangerText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.coral },
-    badge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: 'rgba(15,14,12,0.07)',
-        paddingHorizontal: 7,
-        paddingVertical: 3,
-        borderRadius: Radius.full,
-    },
-    badgeDot: { width: 5, height: 5, borderRadius: 3 },
-    badgeText: {
-        fontSize: FontSize.xs - 1,
-        fontWeight: '700',
-        color: Colors.ink,
-        letterSpacing: 0.3,
-        textTransform: 'uppercase',
-    },
-});

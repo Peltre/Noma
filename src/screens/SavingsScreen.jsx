@@ -1,5 +1,5 @@
 // Savings tab — breakdown of where your savings live + goals tracker
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
     View, Text, ScrollView, TouchableOpacity,
     TextInput, Alert, Modal, Platform, KeyboardAvoidingView,
@@ -8,13 +8,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useFinance } from "../store/FinanceContext";
+import { useTheme } from "../store/useTheme";
 import { SAVINGS_COLORS } from "../store/useSavings";
 import { formatCurrency, formatCurrencyShort } from "../utils";
-import { Colors, FontSize, Spacing, Radius, Shadow } from "../constants";
-import styles from './SavingsScreen.styles';
+import { Spacing } from "../constants";
+import createSavingsStyles from './SavingsScreen.styles';
 
 // Color picker (bye bye emoji picker)
 function ColorPicker({ selected, onSelect }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     return (
         <View style={styles.colorRow}>
             {SAVINGS_COLORS.map(c => (
@@ -41,6 +44,8 @@ function AccountDot({ color, size = 40 }) {
 
 // Sheet wrapper
 function Sheet({ children, scroll = false }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     if (scroll) {
         return (
             <View style={styles.sheet}>
@@ -62,6 +67,8 @@ function Sheet({ children, scroll = false }) {
 // New account modal
 function AddAccountModal({ visible, onClose, generalAccounts }) {
     const { addSavingsAccount, depositToSavingsAccount } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [name, setName] = useState('');
     const [color, setColor] = useState(SAVINGS_COLORS[0]);
     const [initialBalance, setInitialBalance] = useState('');
@@ -114,7 +121,7 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
                         value={name}
                         onChangeText={setName}
                         placeholder="Ej. Cajita Nu, Apartado BBVA..."
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                     />
 
                     <Text style={styles.sheetLabel}>SALDO INICIAL (opcional)</Text>
@@ -123,7 +130,7 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
                         value={initialBalance}
                         onChangeText={setInitialBalance}
                         placeholder="$0.00"
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                         keyboardType="decimal-pad"
                     />
 
@@ -167,6 +174,8 @@ function AddAccountModal({ visible, onClose, generalAccounts }) {
 // Move money modal
 function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mode }) {
     const { depositToSavingsAccount, withdrawFromSavingsAccount } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [amount, setAmount] = useState('');
     const [selectedAccountId, setSelectedAccountId] = useState(
         generalAccounts.find(a => a.type !== 'savings')?.id || ''
@@ -202,7 +211,7 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
                         value={amount}
                         onChangeText={setAmount}
                         placeholder="$0.00"
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                         keyboardType="decimal-pad"
                         autoFocus
                     />
@@ -243,6 +252,8 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, generalAccounts, mod
 // New Goal modal
 function AddGoalModal({ visible, onClose }) {
     const { addSavingsGoal } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [name, setName] = useState('');
     const [targetAmount, setTargetAmount] = useState('');
     const [hasDeadline, setHasDeadline] = useState(false);
@@ -279,7 +290,7 @@ function AddGoalModal({ visible, onClose }) {
                         value={name}
                         onChangeText={setName}
                         placeholder="Ej. AirPods 4, Viaje NYC..."
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                     />
 
                     <Text style={styles.sheetLabel}>¿CUÁNTO CUESTA?</Text>
@@ -288,7 +299,7 @@ function AddGoalModal({ visible, onClose }) {
                         value={targetAmount}
                         onChangeText={setTargetAmount}
                         placeholder="$0.00"
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                         keyboardType="decimal-pad"
                     />
 
@@ -308,7 +319,7 @@ function AddGoalModal({ visible, onClose }) {
                                     value={deadlineMonth}
                                     onChangeText={setDeadlineMonth}
                                     placeholder="1-12"
-                                    placeholderTextColor={Colors.muted}
+                                    placeholderTextColor={theme.muted}
                                     keyboardType="number-pad"
                                     maxLength={2}
                                 />
@@ -320,7 +331,7 @@ function AddGoalModal({ visible, onClose }) {
                                     value={deadlineYear}
                                     onChangeText={setDeadlineYear}
                                     placeholder="2026"
-                                    placeholderTextColor={Colors.muted}
+                                    placeholderTextColor={theme.muted}
                                     keyboardType="number-pad"
                                     maxLength={4}
                                 />
@@ -349,6 +360,8 @@ function AddGoalModal({ visible, onClose }) {
 // Contribute to a Goal
 function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) {
     const { contributeToGoal, withdrawFromGoal } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [amount, setAmount] = useState('');
     const [selectedAccId, setSelectedAccId] = useState(savingsAccounts[0]?.id || '');
     const isDeposit = mode === 'deposit';
@@ -379,7 +392,7 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
                         value={amount}
                         onChangeText={setAmount}
                         placeholder="$0.00"
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                         keyboardType="decimal-pad"
                         autoFocus
                     />
@@ -424,6 +437,8 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
 
 // Goal card
 function GoalCard({ goal, savingsAccounts, onDelete, getMonthlySuggestion }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [showContribute, setShowContribute] = useState(false);
     const [showWithdraw, setShowWithdraw] = useState(false);
 
@@ -521,6 +536,8 @@ export default function SavingsScreen() {
         accounts, savingsAccounts, savingsGoals,
         deleteSavingsAccount, deleteSavingsGoal, getMonthlySuggestion,
     } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
 
     const insets = useSafeAreaInsets();
     const mainSavingsBalance = accounts.find(a => a.type === 'savings')?.balance ?? 0;
@@ -548,7 +565,7 @@ export default function SavingsScreen() {
         <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* ── Dark hero ── */}
+                {/* ── Hero ── */}
                 <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
                     <View style={styles.heroArc} />
                     <View style={styles.heroDot} />

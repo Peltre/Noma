@@ -1,14 +1,17 @@
 // List of credit cards with debt tracking
+import { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { formatCurrency, formatCurrencyShort } from '../utils';
-import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
-import styles from './CardsScreen.styles';
+import { Spacing } from '../constants';
+import createCardsStyles from './CardsScreen.styles';
 import { useFinance } from '../store/FinanceContext';
+import { useTheme } from '../store/useTheme';
 import Svg, { Rect, Path } from 'react-native-svg';
 
-// Card colors cycling by index
+// Card colors cycling by index — fixed palette, meant to look like
+// physical cards, independent of the app theme.
 const CARD_COLORS = ['#1A1A2E', '#16213E', '#0F3460', '#1B1B2F'];
 
 // Small credit card icon (SVG)
@@ -26,6 +29,8 @@ export default function CardsScreen() {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const { creditCards, payCreditCard } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createCardsStyles(theme), [theme]);
 
     const handlePayTotal = (card) => {
         Alert.alert(
@@ -54,7 +59,7 @@ export default function CardsScreen() {
                 {creditCards.length === 0 ? (
                     <View style={styles.emptyState}>
                         <View style={styles.emptyIconWrap}>
-                            <CardIcon color={Colors.muted} />
+                            <CardIcon color={theme.muted} />
                         </View>
                         <Text style={styles.emptyTitle}>Sin tarjetas</Text>
                         <Text style={styles.emptySub}>
@@ -116,7 +121,7 @@ export default function CardsScreen() {
                                         </View>
                                         <View style={styles.detailRow}>
                                             <Text style={styles.detailKey}>Fecha de pago</Text>
-                                            <Text style={[styles.detailVal, isSoon && { color: Colors.gold }]}>
+                                            <Text style={[styles.detailVal, isSoon && { color: theme.moneyOut }]}>
                                                 Día {card.paymentDay}
                                                 {isSoon ? '  · pronto' : ''}
                                             </Text>
@@ -129,7 +134,7 @@ export default function CardsScreen() {
                                         </View>
                                         <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
                                             <Text style={styles.detailKey}>Pago total</Text>
-                                            <Text style={[styles.detailVal, { color: Colors.coral, fontWeight: '800' }]}>
+                                            <Text style={[styles.detailVal, { color: theme.moneyOut, fontWeight: '800' }]}>
                                                 {formatCurrency(card.currentDebt)}
                                             </Text>
                                         </View>
@@ -146,7 +151,7 @@ export default function CardsScreen() {
                                     >
                                         <Text style={[
                                             styles.payBtnText,
-                                            card.currentDebt === 0 && { color: Colors.muted },
+                                            card.currentDebt === 0 && { color: theme.muted },
                                         ]}>
                                             {card.currentDebt === 0 ? 'Sin deuda' : 'Registrar pago total'}
                                         </Text>

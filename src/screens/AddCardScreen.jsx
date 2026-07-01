@@ -1,20 +1,23 @@
 // Form to register a new credit card
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { formatCurrencyShort } from '../utils';
-import { Colors, FontSize, Spacing, Radius, Shadow } from '../constants';
-import styles from './AddCardScreen.styles';
+import { Spacing } from '../constants';
+import createAddCardStyles from './AddCardScreen.styles';
 import { useFinance } from '../store/FinanceContext';
+import { useTheme } from '../store/useTheme';
 
-// Live card preview colors cycling
+// Live card preview colors cycling — fixed palette, same as CardsScreen
 const PREVIEW_GRADIENTS = ['#1A1A2E', '#16213E', '#0F3460', '#1B1B2F'];
 
 export default function AddCardScreen() {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const { addCreditCard, creditCards } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createAddCardStyles(theme), [theme]);
 
     const [name, setName] = useState('');
     const [limit, setLimit] = useState('');
@@ -100,7 +103,7 @@ export default function AddCardScreen() {
                         value={name}
                         onChangeText={setName}
                         placeholder="Ej. BBVA Azul, Amex Gold..."
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                     />
 
                     <Text style={styles.fieldLabel}>LÍMITE DE CRÉDITO</Text>
@@ -109,7 +112,7 @@ export default function AddCardScreen() {
                         value={limit}
                         onChangeText={setLimit}
                         placeholder="$0.00"
-                        placeholderTextColor={Colors.muted}
+                        placeholderTextColor={theme.muted}
                         keyboardType="decimal-pad"
                     />
 
@@ -121,7 +124,7 @@ export default function AddCardScreen() {
                                 value={cutoffDay}
                                 onChangeText={setCutoffDay}
                                 placeholder="5"
-                                placeholderTextColor={Colors.muted}
+                                placeholderTextColor={theme.muted}
                                 keyboardType="number-pad"
                                 maxLength={2}
                             />
@@ -134,7 +137,7 @@ export default function AddCardScreen() {
                                 value={paymentDay}
                                 onChangeText={setPaymentDay}
                                 placeholder="25"
-                                placeholderTextColor={Colors.muted}
+                                placeholderTextColor={theme.muted}
                                 keyboardType="number-pad"
                                 maxLength={2}
                             />

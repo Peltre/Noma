@@ -1,74 +1,46 @@
-// Main screen — general overview of finances
+// Main screen. General overview of finances.
+import { useMemo, useState } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
     ActivityIndicator, Alert,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import { formatCurrency, formatCurrencyShort } from '../utils';
-import { Colors } from '../constants';
-import styles from './HomeScreen.styles';
+import { ACCOUNT_LABELS } from '../constants';
+import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
+import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
+import NightSkyArt from '../components/NightSkyArt';
 
-// SVG-style icons via unicode geometric shapes replaced by
-// colored View boxes — real icon lib (lucide-react-native)
-// can swap these once installed in the project
+// Which color token each account type gets in the allocation bar.
+// Unknown types rotate through the same 3-color palette.
+const ACCOUNT_FALLBACK_ORDER = ['cashTone', 'moneyIn', 'moneyOut'];
 
-// Per-account visual config
-const ACCOUNT_CONFIG = {
-    cash: {
-        label: 'Efectivo',
-        iconBg: 'rgba(13,139,133,0.18)',
-        iconColor: Colors.teal,
-        // Inline SVG-equivalent: a simple banknote shape drawn with Views
-    },
-    debit: {
-        label: 'Débito',
-        iconBg: 'rgba(74,110,138,0.2)',
-        iconColor: Colors.slate,
-    },
-    savings: {
-        label: 'Ahorros',
-        iconBg: 'rgba(107,84,196,0.2)',
-        iconColor: Colors.violet,
-    },
-};
-
-// Minimal icon drawn with nested Views (no emoji, no lib dependency)
-function AccountIcon({ type }) {
-    const cfg = ACCOUNT_CONFIG[type] || ACCOUNT_CONFIG.cash;
-    return (
-        <View style={[styles.pillIconWrap, { backgroundColor: cfg.iconBg }]}>
-            {/* Card shape for debit/cash, piggy-like circle for savings */}
-            {type === 'savings' ? (
-                <View style={[styles.iconCircle, { borderColor: cfg.iconColor }]} />
-            ) : (
-                <View style={[styles.iconCard, { borderColor: cfg.iconColor }]}>
-                    <View style={[styles.iconCardStripe, { backgroundColor: cfg.iconColor }]} />
-                </View>
-            )}
-        </View>
-    );
+function getAccountColor(theme, type, index) {
+    if (type === 'cash') return theme.cashTone;
+    if (type === 'debit') return theme.moneyIn;
+    if (type === 'savings') return theme.moneyOut;
+    const key = ACCOUNT_FALLBACK_ORDER[index % ACCOUNT_FALLBACK_ORDER.length];
+    return theme[key];
 }
 
-// Transaction type icon — colored dot with type letter
-function TxnIcon({ type }) {
-    const map = {
-        income: { bg: Colors.tealLt, color: Colors.teal, letter: '↓' },
-        expense: { bg: Colors.coralLt, color: Colors.coral, letter: '↑' },
-        withdrawal: { bg: Colors.goldLt, color: Colors.gold, letter: '→' },
-    };
-    const cfg = map[type] || map.expense;
-    return (
-        <View style={[styles.txnIconWrap, { backgroundColor: cfg.bg }]}>
-            <Text style={[styles.txnIconGlyph, { color: cfg.color }]}>{cfg.letter}</Text>
-        </View>
-    );
+// Only two accents with fixed meaning: moneyIn = comes in or is saved,
+// moneyOut = goes out. A withdrawal is neither, so it stays neutral
+// instead of borrowing one of the two.
+function getTxnVisual(theme, type) {
+    if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, glyph: '↓' };
+    if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: '↑' };
+    return { bg: theme.border, color: theme.muted, glyph: '→' };
 }
 
 export default function HomeScreen() {
     const navigation = useNavigation();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createHomeStyles(theme), [theme]);
+
     const {
         accounts,
         settings,
@@ -84,11 +56,12 @@ export default function HomeScreen() {
     } = useFinance();
 
     const insets = useSafeAreaInsets();
+    const [heroSize, setHeroSize] = useState({ width: 0, height: 0 });
 
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.violet} />
+                <ActivityIndicator size="large" color={theme.brand} />
             </View>
         );
     }
@@ -96,52 +69,74 @@ export default function HomeScreen() {
     const recentTransactions = transactions.slice(0, 3);
     const pendingMSI = pendingFunds.filter(f => f.type === 'msi');
     const pendingIncome = pendingFunds.filter(f => f.type !== 'msi');
+    const allocTotal = accounts.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
 
     return (
         <View style={styles.safeArea}>
-            <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+            <StatusBar style={theme.statusBarStyle} />
+            <ScrollView
+                style={styles.scroll}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: insets.top + 8 }}
+            >
 
-                {/* ── Hero (dark, full-bleed from status bar) ── */}
-                <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
-                    {/* Decorative orb top-right */}
-                    <View style={styles.heroOrbA} />
-                    <View style={styles.heroOrbB} />
-
-                    {/* Greeting */}
-                    <View style={styles.heroTop}>
+                {/* Hero: header and balance in one card, with the
+                    night art behind both */}
+                <View style={styles.heroCard} onLayout={e => setHeroSize(e.nativeEvent.layout)}>
+                    {heroSize.width > 0 && heroSize.height > 0 && (
+                        <NightSkyArt
+                            width={heroSize.width}
+                            height={heroSize.height}
+                            glowColor={theme.brand}
+                            moonColor={theme.ink}
+                            duneColor={theme.bg}
+                            starColor={theme.ink}
+                        />
+                    )}
+                    <View style={styles.heroHeader}>
                         <View>
-                            <Text style={styles.greeting}>Hola de nuevo,</Text>
+                            <Text style={styles.greeting}>Hola de nuevo</Text>
                             <Text style={styles.userName}>{settings.userName}</Text>
                         </View>
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>
-                                {settings.userName?.[0]?.toUpperCase() ?? '?'}
-                            </Text>
-                        </View>
                     </View>
 
-                    {/* Balance */}
-                    <Text style={styles.balanceLabel}>Balance total</Text>
-                    <Text style={styles.balanceAmount}>{formatCurrency(totalBalance)}</Text>
-
-                    {/* Account pills inside hero */}
-                    <View style={styles.pillsRow}>
-                        {accounts.map(acc => {
-                            const cfg = ACCOUNT_CONFIG[acc.type];
-                            return (
-                                <View key={acc.id} style={styles.pill}>
-                                    <AccountIcon type={acc.type} />
-                                    <Text style={styles.pillLabel}>
-                                        {cfg?.label ?? acc.name}
-                                    </Text>
-                                    <Text style={styles.pillAmount}>
-                                        {formatCurrencyShort(acc.balance)}
-                                    </Text>
-                                </View>
-                            );
-                        })}
+                    <View style={styles.heroBalance}>
+                        <Text style={styles.balanceLabel}>Balance total</Text>
+                        <Text style={styles.balanceAmount}>{formatCurrency(totalBalance)}</Text>
                     </View>
                 </View>
+
+                {/* Allocation bar, replaces the old pills */}
+                {accounts.length > 0 && (
+                    <View style={styles.alloc}>
+                        <View style={styles.allocBar}>
+                            {accounts.map((acc, i) => {
+                                const pct = allocTotal > 0
+                                    ? (Math.max(acc.balance, 0) / allocTotal) * 100
+                                    : 100 / accounts.length;
+                                return (
+                                    <View
+                                        key={acc.id}
+                                        style={{ width: `${pct}%`, backgroundColor: getAccountColor(theme, acc.type, i) }}
+                                    />
+                                );
+                            })}
+                        </View>
+                        <View style={styles.allocLegend}>
+                            {accounts.map((acc, i) => (
+                                <View key={acc.id} style={styles.allocItem}>
+                                    <View style={styles.allocLabelRow}>
+                                        <View style={[styles.allocDot, { backgroundColor: getAccountColor(theme, acc.type, i) }]} />
+                                        <Text style={styles.allocLabel} numberOfLines={1}>
+                                            {ACCOUNT_LABELS[acc.type] ?? acc.name}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.allocValue}>{formatCurrencyShort(acc.balance)}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
 
                 {/* Action buttons */}
                 <View style={styles.actionRow}>
@@ -170,6 +165,7 @@ export default function HomeScreen() {
                                 key={fund.id}
                                 fund={fund}
                                 status={getFundStatus(fund)}
+                                theme={theme}
                                 onPress={() => {
                                     Alert.alert(
                                         `MSI — ${fund.name}`,
@@ -209,6 +205,7 @@ export default function HomeScreen() {
                                 key={fund.id}
                                 fund={fund}
                                 status={getFundStatus(fund)}
+                                theme={theme}
                                 onPress={() => {
                                     navigation.navigate('AddTransaction', {
                                         prefill: {
@@ -281,29 +278,36 @@ export default function HomeScreen() {
                         </View>
                     ) : (
                         <View style={styles.txnCard}>
-                            {recentTransactions.map((txn, i) => (
-                                <View
-                                    key={txn.id}
-                                    style={[
-                                        styles.txnRow,
-                                        i === recentTransactions.length - 1 && styles.txnRowLast,
-                                    ]}
-                                >
-                                    <TxnIcon type={txn.type} />
-                                    <View style={styles.txnInfo}>
-                                        <Text style={styles.txnName} numberOfLines={1}>
-                                            {txn.reason}
+                            {recentTransactions.map((txn, i) => {
+                                const visual = getTxnVisual(theme, txn.type);
+                                return (
+                                    <View
+                                        key={txn.id}
+                                        style={[
+                                            styles.txnRow,
+                                            i === recentTransactions.length - 1 && styles.txnRowLast,
+                                        ]}
+                                    >
+                                        <View style={[styles.txnIconWrap, { backgroundColor: visual.bg }]}>
+                                            <Text style={[styles.txnIconGlyph, { color: visual.color }]}>
+                                                {visual.glyph}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.txnInfo}>
+                                            <Text style={styles.txnName} numberOfLines={1}>
+                                                {txn.reason}
+                                            </Text>
+                                            <Text style={styles.txnSub}>{txn.category}</Text>
+                                        </View>
+                                        <Text style={[
+                                            styles.txnAmount,
+                                            txn.type === 'income' ? styles.amountPos : styles.amountNeg,
+                                        ]}>
+                                            {txn.type === 'income' ? '+' : '−'}{formatCurrencyShort(txn.amount)}
                                         </Text>
-                                        <Text style={styles.txnSub}>{txn.category}</Text>
                                     </View>
-                                    <Text style={[
-                                        styles.txnAmount,
-                                        txn.type === 'income' ? styles.amountPos : styles.amountNeg,
-                                    ]}>
-                                        {txn.type === 'income' ? '+' : '−'}{formatCurrencyShort(txn.amount)}
-                                    </Text>
-                                </View>
-                            ))}
+                                );
+                            })}
                         </View>
                     )}
                 </View>

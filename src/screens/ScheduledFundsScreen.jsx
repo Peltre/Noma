@@ -1,7 +1,7 @@
 // Screen to view and create scheduled funds
 // Funds are not automatic **yet at least, they show as prefilled reminders on homescreen
-// User confirms payment amount 
-import { useState } from "react";
+// User confirms payment amount
+import { useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -15,17 +15,16 @@ import { useNavigation } from "@react-navigation/native";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useFinance } from "../store/FinanceContext";
+import { useTheme } from "../store/useTheme";
 import { formatCurrencyShort } from "../utils";
 import { ACCOUNT_LABELS, FREQUENCY_LABELS } from '../constants';
-import styles from './ScheduledFundsScreen.styles';
+import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
 
 const FREQUENCIES = [
     { key: 'weekly', label: 'Semanal' },
     { key: 'biweekly', label: 'Quincenal' },
     { key: 'monthly', label: 'Mensual' },
 ];
-
-
 
 export default function ScheduledFundsScreen() {
     const navigation = useNavigation();
@@ -36,6 +35,8 @@ export default function ScheduledFundsScreen() {
         removeScheduledFund,
         getFundStatus
     } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createScheduledFundsStyles(theme), [theme]);
 
     // form state
     const [name, setName] = useState('');
@@ -99,11 +100,13 @@ export default function ScheduledFundsScreen() {
         );
     };
 
-    // Status color for each fund card
+    // Status color for each fund card — overdue leans on moneyOut
+    // (needs attention), upcoming leans on moneyIn (money coming
+    // soon), same fixed accents as everywhere else in the app.
     const getStatusColor = (status) => {
-        if (status === 'overdue') return '#FAEAEA';
-        if (status === 'upcoming') return '#EBF2EE';
-        return '#FFFFFF';
+        if (status === 'overdue') return theme.moneyOutSoft;
+        if (status === 'upcoming') return theme.moneyInSoft;
+        return theme.surface;
     };
 
     return (
@@ -196,7 +199,7 @@ export default function ScheduledFundsScreen() {
                             value={name}
                             onChangeText={setName}
                             placeholder="Ej. Quincena, Renta, Freelance..."
-                            placeholderTextColor="#B0A898"
+                            placeholderTextColor={theme.muted}
                         />
                     </View>
 
@@ -208,7 +211,7 @@ export default function ScheduledFundsScreen() {
                             value={amount}
                             onChangeText={setAmount}
                             placeholder="$0.00"
-                            placeholderTextColor="#B0A898"
+                            placeholderTextColor={theme.muted}
                             keyboardType="decimal-pad"
                         />
                     </View>
@@ -221,7 +224,7 @@ export default function ScheduledFundsScreen() {
                             value={nextDate}
                             onChangeText={setNextDate}
                             placeholder="YYYY-MM-DD  (Ej. 2025-07-15)"
-                            placeholderTextColor="#B0A898"
+                            placeholderTextColor={theme.muted}
                         />
                     </View>
 
@@ -264,7 +267,7 @@ export default function ScheduledFundsScreen() {
                                 >
                                     <Text style={[
                                         styles.accountOptionText,
-                                        accountId === acc.id && { color: '#FFFFFF' },
+                                        accountId === acc.id && { color: theme.bg },
                                     ]}>
                                         {ACCOUNT_LABELS[acc.type]}
                                     </Text>

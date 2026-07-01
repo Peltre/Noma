@@ -1,6 +1,6 @@
 // Onboarding screen layout
 // Guides the user through the setup and a quick tour of the app
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { BlurView } from "expo-blur";
 import { useFinance } from "../store/FinanceContext";
-import styles from './OnboardingOverlay.styles';
-import { Colors } from "../constants";
+import { useTheme } from "../store/useTheme";
+import createOnboardingStyles from './OnboardingOverlay.styles';
 
 const TOTAL_STEPS = 4;
 
@@ -47,6 +47,8 @@ export default function Onboarding({ visible, onComplete }) {
         updateSettings,
         setInitialBalances,
     } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createOnboardingStyles(theme), [theme]);
 
     const [step, setStep] = useState(1);
     const [tourSlide, setTourSlide] = useState(0);
@@ -136,7 +138,7 @@ export default function Onboarding({ visible, onComplete }) {
                                 value={userName}
                                 onChangeText={setUserName}
                                 placeholder="Ej. Pablo, Karla..."
-                                placeholderTextColor="#B0A898"
+                                placeholderTextColor={theme.muted}
                                 autoFocus
                                 returnKeyType="done"
                             />
@@ -206,13 +208,13 @@ export default function Onboarding({ visible, onComplete }) {
                                 value={cashAmount}
                                 onChangeText={setCashAmount}
                                 placeholder="$0.00"
-                                placeholderTextColor="#B0A898"
+                                placeholderTextColor={theme.muted}
                                 keyboardType="decimal-pad"
                             />
                         </View>
 
                         {/* Debit cards */}
-                        <Text styles={[styles.fieldLabel, { marginBottom: 8 }]}>
+                        <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>
                             TARJETAS DE DEBITO
                         </Text>
                         {debitCards.map((card, index) => (
@@ -233,14 +235,14 @@ export default function Onboarding({ visible, onComplete }) {
                                     value={card.name}
                                     onChange={v => updateDebitCard(card.id, 'name', v)}
                                     placeholder="Nombre (Ej. BBVA)"
-                                    placeholderTextColor="#B0A898"
+                                    placeholderTextColor={theme.muted}
                                 />
                                 <TextInput
                                     style={styles.input}
                                     value={card.balance}
                                     onChangeText={v => updateDebitCard(card.id, 'balance', v)}
                                     placeholder="Saldo actual $0.00"
-                                    placeholderTextColor="#B0A898"
+                                    placeholderTextColor={theme.muted}
                                     keyboardType="decimal-pad"
                                 />
                             </View>
@@ -295,7 +297,7 @@ export default function Onboarding({ visible, onComplete }) {
                                     value={savingsAmount}
                                     onChangeText={setSavingsAmount}
                                     placeholder="$0.00"
-                                    placeholderTextColor="#B0A898"
+                                    placeholderTextColor={theme.muted}
                                     keyboardType="decimal-pad"
                                     autoFocus
                                 />
@@ -303,7 +305,7 @@ export default function Onboarding({ visible, onComplete }) {
                         )}
 
                         {hasSavings === false && (
-                            <Text style={{ color: Colors.muted, fontSize: 14, textAlign: 'center' }}>
+                            <Text style={{ color: theme.muted, fontSize: 14, textAlign: 'center' }}>
                                 Sin problema, puedes agregar ahorros después desde la app.
                             </Text>
                         )}
@@ -330,7 +332,7 @@ export default function Onboarding({ visible, onComplete }) {
                         </TouchableOpacity>
                     </>
                 );
-                defult:
+            default:
                 return null;
         }
     };

@@ -1,6 +1,6 @@
 // Screen to register a new expense, income or withdrawal
-// Dark hero with amount + type, white sheet slides up with the rest
-import { useState } from 'react';
+// Hero with amount + type, sheet slides up with the rest
+import { useMemo, useState } from 'react';
 import {
     View, Text, TouchableOpacity, TextInput,
     ScrollView, Alert,
@@ -9,24 +9,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CATEGORIES, ACCOUNT_LABELS, Colors, FontSize, Spacing, Radius } from '../constants';
-import styles from './TransactionScreen.styles';
+import { CATEGORIES, ACCOUNT_LABELS, Spacing } from '../constants';
+import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
+import { useTheme } from '../store/useTheme';
 
-const TYPES = {
-    expense: {
-        label: 'Gasto', color: Colors.coral, lt: Colors.coralLt,
-        heroColor: '#1C0D0D'
-    },
-    income: {
-        label: 'Ingreso', color: Colors.teal, lt: Colors.tealLt,
-        heroColor: '#0A1514'
-    },
-    withdrawal: {
-        label: 'Retiro', color: Colors.gold, lt: Colors.goldLt,
-        heroColor: '#181108'
-    },
-};
+// Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
+// plus a neutral for withdrawal — same reduced palette as the rest
+// of the app, no per-type dark hero tones.
+function getTypes(theme) {
+    return {
+        expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
+        income: { label: 'Ingreso', color: theme.moneyIn, on: theme.brandOn },
+        withdrawal: { label: 'Retiro', color: theme.ink, on: theme.bg },
+    };
+}
 
 const MSI_OPTIONS = [3, 6, 9, 12, 18, 24];
 
@@ -35,6 +32,9 @@ export default function TransactionScreen() {
     const route = useRoute();
     const insets = useSafeAreaInsets();
     const { accounts, creditCards, addTransaction, confirmFund, addMSI } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createTransactionStyles(theme), [theme]);
+    const TYPES = useMemo(() => getTypes(theme), [theme]);
 
     const prefill = route.params?.prefill || null;
 
@@ -98,8 +98,8 @@ export default function TransactionScreen() {
     return (
         <View style={styles.root}>
 
-            {/* ── Dark hero — type + amount ── */}
-            <View style={[styles.hero, { backgroundColor: cur.heroColor, paddingTop: insets.top + 8 }]}>
+            {/* ── Hero — type + amount ── */}
+            <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
                 {/* Colored glow behind amount */}
                 <View style={[styles.heroGlow, { backgroundColor: cur.color + '22' }]} />
 
@@ -125,7 +125,7 @@ export default function TransactionScreen() {
                                 ]}
                                 onPress={() => handleTypeChange(key)}
                             >
-                                <Text style={[styles.typePillText, active && { color: Colors.white }]}>
+                                <Text style={[styles.typePillText, active && { color: val.on }]}>
                                     {val.label}
                                 </Text>
                             </TouchableOpacity>
@@ -142,7 +142,7 @@ export default function TransactionScreen() {
                         onChangeText={setAmount}
                         keyboardType="decimal-pad"
                         placeholder="0.00"
-                        placeholderTextColor="rgba(255,255,255,0.2)"
+                        placeholderTextColor={theme.muted}
                         autoFocus
                     />
                 </View>
@@ -163,7 +163,7 @@ export default function TransactionScreen() {
                 )}
             </View>
 
-            {/* White sheet slides up */}
+            {/* Sheet slides up */}
             <ScrollView
                 style={styles.sheet}
                 contentContainerStyle={styles.sheetContent}
@@ -177,7 +177,7 @@ export default function TransactionScreen() {
                     value={reason}
                     onChangeText={setReason}
                     placeholder="Describe el movimiento"
-                    placeholderTextColor={Colors.muted}
+                    placeholderTextColor={theme.muted}
                 />
 
                 {/* Category pills */}
@@ -192,13 +192,13 @@ export default function TransactionScreen() {
                                     styles.catPill,
                                     active
                                         ? { backgroundColor: cur.color, borderColor: cur.color }
-                                        : { borderColor: Colors.mid },
+                                        : { borderColor: theme.border },
                                 ]}
                                 onPress={() => setCategory(cat.id)}
                             >
                                 <Text style={[
                                     styles.catPillText,
-                                    active ? { color: Colors.white } : { color: Colors.muted },
+                                    active ? { color: cur.on } : { color: theme.muted },
                                 ]}>
                                     {cat.label}
                                 </Text>
@@ -231,14 +231,14 @@ export default function TransactionScreen() {
                                 style={[
                                     styles.catPill,
                                     isSelected
-                                        ? { backgroundColor: Colors.ink, borderColor: Colors.ink }
-                                        : { borderColor: Colors.mid },
+                                        ? { backgroundColor: theme.ink, borderColor: theme.ink }
+                                        : { borderColor: theme.border },
                                 ]}
                                 onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
                             >
                                 <Text style={[
                                     styles.catPillText,
-                                    isSelected ? { color: Colors.white } : { color: Colors.muted },
+                                    isSelected ? { color: theme.bg } : { color: theme.muted },
                                 ]}>
                                     {useCredit ? item.name : ACCOUNT_LABELS[item.type]}
                                 </Text>
@@ -247,14 +247,16 @@ export default function TransactionScreen() {
                     })}
                 </View>
 
-                {/* MSI toggle */}
+                {/* MSI toggle — uses brand, the one accent reserved for
+                    primary CTAs, since MSI is a special flow, not a
+                    money-in/money-out signal */}
                 {canUseMSI && (
                     <>
                         <TouchableOpacity
                             style={styles.toggle}
                             onPress={() => setIsMSI(!isMSI)}
                         >
-                            <View style={[styles.checkbox, isMSI && { backgroundColor: Colors.violet, borderColor: Colors.violet }]}>
+                            <View style={[styles.checkbox, isMSI && { backgroundColor: theme.brand, borderColor: theme.brand }]}>
                                 {isMSI && <Text style={styles.checkmark}>✓</Text>}
                             </View>
                             <Text style={styles.toggleText}>Meses sin intereses (MSI)</Text>
@@ -270,14 +272,14 @@ export default function TransactionScreen() {
                                             style={[
                                                 styles.catPill,
                                                 msiMonths === m
-                                                    ? { backgroundColor: Colors.violet, borderColor: Colors.violet }
-                                                    : { borderColor: Colors.mid },
+                                                    ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                    : { borderColor: theme.border },
                                             ]}
                                             onPress={() => setMsiMonths(m)}
                                         >
                                             <Text style={[
                                                 styles.catPillText,
-                                                msiMonths === m ? { color: Colors.white } : { color: Colors.muted },
+                                                msiMonths === m ? { color: theme.brandOn } : { color: theme.muted },
                                             ]}>
                                                 {m}m
                                             </Text>
@@ -291,10 +293,10 @@ export default function TransactionScreen() {
 
                 {/* Confirm button */}
                 <TouchableOpacity
-                    style={[styles.confirmBtn, { backgroundColor: isMSI ? Colors.violet : cur.color }]}
+                    style={[styles.confirmBtn, { backgroundColor: isMSI ? theme.brand : cur.color }]}
                     onPress={handleConfirm}
                 >
-                    <Text style={styles.confirmText}>
+                    <Text style={[styles.confirmText, { color: isMSI ? theme.brandOn : cur.on }]}>
                         {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
                     </Text>
                 </TouchableOpacity>
