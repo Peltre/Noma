@@ -58,6 +58,12 @@ export default function createScheduledFundsStyles(theme) {
             alignItems: 'flex-start',
             marginBottom: Spacing.sm,
         },
+        fundNameRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            flexShrink: 1,
+        },
         fundName: {
             fontSize: FontSize.md,
             fontWeight: '700',
@@ -197,7 +203,6 @@ export default function createScheduledFundsStyles(theme) {
             paddingVertical: 60,
             gap: Spacing.md,
         },
-        emptyEmoji: { fontSize: 48 },
         emptyText: {
             fontSize: FontSize.md,
             fontWeight: '600',

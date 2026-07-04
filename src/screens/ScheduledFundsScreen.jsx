@@ -14,10 +14,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import Svg, { Rect, Path, Circle } from 'react-native-svg';
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
 import { formatCurrencyShort } from "../utils";
 import { ACCOUNT_LABELS, FREQUENCY_LABELS } from '../constants';
+import DecimalInput from '../components/DecimalInput';
+import DatePickerField from '../components/DatePickerField';
 import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
 
 const FREQUENCIES = [
@@ -25,6 +28,27 @@ const FREQUENCIES = [
     { key: 'biweekly', label: 'Quincenal' },
     { key: 'monthly', label: 'Mensual' },
 ];
+
+// Small line icons, same stroke language as the rest of the app —
+// no emojis.
+function IconCalendar({ color, size = 18 }) {
+    return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <Rect x="3" y="5" width="18" height="16" rx="2" stroke={color} strokeWidth={1.6} />
+            <Path d="M3 9h18" stroke={color} strokeWidth={1.6} />
+            <Path d="M8 3v4M16 3v4" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
+        </Svg>
+    );
+}
+function IconWarning({ color, size = 18 }) {
+    return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <Path d="M12 4l9 15H3l9-15z" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+            <Path d="M12 10v4" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+            <Circle cx="12" cy="17" r="0.9" fill={color} />
+        </Svg>
+    );
+}
 
 export default function ScheduledFundsScreen() {
     const navigation = useNavigation();
@@ -43,7 +67,7 @@ export default function ScheduledFundsScreen() {
     const [amount, setAmount] = useState('');
     const [frequency, setFrequency] = useState('biweekly');
     const [accountId, setAccountId] = useState(accounts[0]?.id || null);
-    const [nextDate, setNextDate] = useState('');
+    const [nextDate, setNextDate] = useState(null);
 
     const handleAdd = async () => {
         if (!name.trim()) {
@@ -54,19 +78,12 @@ export default function ScheduledFundsScreen() {
             Alert.alert('Monto inválido', 'Ingresa un monto mayor a cero.');
             return;
         }
-        if (!nextDate.trim()) {
-            Alert.alert('Falta la fecha', 'Ingresa la próxima fecha en formato YYYY-MM-DD.');
+        if (!nextDate) {
+            Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.');
             return;
         }
         if (!accountId) {
             Alert.alert('Falta la cuenta', 'Selecciona una cuenta destino.');
-            return;
-        }
-
-        // Validate date format
-        const dateObj = new Date(nextDate);
-        if (isNaN(dateObj.getTime())) {
-            Alert.alert('Fecha inválida', 'Usa el formato YYYY-MM-DD. Ej: 2025-07-15');
             return;
         }
 
@@ -75,14 +92,14 @@ export default function ScheduledFundsScreen() {
             amount: parseFloat(amount),
             frequency,
             accountId,
-            nextDate: dateObj.toISOString(),
+            nextDate: nextDate.toISOString(),
         });
 
         // Reset form
         setName('');
         setAmount('');
-        setNextDate('');
-        Alert.alert('✓ Fondo creado', `"${name.trim()}" aparecerá como recordatorio cuando se acerque la fecha.`);
+        setNextDate(null);
+        Alert.alert('Fondo creado', `"${name.trim()}" aparecerá como recordatorio cuando se acerque la fecha.`);
     };
 
     const handleDelete = (fund) => {
@@ -129,7 +146,7 @@ export default function ScheduledFundsScreen() {
                 {/* Active funds list */}
                 {scheduledFunds.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyEmoji}>📅</Text>
+                        <IconCalendar color={theme.muted} size={40} />
                         <Text style={styles.emptyText}>Sin fondos programados</Text>
                         <Text style={styles.emptySubtext}>
                             Crea uno abajo y aparecerá como recordatorio en tu Dashboard cuando se acerque la fecha
@@ -140,6 +157,9 @@ export default function ScheduledFundsScreen() {
                         {scheduledFunds.map(fund => {
                             const status = getFundStatus(fund);
                             const account = accounts.find(a => a.id === fund.accountId);
+                            const statusColor = status === 'overdue' ? theme.moneyOut
+                                : status === 'upcoming' ? theme.moneyIn
+                                    : null;
                             return (
                                 <View
                                     key={fund.id}
@@ -149,11 +169,11 @@ export default function ScheduledFundsScreen() {
                                     ]}
                                 >
                                     <View style={styles.fundTop}>
-                                        <Text style={styles.fundName}>
-                                            {status === 'overdue' ? '⚠️ ' : ''}
-                                            {status === 'upcoming' ? '📅 ' : ''}
-                                            {fund.name}
-                                        </Text>
+                                        <View style={styles.fundNameRow}>
+                                            {status === 'overdue' && <IconWarning color={statusColor} size={15} />}
+                                            {status === 'upcoming' && <IconCalendar color={statusColor} size={15} />}
+                                            <Text style={styles.fundName}>{fund.name}</Text>
+                                        </View>
                                         <Text style={styles.fundAmount}>
                                             +{formatCurrencyShort(fund.amount)}
                                         </Text>
@@ -206,25 +226,23 @@ export default function ScheduledFundsScreen() {
                     {/* Amount */}
                     <View style={styles.fieldGroup}>
                         <Text style={styles.fieldLabel}>Monto esperado</Text>
-                        <TextInput
+                        <DecimalInput
                             style={styles.input}
                             value={amount}
                             onChangeText={setAmount}
                             placeholder="$0.00"
                             placeholderTextColor={theme.muted}
-                            keyboardType="decimal-pad"
                         />
                     </View>
 
                     {/* Next date */}
                     <View style={styles.fieldGroup}>
                         <Text style={styles.fieldLabel}>Próxima fecha</Text>
-                        <TextInput
-                            style={styles.input}
+                        <DatePickerField
                             value={nextDate}
-                            onChangeText={setNextDate}
-                            placeholder="YYYY-MM-DD  (Ej. 2025-07-15)"
-                            placeholderTextColor={theme.muted}
+                            onChange={setNextDate}
+                            placeholder="Selecciona una fecha"
+                            minimumDate={new Date()}
                         />
                     </View>
 

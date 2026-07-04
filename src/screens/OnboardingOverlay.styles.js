@@ -59,10 +59,15 @@ export default function createOnboardingStyles(theme) {
         },
 
         // Step content
-        emoji: {
-            fontSize: 40,
-            marginBottom: Spacing.sm,
-            textAlign: 'center',
+        iconBadge: {
+            width: 64,
+            height: 64,
+            borderRadius: 20,
+            backgroundColor: theme.brandSoft,
+            justifyContent: 'center',
+            alignItems: 'center',
+            alignSelf: 'center',
+            marginBottom: Spacing.md,
         },
         title: {
             fontSize: 24,
@@ -122,7 +127,6 @@ export default function createOnboardingStyles(theme) {
             alignItems: 'center',
             gap: Spacing.sm,
         },
-        accountCardEmoji: { fontSize: 18 },
         accountCardTitle: {
             fontSize: FontSize.md,
             fontWeight: '600',
