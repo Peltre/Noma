@@ -8,6 +8,7 @@ import { Spacing } from '../constants';
 import createAddCardStyles from './AddCardScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
+import DecimalInput from '../components/DecimalInput';
 
 // Live card preview colors cycling — fixed palette, same as CardsScreen
 const PREVIEW_GRADIENTS = ['#1A1A2E', '#16213E', '#0F3460', '#1B1B2F'];
@@ -107,19 +108,18 @@ export default function AddCardScreen() {
                     />
 
                     <Text style={styles.fieldLabel}>LÍMITE DE CRÉDITO</Text>
-                    <TextInput
+                    <DecimalInput
                         style={styles.input}
                         value={limit}
                         onChangeText={setLimit}
                         placeholder="$0.00"
                         placeholderTextColor={theme.muted}
-                        keyboardType="decimal-pad"
                     />
 
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.fieldLabel}>DÍA DE CORTE</Text>
-                            <TextInput
+                            <DecimalInput
                                 style={styles.input}
                                 value={cutoffDay}
                                 onChangeText={setCutoffDay}
@@ -132,7 +132,7 @@ export default function AddCardScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.fieldLabel}>DÍA DE PAGO</Text>
-                            <TextInput
+                            <DecimalInput
                                 style={styles.input}
                                 value={paymentDay}
                                 onChangeText={setPaymentDay}

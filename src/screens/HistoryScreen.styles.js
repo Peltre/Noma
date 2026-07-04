@@ -174,6 +174,7 @@ export default function createHistoryStyles(theme) {
             letterSpacing: -0.5,
         },
         amountPos: { color: theme.moneyIn },
+        amountExpense: { color: theme.moneyOut },
         amountNeg: { color: theme.ink },
 
         // Empty state

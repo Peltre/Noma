@@ -13,6 +13,7 @@ import { CATEGORIES, ACCOUNT_LABELS, Spacing } from '../constants';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
+import DecimalInput from '../components/DecimalInput';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
@@ -85,13 +86,23 @@ export default function TransactionScreen() {
             navigation.goBack();
             return;
         }
-        await addTransaction({
+        const result = await addTransaction({
             type, amount: parseFloat(amount), reason: reason.trim(),
             category: selectedCategory,
             accountId: useCredit ? null : selectedAccount,
             creditCardId: useCredit ? selectedCard : null,
         });
-        if (prefill?.fundId) await confirmFund(prefill.fundId);
+        if (result?.error) {
+            Alert.alert('Fondos insuficientes', result.error);
+            return;
+        }
+        // Only mark the pending fund as confirmed if this is still the
+        // same kind of movement it was opened as — if the user switched
+        // type (e.g. from Ingreso to Gasto) before saving, this is no
+        // longer "that" income and shouldn't silently resolve it.
+        if (prefill?.fundId && type === prefill.type) {
+            await confirmFund(prefill.fundId);
+        }
         navigation.goBack();
     };
 
@@ -136,11 +147,10 @@ export default function TransactionScreen() {
                 {/* Amount input */}
                 <View style={styles.amountRow}>
                     <Text style={[styles.currencySign, { color: cur.color }]}>$</Text>
-                    <TextInput
+                    <DecimalInput
                         style={styles.amountInput}
                         value={amount}
                         onChangeText={setAmount}
-                        keyboardType="decimal-pad"
                         placeholder="0.00"
                         placeholderTextColor={theme.muted}
                         autoFocus

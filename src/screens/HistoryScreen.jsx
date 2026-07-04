@@ -13,6 +13,7 @@ import { useTheme } from '../store/useTheme';
 import { Spacing, ACCOUNT_LABELS } from '../constants';
 import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
+import DecimalInput from '../components/DecimalInput';
 
 const FILTERS = [
     { key: 'all', label: 'Todos' },
@@ -87,7 +88,8 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
         const amt = parseFloat(editAmount);
         if (!editReason.trim()) { Alert.alert('Falta la razón'); return; }
         if (!amt || amt <= 0) { Alert.alert('Monto inválido'); return; }
-        await updateTransaction(txn.id, { reason: editReason.trim(), amount: amt });
+        const result = await updateTransaction(txn.id, { reason: editReason.trim(), amount: amt });
+        if (result?.error) { Alert.alert('Fondos insuficientes', result.error); return; }
         setEditing(false);
         onClose();
     };
@@ -119,11 +121,10 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                                 autoFocus
                             />
                             <Text style={sheet.fieldLabel}>MONTO</Text>
-                            <TextInput
+                            <DecimalInput
                                 style={[sheet.input, sheet.inputLarge]}
                                 value={editAmount}
                                 onChangeText={setAmount}
-                                keyboardType="decimal-pad"
                                 placeholder="0.00"
                                 placeholderTextColor={theme.muted}
                             />
@@ -138,7 +139,11 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                         </>
                     ) : (
                         <>
-                            <Text style={sheet.amount}>
+                            <Text style={[
+                                sheet.amount,
+                                txn.category === 'goal' ? { color: theme.savings }
+                                    : txn.type === 'expense' && { color: theme.moneyOut },
+                            ]}>
                                 {isIncome ? '+' : '−'}{formatCurrency(txn.amount)}
                             </Text>
                             <Text style={sheet.reason}>{txn.reason}</Text>
@@ -293,7 +298,10 @@ export default function HistoryScreen() {
                                             <View style={styles.txnRight}>
                                                 <Text style={[
                                                     styles.txnAmount,
-                                                    isIncome ? styles.amountPos : styles.amountNeg,
+                                                    isIncome ? styles.amountPos
+                                                        : txn.category === 'goal' ? { color: theme.savings }
+                                                            : txn.type === 'expense' ? styles.amountExpense
+                                                                : styles.amountNeg,
                                                 ]}>
                                                     {isIncome ? '+' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
