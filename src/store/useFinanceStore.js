@@ -54,6 +54,16 @@ export function useFinanceStore() {
 
     // Transaction handling 
     const addTransaction = async (transaction) => {
+        // An expense or withdrawal can't take an account below zero —
+        // that's not "spending money you have", that's creating debt
+        // a plain account was never meant to hold.
+        if ((transaction.type === 'expense' || transaction.type === 'withdrawal') && transaction.accountId) {
+            const account = accounts.find(a => a.id === transaction.accountId);
+            if (account && account.balance - transaction.amount < 0) {
+                return { error: `${account.name} solo tiene ${account.balance.toFixed(2)} disponibles.` };
+            }
+        }
+
         const newTransaction = {
             id: Date.now().toString(),
             date: new Date().toISOString(),
@@ -108,6 +118,14 @@ export function useFinanceStore() {
             const delta = changes.amount - txn.amount;
             if (txn.accountId) {
                 const balanceDelta = txn.type === 'income' ? delta : -delta;
+                // Same rule as a new transaction: an expense/withdrawal
+                // edit can't push the account below zero.
+                if (balanceDelta < 0) {
+                    const account = accounts.find(a => a.id === txn.accountId);
+                    if (account && account.balance + balanceDelta < 0) {
+                        return { error: `${account.name} solo tiene ${account.balance.toFixed(2)} disponibles.` };
+                    }
+                }
                 await updateAccountBalance(txn.accountId, balanceDelta);
             }
             if (txn.type === 'expense' && txn.creditCardId) {
