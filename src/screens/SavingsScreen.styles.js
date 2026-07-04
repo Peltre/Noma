@@ -58,6 +58,29 @@ export default function createSavingsStyles(theme) {
             letterSpacing: -2,
             zIndex: 2,
         },
+        breakdownRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.sm,
+            marginTop: Spacing.sm,
+            zIndex: 2,
+        },
+        breakdownText: {
+            fontSize: FontSize.xs,
+            fontWeight: '700',
+            color: theme.muted,
+        },
+        breakdownSub: {
+            fontSize: FontSize.xs,
+            fontWeight: '700',
+            color: theme.savings,
+        },
+        inputHint: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+            marginTop: 4,
+            fontWeight: '500',
+        },
 
         // Sections
         section: {
@@ -246,12 +269,23 @@ export default function createSavingsStyles(theme) {
             fontWeight: '600',
             textAlign: 'center',
         },
-        completeRow: { alignItems: 'center', marginBottom: Spacing.sm },
+        completeRow: { alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm },
         completeText: {
             fontSize: FontSize.sm,
             fontWeight: '700',
             color: theme.moneyIn,
             letterSpacing: 0.3,
+        },
+        goalBtnRedeem: {
+            backgroundColor: theme.savings,
+            borderRadius: Radius.sm - 2,
+            paddingVertical: 10,
+            paddingHorizontal: Spacing.lg,
+        },
+        goalBtnRedeemText: {
+            fontSize: FontSize.sm,
+            fontWeight: '700',
+            color: '#FFFFFF',
         },
 
         goalBtns: {

@@ -12,11 +12,24 @@ export function FinanceProvider({ children }) {
     const financeStore = useFinanceStore();
     const settingsStore = useSettings();
     const scheduledFundsStore = useScheduledFunds();
-    // useSavings needs updateAccBalance to move money from accs
-    const savingsStore = useSavings(financeStore.updateAccountBalance);
+    // useSavings only needs the accounts list now, to know the real
+    // Ahorros total it's breaking down — it no longer moves money
+    // between general accounts (see useSavings.js).
+    const savingsStore = useSavings(financeStore.accounts);
+
+    // financeStore and settingsStore each expose their own isLoading —
+    // spreading both below would let whichever comes last silently win,
+    // so the app isn't really "ready" until BOTH are done loading.
+    const isLoading = financeStore.isLoading || settingsStore.isLoading;
 
     return (
-        <FinanceContext.Provider value={{ ...financeStore, ...settingsStore, ...scheduledFundsStore, ...savingsStore }}>
+        <FinanceContext.Provider value={{
+            ...financeStore,
+            ...settingsStore,
+            ...scheduledFundsStore,
+            ...savingsStore,
+            isLoading,
+        }}>
             {children}
         </FinanceContext.Provider>
     );

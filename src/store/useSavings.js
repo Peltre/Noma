@@ -1,7 +1,17 @@
 // Hook to handle savings accounts & objectives
-// The savings "total" lives in the main accounts store (type: 'savings').
-// This hook manages the breakdown: which named accounts hold that money,
-// and which goals have funds earmarked inside those accounts.
+//
+// The "Ahorros" account (type: 'savings' in the main accounts store)
+// is the single source of truth for how much money you actually have
+// saved. It only changes through a normal transaction (an Ingreso or
+// Retiro with Ahorros as the account) — same as any other account.
+//
+// Named savings accounts here (Cajita Nu, etc.) do NOT hold separate
+// money. They're labels that break the Ahorros total down into
+// buckets, purely for organization. Moving money into/out of a named
+// bucket never touches cash/debit/the Ahorros account itself — it's
+// capped by however much of Ahorros is still "unallocated" (not
+// already sitting in a named bucket), so it's impossible to make a
+// named bucket's total exceed the real Ahorros balance.
 
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
@@ -25,9 +35,14 @@ export const SAVINGS_COLORS = [
     '#2C7BB5', // ocean
 ];
 
-export function useSavings(updateAccountBalance) {
+export function useSavings(accounts = []) {
     const [savingsAccounts, setSavingsAccounts] = useState([]);
     const [savingsGoals, setSavingsGoals] = useState([]);
+
+    // The real total — comes from the general accounts store, moved
+    // only by actual transactions (Ingreso/Retiro with Ahorros as
+    // the account).
+    const mainSavingsBalance = accounts.find(a => a.type === 'savings')?.balance ?? 0;
 
     useEffect(() => {
         const load = async () => {
@@ -39,26 +54,44 @@ export function useSavings(updateAccountBalance) {
         load();
     }, []);
 
-    // Savings accounts 
+    // Sum of all named savings accounts — how much of the total is
+    // already broken down into a labeled bucket.
+    // Goal savedAmount is included too: contributing to a goal moves
+    // money OUT of a named account's balance and INTO the goal, but
+    // it's still just as "broken down" as it was before — just
+    // recategorized from account to goal, not returned to
+    // unallocated. Leaving goals out of this sum was the bug: it made
+    // the breakdown total (and "sin asignar") drop every time someone
+    // funded a goal, as if that money had become unaccounted for.
+    const savingsBreakdownTotal =
+        savingsAccounts.reduce((sum, a) => sum + a.balance, 0) +
+        savingsGoals.reduce((sum, g) => sum + g.savedAmount, 0);
+    // Whatever's left in Ahorros that isn't in a named bucket yet.
+    const unallocatedSavings = Math.max(0, mainSavingsBalance - savingsBreakdownTotal);
 
+    // Savings accounts (breakdown buckets)
+
+    // Creates a bucket and, optionally, immediately assigns it part of
+    // the unallocated total (capped — can't hand out more than exists).
     const addSavingsAccount = async ({ name, color, initialBalance = 0 }) => {
+        const assigned = Math.min(Math.max(initialBalance, 0), unallocatedSavings);
         const newAcc = {
             id: Date.now().toString(),
             name,
             color: color || '#6B5B9E',
-            balance: 0,             // siempre empieza en 0; el saldo se mueve aparte
+            balance: assigned,
             createdAt: new Date().toISOString(),
         };
         const updated = [...savingsAccounts, newAcc];
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
-        return { newAcc, updatedAccounts: updated }; // devuelve la lista ya actualizada
+        return { newAcc, ok: true, capped: assigned < initialBalance };
     };
 
     const deleteSavingsAccount = async (accountId) => {
         const acc = savingsAccounts.find(a => a.id === accountId);
         if (acc?.balance > 0) {
-            return { error: 'Esta cuenta tiene saldo. Retíralo antes de eliminarla.' };
+            return { error: 'Esta cuenta tiene saldo asignado. Quítaselo antes de eliminarla.' };
         }
         const updated = savingsAccounts.filter(a => a.id !== accountId);
         setSavingsAccounts(updated);
@@ -66,28 +99,30 @@ export function useSavings(updateAccountBalance) {
         return { ok: true };
     };
 
-    // Move money from a general acc (cash/debit) → named savings acc
-    // Accepts an optional currentAccounts list for when it's called right after
-    // addSavingsAccount (before React re-renders with the new state)
-    const depositToSavingsAccount = async ({ fromAccountId, toSavingsAccountId, amount, currentAccounts }) => {
-        // Subtract from origin (cash or debit)
-        await updateAccountBalance(fromAccountId, -amount);
-        // Use the passed list if available, otherwise fall back to current state
-        const base = currentAccounts || savingsAccounts;
-        const updated = base.map(a =>
+    // Assign part of the unallocated Ahorros total into a named
+    // bucket. Purely a relabel — Ahorros itself doesn't change.
+    const depositToSavingsAccount = async ({ toSavingsAccountId, amount }) => {
+        if (amount > unallocatedSavings) {
+            return { error: `Solo tienes ${unallocatedSavings.toFixed(2)} sin asignar en Ahorros.` };
+        }
+        const updated = savingsAccounts.map(a =>
             a.id === toSavingsAccountId
                 ? { ...a, balance: a.balance + amount }
                 : a
         );
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
+        return { ok: true };
     };
 
-    // Withdraw from a named savings acc → general acc
-    const withdrawFromSavingsAccount = async ({ fromSavingsAccountId, toAccountId, amount }) => {
+    // Free up money from a named bucket back to "unallocated" —
+    // still inside Ahorros, just no longer labeled. To actually take
+    // money out of savings entirely, use a Retiro transaction with
+    // Ahorros as the account instead.
+    const withdrawFromSavingsAccount = async ({ fromSavingsAccountId, amount }) => {
         const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
         if (!acc || acc.balance < amount) {
-            return { error: 'Saldo insuficiente en la cuenta de ahorro.' };
+            return { error: 'Esta cuenta no tiene asignado ese monto.' };
         }
         const updated = savingsAccounts.map(a =>
             a.id === fromSavingsAccountId
@@ -96,7 +131,6 @@ export function useSavings(updateAccountBalance) {
         );
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
-        await updateAccountBalance(toAccountId, amount);
         return { ok: true };
     };
 
@@ -204,9 +238,6 @@ export function useSavings(updateAccountBalance) {
         setSavingsGoals([]);
     };
 
-    // Sum of all named savings accounts — used as the breakdown total
-    const savingsBreakdownTotal = savingsAccounts.reduce((sum, a) => sum + a.balance, 0);
-
     const getMonthlySuggestion = (goal) => {
         if (!goal.deadline) return null;
         const remaining = goal.targetAmount - goal.savedAmount;
@@ -223,7 +254,9 @@ export function useSavings(updateAccountBalance) {
     return {
         savingsAccounts,
         savingsGoals,
+        mainSavingsBalance,
         savingsBreakdownTotal,
+        unallocatedSavings,
         // Accounts
         addSavingsAccount,
         deleteSavingsAccount,
