@@ -12,6 +12,7 @@ export const CATEGORIES = {
         { id: 'home', label: 'Hogar' },
         { id: 'services', label: 'Servicios' },
         { id: 'education', label: 'Educación' },
+        { id: 'goal', label: 'Objetivo cumplido' },
         { id: 'other', label: 'Otro' },
     ],
     income: [
@@ -23,6 +24,7 @@ export const CATEGORIES = {
     ],
     withdrawal: [
         { id: 'atm', label: 'Cajero' },
+        { id: 'card_payment', label: 'Pago de tarjeta' },
         { id: 'transfer', label: 'Transferencia' },
         { id: 'other', label: 'Otro' },
     ],

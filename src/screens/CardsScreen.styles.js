@@ -151,5 +151,80 @@ export default function createCardsStyles(theme) {
         },
         payBtnDone: { backgroundColor: theme.border },
         payBtnText: { color: theme.bg, fontWeight: '700', fontSize: FontSize.sm },
+
+        // Pay sheet (modal)
+        modalBg: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'flex-end',
+        },
+        sheet: {
+            backgroundColor: theme.surface,
+            borderTopLeftRadius: Radius.lg,
+            borderTopRightRadius: Radius.lg,
+            padding: Spacing.lg,
+            paddingBottom: 44,
+        },
+        sheetHandle: {
+            width: 36, height: 4,
+            backgroundColor: theme.border,
+            borderRadius: 2,
+            alignSelf: 'center',
+            marginBottom: Spacing.lg,
+        },
+        sheetTitle: {
+            fontSize: FontSize.xl, fontWeight: '800',
+            color: theme.ink, letterSpacing: -0.3,
+            marginBottom: 2, textAlign: 'center',
+        },
+        sheetSubtitle: {
+            fontSize: FontSize.sm, color: theme.muted,
+            marginBottom: Spacing.lg, textAlign: 'center',
+        },
+        sheetLabel: {
+            fontSize: FontSize.xs, fontWeight: '800',
+            color: theme.muted, textTransform: 'uppercase',
+            letterSpacing: 1, marginTop: Spacing.md, marginBottom: Spacing.xs,
+        },
+        sheetInput: {
+            backgroundColor: theme.bg,
+            borderRadius: Radius.sm,
+            padding: Spacing.md,
+            fontSize: FontSize.md, color: theme.ink,
+            borderWidth: 1, borderColor: theme.border,
+        },
+        sheetInputLarge: {
+            fontSize: 28, fontWeight: '800',
+            textAlign: 'center', letterSpacing: -1,
+        },
+        chipRow: {
+            flexDirection: 'row', flexWrap: 'wrap',
+            gap: Spacing.sm, marginTop: Spacing.xs,
+        },
+        chip: {
+            paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+            borderRadius: Radius.full, backgroundColor: theme.bg,
+            borderWidth: 1.5, borderColor: theme.border,
+        },
+        chipActive: {
+            backgroundColor: theme.moneyOutSoft,
+            borderColor: theme.moneyOut,
+        },
+        chipText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.muted },
+        chipTextActive: { color: theme.moneyOut },
+        sheetBtns: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
+        btnCancel: {
+            flex: 1, height: 52, borderRadius: Radius.sm,
+            backgroundColor: theme.border,
+            justifyContent: 'center', alignItems: 'center',
+        },
+        btnCancelText: { fontSize: FontSize.md, fontWeight: '600', color: theme.ink },
+        btnPrimary: {
+            flex: 2, height: 52, borderRadius: Radius.sm,
+            backgroundColor: theme.moneyOut,
+            justifyContent: 'center', alignItems: 'center',
+        },
+        btnDisabled: { backgroundColor: theme.border },
+        btnPrimaryText: { fontSize: FontSize.md, fontWeight: '700', color: theme.brandOn },
     });
 }
