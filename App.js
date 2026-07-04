@@ -1,34 +1,23 @@
 // App.js
-import { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import OnboardingOverlay from './src/screens/OnboardingOverlayScreen';
-import { FinanceProvider } from './src/store/FinanceContext';
-import { loadData } from './src/store/storage';
+import { FinanceProvider, useFinance } from './src/store/FinanceContext';
 
 function RootApp() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [checked, setChecked] = useState(false);
+  // Driven live by settings instead of a one-time storage read on
+  // mount — this way, resetting all data (which resets settings too)
+  // brings the onboarding overlay back on its own, no app restart
+  // needed.
+  const { settings, isLoading } = useFinance();
 
-  useEffect(() => {
-    const check = async () => {
-      const settings = await loadData('settings');
-      setShowOnboarding(!settings?.onboardingCompleted);
-      setChecked(true);
-    };
-    check();
-  }, []);
-
-  if (!checked) return null;
+  if (isLoading) return null;
 
   return (
     <NavigationContainer>
       <AppNavigator />
-      <OnboardingOverlay
-        visible={showOnboarding}
-        onComplete={() => setShowOnboarding(false)}
-      />
+      <OnboardingOverlay visible={!settings.onboardingCompleted} />
     </NavigationContainer>
   );
 }

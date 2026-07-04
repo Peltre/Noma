@@ -88,7 +88,7 @@ export default function SettingsScreen() {
                         await resetSavings();
                         await resetScheduledFunds();
                         await resetSettings();
-                        Alert.alert('Datos borrados', 'Reinicia la app para ver los cambios.');
+                        Alert.alert('Datos borrados', 'Empecemos de nuevo.');
                     },
                 },
             ]
