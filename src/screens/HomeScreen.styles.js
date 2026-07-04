@@ -289,6 +289,7 @@ export default function createHomeStyles(theme) {
             letterSpacing: -0.4,
         },
         amountPos: { color: theme.moneyIn },
+        amountExpense: { color: theme.moneyOut },
         amountNeg: { color: theme.ink },
 
         // Empty state

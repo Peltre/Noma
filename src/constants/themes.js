@@ -5,8 +5,13 @@
 //
 // Fixed meaning across themes (does not change with the palette):
 //   moneyIn  income / debit account in the allocation bar
-//   moneyOut expense (icon) / savings account in the allocation bar
+//   moneyOut expense (icon) / credit card debt / this month's spend
+//            in the allocation bar
 //   brand    dominant brand color: primary CTA, avatar, active tab
+//   savings  savings account in the allocation bar — a blue that
+//            hasn't been used anywhere else in the palette, so it
+//            reads as distinct and a little more lively than a
+//            plain neutral, without competing with brand.
 // An expense amount in text always uses `ink` (neutral), never
 // moneyOut. A single expense should not read as an alert.
 
@@ -33,6 +38,9 @@ export const Themes = {
         moneyOut: '#C17C3A',
         moneyOutSoft: 'rgba(193,124,58,0.14)',
 
+        savings: '#3E7CB8',
+        savingsSoft: 'rgba(62,124,184,0.14)',
+
         cashTone: '#D9C7A3',
     },
 
@@ -58,6 +66,9 @@ export const Themes = {
         moneyOut: '#CC9A5C',
         moneyOutSoft: 'rgba(204,154,92,0.16)',
 
+        savings: '#5B9EF0',
+        savingsSoft: 'rgba(91,158,240,0.18)',
+
         cashTone: '#4A4C52',
     },
 
@@ -82,6 +93,9 @@ export const Themes = {
         moneyInSoft: 'rgba(111,138,119,0.16)',
         moneyOut: '#D9763E',
         moneyOutSoft: 'rgba(217,118,62,0.16)',
+
+        savings: '#5A93C4',
+        savingsSoft: 'rgba(90,147,196,0.18)',
 
         cashTone: '#4A3C2C',
     },

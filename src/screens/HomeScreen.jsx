@@ -17,12 +17,12 @@ import NightSkyArt from '../components/NightSkyArt';
 
 // Which color token each account type gets in the allocation bar.
 // Unknown types rotate through the same 3-color palette.
-const ACCOUNT_FALLBACK_ORDER = ['cashTone', 'moneyIn', 'moneyOut'];
+const ACCOUNT_FALLBACK_ORDER = ['cashTone', 'moneyIn', 'savings'];
 
 function getAccountColor(theme, type, index) {
     if (type === 'cash') return theme.cashTone;
     if (type === 'debit') return theme.moneyIn;
-    if (type === 'savings') return theme.moneyOut;
+    if (type === 'savings') return theme.savings;
     const key = ACCOUNT_FALLBACK_ORDER[index % ACCOUNT_FALLBACK_ORDER.length];
     return theme[key];
 }
@@ -47,6 +47,7 @@ export default function HomeScreen() {
         transactions,
         creditCards,
         totalBalance,
+        totalDebt,
         isLoading,
         addTransaction,
         pendingFunds,
@@ -69,7 +70,11 @@ export default function HomeScreen() {
     const recentTransactions = transactions.slice(0, 3);
     const pendingMSI = pendingFunds.filter(f => f.type === 'msi');
     const pendingIncome = pendingFunds.filter(f => f.type !== 'msi');
-    const allocTotal = accounts.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
+
+    // Credit card debt gets its own slice of the same bar — money you
+    // owe is part of the full picture, not just what you have.
+    const positiveTotal = accounts.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
+    const allocTotal = positiveTotal + totalDebt;
 
     return (
         <View style={styles.safeArea}>
@@ -121,6 +126,14 @@ export default function HomeScreen() {
                                     />
                                 );
                             })}
+                            {totalDebt > 0 && (
+                                <View
+                                    style={{
+                                        width: `${(totalDebt / allocTotal) * 100}%`,
+                                        backgroundColor: theme.moneyOut,
+                                    }}
+                                />
+                            )}
                         </View>
                         <View style={styles.allocLegend}>
                             {accounts.map((acc, i) => (
@@ -134,6 +147,17 @@ export default function HomeScreen() {
                                     <Text style={styles.allocValue}>{formatCurrencyShort(acc.balance)}</Text>
                                 </View>
                             ))}
+                            {totalDebt > 0 && (
+                                <View style={styles.allocItem}>
+                                    <View style={styles.allocLabelRow}>
+                                        <View style={[styles.allocDot, { backgroundColor: theme.moneyOut }]} />
+                                        <Text style={styles.allocLabel} numberOfLines={1}>Deuda</Text>
+                                    </View>
+                                    <Text style={[styles.allocValue, { color: theme.moneyOut }]}>
+                                        −{formatCurrencyShort(totalDebt)}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                 )}
@@ -301,7 +325,10 @@ export default function HomeScreen() {
                                         </View>
                                         <Text style={[
                                             styles.txnAmount,
-                                            txn.type === 'income' ? styles.amountPos : styles.amountNeg,
+                                            txn.type === 'income' ? styles.amountPos
+                                                : txn.category === 'goal' ? { color: theme.savings }
+                                                    : txn.type === 'expense' ? styles.amountExpense
+                                                        : styles.amountNeg,
                                         ]}>
                                             {txn.type === 'income' ? '+' : '−'}{formatCurrencyShort(txn.amount)}
                                         </Text>
