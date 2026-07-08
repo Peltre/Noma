@@ -309,5 +309,71 @@ export default function createHomeStyles(theme) {
         },
 
         bottomPadding: { height: Spacing.xl + Spacing.lg },
+
+        // MSI pay sheet (modal) — same visual language as the
+        // pay-card sheet in CardsScreen, prefixed "msi" so these
+        // don't collide with the actionRow's own btnPrimary above.
+        msiModalBg: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'flex-end',
+        },
+        msiSheet: {
+            backgroundColor: theme.surface,
+            borderTopLeftRadius: Radius.lg,
+            borderTopRightRadius: Radius.lg,
+            padding: Spacing.lg,
+            paddingBottom: 44,
+        },
+        msiSheetHandle: {
+            width: 36, height: 4,
+            backgroundColor: theme.border,
+            borderRadius: 2,
+            alignSelf: 'center',
+            marginBottom: Spacing.lg,
+        },
+        msiSheetTitle: {
+            fontSize: FontSize.xl, fontWeight: '800',
+            color: theme.ink, letterSpacing: -0.3,
+            marginBottom: 2, textAlign: 'center',
+        },
+        msiSheetSubtitle: {
+            fontSize: FontSize.sm, color: theme.muted,
+            marginBottom: Spacing.lg, textAlign: 'center',
+        },
+        msiSheetLabel: {
+            fontSize: FontSize.xs, fontWeight: '800',
+            color: theme.muted, textTransform: 'uppercase',
+            letterSpacing: 1, marginTop: Spacing.md, marginBottom: Spacing.xs,
+        },
+        msiChipRow: {
+            flexDirection: 'row', flexWrap: 'wrap',
+            gap: Spacing.sm, marginTop: Spacing.xs,
+        },
+        msiChip: {
+            paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+            borderRadius: Radius.full, backgroundColor: theme.bg,
+            borderWidth: 1.5, borderColor: theme.border,
+        },
+        msiChipActive: {
+            backgroundColor: theme.moneyOutSoft,
+            borderColor: theme.moneyOut,
+        },
+        msiChipText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.muted },
+        msiChipTextActive: { color: theme.moneyOut },
+        msiSheetBtns: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
+        msiBtnCancel: {
+            flex: 1, height: 52, borderRadius: Radius.sm,
+            backgroundColor: theme.border,
+            justifyContent: 'center', alignItems: 'center',
+        },
+        msiBtnCancelText: { fontSize: FontSize.md, fontWeight: '600', color: theme.ink },
+        msiBtnPrimary: {
+            flex: 2, height: 52, borderRadius: Radius.sm,
+            backgroundColor: theme.moneyOut,
+            justifyContent: 'center', alignItems: 'center',
+        },
+        msiBtnDisabled: { backgroundColor: theme.border },
+        msiBtnPrimaryText: { fontSize: FontSize.md, fontWeight: '700', color: theme.brandOn },
     });
 }

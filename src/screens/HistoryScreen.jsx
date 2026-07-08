@@ -10,7 +10,7 @@ import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
-import { Spacing, ACCOUNT_LABELS } from '../constants';
+import { Spacing, ACCOUNT_LABELS, getCategoryLabel } from '../constants';
 import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
@@ -162,7 +162,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                                 {txn.category && (
                                     <View style={[sheet.detailRow, { borderBottomWidth: 0 }]}>
                                         <Text style={sheet.detailKey}>Categoría</Text>
-                                        <Text style={sheet.detailVal}>{txn.category}</Text>
+                                        <Text style={sheet.detailVal}>{getCategoryLabel(txn.type, txn.category)}</Text>
                                     </View>
                                 )}
                             </View>

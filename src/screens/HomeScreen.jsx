@@ -2,13 +2,13 @@
 import { useMemo, useState } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    ActivityIndicator, Alert,
+    ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { formatCurrency, formatCurrencyShort } from '../utils';
-import { ACCOUNT_LABELS } from '../constants';
+import { ACCOUNT_LABELS, getCategoryLabel } from '../constants';
 import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
@@ -36,6 +36,94 @@ function getTxnVisual(theme, type) {
     return { bg: theme.border, color: theme.muted, glyph: '→' };
 }
 
+// Confirm-and-pay sheet for one MSI installment.
+// This is what actually moves the money: a withdrawal from a real,
+// chosen account, plus a matching reduction of the card's debt —
+// same pattern as PayCardSheet in CardsScreen.jsx. Previously,
+// "confirming" a month here logged an `expense` straight against the
+// card with no source account, which — since an `expense` on a card
+// means "new purchase" everywhere else in the app — made the card's
+// debt go UP every month instead of down, and no money ever left an
+// account. Fixed by treating a monthly MSI payment exactly like a
+// manual card payment: withdrawal (accountId, no creditCardId) +
+// payCreditCard, instead of an expense tagged with the card.
+function MSIPaySheet({ fund, accounts, onClose }) {
+    const { addTransaction, payCreditCard, confirmMSI } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createHomeStyles(theme), [theme]);
+    const [accountId, setAccountId] = useState(accounts[0]?.id || null);
+    const [loading, setLoading] = useState(false);
+
+    const canConfirm = !!accountId && !loading;
+
+    const handleConfirm = async () => {
+        if (!canConfirm) return;
+        setLoading(true);
+        const result = await addTransaction({
+            type: 'withdrawal',
+            amount: fund.monthlyAmount,
+            reason: `${fund.name} MSI ${fund.paidMonths + 1}/${fund.months}`,
+            category: 'msi',
+            accountId,
+            creditCardId: null,
+        });
+        if (result?.error) {
+            setLoading(false);
+            Alert.alert('Fondos insuficientes', result.error);
+            return;
+        }
+        await payCreditCard(fund.creditCardId, fund.monthlyAmount);
+        await confirmMSI(fund.id);
+        setLoading(false);
+        onClose();
+    };
+
+    return (
+        <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+            <KeyboardAvoidingView style={styles.msiModalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+                <View style={styles.msiSheet}>
+                    <View style={styles.msiSheetHandle} />
+                    <Text style={styles.msiSheetTitle}>{fund.name}</Text>
+                    <Text style={styles.msiSheetSubtitle}>
+                        Pago {fund.paidMonths + 1} de {fund.months} · {formatCurrency(fund.monthlyAmount)}
+                    </Text>
+
+                    <Text style={styles.msiSheetLabel}>DESDE QUÉ CUENTA</Text>
+                    <View style={styles.msiChipRow}>
+                        {accounts.map(a => (
+                            <TouchableOpacity
+                                key={a.id}
+                                style={[styles.msiChip, accountId === a.id && styles.msiChipActive]}
+                                onPress={() => setAccountId(a.id)}
+                            >
+                                <Text style={[styles.msiChipText, accountId === a.id && styles.msiChipTextActive]}>
+                                    {ACCOUNT_LABELS[a.type] ?? a.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={styles.msiSheetBtns}>
+                        <TouchableOpacity style={styles.msiBtnCancel} onPress={onClose}>
+                            <Text style={styles.msiBtnCancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.msiBtnPrimary, !canConfirm && styles.msiBtnDisabled]}
+                            onPress={handleConfirm}
+                            disabled={!canConfirm}
+                        >
+                            <Text style={styles.msiBtnPrimaryText}>
+                                {loading ? 'Procesando...' : 'Confirmar pago'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </KeyboardAvoidingView>
+        </Modal>
+    );
+}
+
 export default function HomeScreen() {
     const navigation = useNavigation();
     const { theme } = useTheme();
@@ -49,15 +137,14 @@ export default function HomeScreen() {
         totalBalance,
         totalDebt,
         isLoading,
-        addTransaction,
         pendingFunds,
         getFundStatus,
         confirmFund,
-        confirmMSI,
     } = useFinance();
 
     const insets = useSafeAreaInsets();
     const [heroSize, setHeroSize] = useState({ width: 0, height: 0 });
+    const [payingMSI, setPayingMSI] = useState(null);
 
     if (isLoading) {
         return (
@@ -190,29 +277,7 @@ export default function HomeScreen() {
                                 fund={fund}
                                 status={getFundStatus(fund)}
                                 theme={theme}
-                                onPress={() => {
-                                    Alert.alert(
-                                        `MSI — ${fund.name}`,
-                                        `Pago ${fund.paidMonths + 1} de ${fund.months}\n$${fund.monthlyAmount.toFixed(2)} de $${fund.totalAmount.toFixed(2)} total`,
-                                        [
-                                            { text: 'Cancelar', style: 'cancel' },
-                                            {
-                                                text: 'Confirmar pago',
-                                                onPress: async () => {
-                                                    await addTransaction({
-                                                        type: 'expense',
-                                                        amount: fund.monthlyAmount,
-                                                        reason: `${fund.name} MSI ${fund.paidMonths + 1}/${fund.months}`,
-                                                        category: 'services',
-                                                        accountId: null,
-                                                        creditCardId: fund.creditCardId,
-                                                    });
-                                                    await confirmMSI(fund.id);
-                                                },
-                                            },
-                                        ]
-                                    );
-                                }}
+                                onPress={() => setPayingMSI(fund)}
                             />
                         ))}
                     </View>
@@ -321,7 +386,7 @@ export default function HomeScreen() {
                                             <Text style={styles.txnName} numberOfLines={1}>
                                                 {txn.reason}
                                             </Text>
-                                            <Text style={styles.txnSub}>{txn.category}</Text>
+                                            <Text style={styles.txnSub}>{getCategoryLabel(txn.type, txn.category)}</Text>
                                         </View>
                                         <Text style={[
                                             styles.txnAmount,
@@ -341,6 +406,14 @@ export default function HomeScreen() {
 
                 <View style={styles.bottomPadding} />
             </ScrollView>
+
+            {payingMSI && (
+                <MSIPaySheet
+                    fund={payingMSI}
+                    accounts={accounts}
+                    onClose={() => setPayingMSI(null)}
+                />
+            )}
         </View>
     );
 }
