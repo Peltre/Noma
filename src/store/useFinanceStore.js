@@ -54,6 +54,17 @@ export function useFinanceStore() {
 
     // Transaction handling 
     const addTransaction = async (transaction) => {
+        // Every transaction needs a real, positive amount. Without this,
+        // a negative amount would flip every subtraction below into an
+        // addition and sail straight past the "can't go negative" guards
+        // that follow — e.g. an `expense` of -100 turns
+        // `balance - (-100)` into `balance + 100`, quietly fabricating
+        // money instead of spending it. The UI already blocks this, but
+        // the store shouldn't have to trust that blindly.
+        if (!transaction.amount || transaction.amount <= 0) {
+            return { error: 'El monto debe ser mayor a cero.' };
+        }
+
         // A transfer moves money between two of the user's OWN accounts.
         // It needs a real, different destination before anything else —
         // otherwise it's indistinguishable from a plain withdrawal.
@@ -131,6 +142,27 @@ export function useFinanceStore() {
         const txn = transactions.find(t => t.id === txnId);
         if (!txn) return;
 
+        // Reversing a transaction can itself create a negative balance —
+        // e.g. deleting an old Ingreso after already spending part of
+        // that money on something else, or deleting a Traspaso after
+        // already spending what it sent to the destination account.
+        // Same "never below zero" rule that applies to making a new
+        // movement applies to undoing one. (Reversing an
+        // expense/withdrawal/transfer-source always ADDS money back,
+        // which is always safe — only these two directions subtract.)
+        if (txn.type === 'income' && txn.accountId) {
+            const account = accounts.find(a => a.id === txn.accountId);
+            if (account && account.balance - txn.amount < 0) {
+                return { error: `No se puede eliminar: ya usaste parte de este ingreso. ${account.name} quedaría en negativo.` };
+            }
+        }
+        if (txn.type === 'transfer' && txn.toAccountId) {
+            const destAcc = accounts.find(a => a.id === txn.toAccountId);
+            if (destAcc && destAcc.balance - txn.amount < 0) {
+                return { error: `No se puede eliminar: ya usaste parte del dinero recibido. ${destAcc.name} quedaría en negativo.` };
+            }
+        }
+
         // reverse balance effect
         if (txn.type === 'transfer') {
             // Reverse both legs: give the source its money back, take
@@ -163,6 +195,9 @@ export function useFinanceStore() {
 
         // If amount changed, adjust balances by the delta
         if (changes.amount !== undefined && changes.amount !== txn.amount) {
+            if (changes.amount <= 0) {
+                return { error: 'El monto debe ser mayor a cero.' };
+            }
             const delta = changes.amount - txn.amount;
 
             if (txn.type === 'transfer') {
@@ -226,10 +261,15 @@ export function useFinanceStore() {
         await saveData(KEYS.creditCards, updated);
     };
 
+    // Clamped to >= 0 for the same reason payCreditCard already was:
+    // a reversal (deleteTransaction) or a downward edit
+    // (updateTransaction) subtracts here, and debt going negative
+    // would just mean "the card owes the user money", which isn't a
+    // real state this app models.
     const updateCreditCardDebt = async (cardId, amount) => {
         const updated = creditCards.map(card =>
             card.id === cardId
-                ? { ...card, currentDebt: card.currentDebt + amount }
+                ? { ...card, currentDebt: Math.max(0, card.currentDebt + amount) }
                 : card
         );
         setCreditCards(updated)

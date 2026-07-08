@@ -102,6 +102,9 @@ export function useSavings(accounts = []) {
     // Assign part of the unallocated Ahorros total into a named
     // bucket. Purely a relabel — Ahorros itself doesn't change.
     const depositToSavingsAccount = async ({ toSavingsAccountId, amount }) => {
+        if (!amount || amount <= 0) {
+            return { error: 'El monto debe ser mayor a cero.' };
+        }
         if (amount > unallocatedSavings) {
             return { error: `Solo tienes ${unallocatedSavings.toFixed(2)} sin asignar en Ahorros.` };
         }
@@ -120,6 +123,9 @@ export function useSavings(accounts = []) {
     // money out of savings entirely, use a Retiro transaction with
     // Ahorros as the account instead.
     const withdrawFromSavingsAccount = async ({ fromSavingsAccountId, amount }) => {
+        if (!amount || amount <= 0) {
+            return { error: 'El monto debe ser mayor a cero.' };
+        }
         const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
         if (!acc || acc.balance < amount) {
             return { error: 'Esta cuenta no tiene asignado ese monto.' };
@@ -162,6 +168,9 @@ export function useSavings(accounts = []) {
 
     // Move money from a named savings acc → earmark it in a goal
     const contributeToGoal = async ({ goalId, fromSavingsAccountId, amount }) => {
+        if (!amount || amount <= 0) {
+            return { error: 'El monto debe ser mayor a cero.' };
+        }
         const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
         if (!acc || acc.balance < amount) {
             return { error: 'Saldo insuficiente en la cuenta de ahorro.' };
@@ -197,6 +206,9 @@ export function useSavings(accounts = []) {
 
     // Return earmarked goal funds back to a named savings acc
     const withdrawFromGoal = async ({ goalId, toSavingsAccountId, amount }) => {
+        if (!amount || amount <= 0) {
+            return { error: 'El monto debe ser mayor a cero.' };
+        }
         const goal = savingsGoals.find(g => g.id === goalId);
         if (!goal || goal.savedAmount < amount) {
             return { error: 'El objetivo no tiene suficientes fondos.' };

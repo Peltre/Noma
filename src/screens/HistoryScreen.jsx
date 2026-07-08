@@ -84,7 +84,11 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                 { text: 'Cancelar', style: 'cancel' },
                 {
                     text: 'Eliminar', style: 'destructive', onPress: async () => {
-                        await deleteTransaction(txn.id);
+                        const result = await deleteTransaction(txn.id);
+                        if (result?.error) {
+                            Alert.alert('No se pudo eliminar', result.error);
+                            return;
+                        }
                         onClose();
                     }
                 },
