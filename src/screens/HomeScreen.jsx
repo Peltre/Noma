@@ -29,10 +29,13 @@ function getAccountColor(theme, type, index) {
 
 // Only two accents with fixed meaning: moneyIn = comes in or is saved,
 // moneyOut = goes out. A withdrawal is neither, so it stays neutral
-// instead of borrowing one of the two.
+// instead of borrowing one of the two. A transfer isn't either one
+// either — same brand accent used for its type pill in
+// TransactionScreen, since it's a special flow, not gain or loss.
 function getTxnVisual(theme, type) {
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, glyph: '↓' };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: '↑' };
+    if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, glyph: '⇄' };
     return { bg: theme.border, color: theme.muted, glyph: '→' };
 }
 
@@ -386,7 +389,11 @@ export default function HomeScreen() {
                                             <Text style={styles.txnName} numberOfLines={1}>
                                                 {txn.reason}
                                             </Text>
-                                            <Text style={styles.txnSub}>{getCategoryLabel(txn.type, txn.category)}</Text>
+                                            <Text style={styles.txnSub}>
+                                                {txn.type === 'transfer'
+                                                    ? `${ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—'} → ${ACCOUNT_LABELS[accounts.find(a => a.id === txn.toAccountId)?.type] ?? '—'}`
+                                                    : getCategoryLabel(txn.type, txn.category)}
+                                            </Text>
                                         </View>
                                         <Text style={[
                                             styles.txnAmount,
@@ -395,7 +402,7 @@ export default function HomeScreen() {
                                                     : txn.type === 'expense' ? styles.amountExpense
                                                         : styles.amountNeg,
                                         ]}>
-                                            {txn.type === 'income' ? '+' : '−'}{formatCurrencyShort(txn.amount)}
+                                            {txn.type === 'income' ? '+' : txn.type === 'transfer' ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                         </Text>
                                     </View>
                                 );

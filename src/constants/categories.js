@@ -1,5 +1,14 @@
 // Category catalog, no emojis, labels only
 // Color is derived from the transaction type in the UI
+//
+// Note: there used to be a 'transfer' category on both `income` and
+// `withdrawal`, meant for the user to manually fake a transfer
+// between their own accounts with two separate movements. Removed
+// now that `transfer` is its own real transaction type (see
+// TransactionScreen + useFinanceStore) that moves the money on both
+// ends atomically — keeping the old category around would leave two
+// ways to do the same thing, one of which silently loses money if
+// the user forgets the second half.
 
 export const CATEGORIES = {
     expense: [
@@ -17,7 +26,6 @@ export const CATEGORIES = {
     ],
     income: [
         { id: 'salary', label: 'Quincena' },
-        { id: 'transfer', label: 'Transferencia' },
         { id: 'freelance', label: 'Freelance' },
         { id: 'gift', label: 'Regalo' },
         { id: 'other', label: 'Otro' },
@@ -31,7 +39,6 @@ export const CATEGORIES = {
         // easy to spot on their own in History instead of blending
         // into "Servicios" or any other bucket.
         { id: 'msi', label: 'Pago MSI' },
-        { id: 'transfer', label: 'Transferencia' },
         { id: 'other', label: 'Otro' },
     ],
 };

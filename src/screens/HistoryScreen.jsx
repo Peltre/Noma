@@ -20,13 +20,18 @@ const FILTERS = [
     { key: 'expense', label: 'Gastos' },
     { key: 'withdrawal', label: 'Retiros' },
     { key: 'income', label: 'Ingresos' },
+    { key: 'transfer', label: 'Traspasos' },
 ];
 
 // Only two accents with fixed meaning across the app: moneyIn/moneyOut.
 // A withdrawal is neither, so it stays neutral — same rule as Home.
+// A transfer isn't either one either, but it's not neutral-as-in-
+// "regular" like a withdrawal — it's a special flow, so it gets the
+// same brand accent as its type pill in TransactionScreen.
 function getTypeConfig(theme, type) {
     if (type === 'income') return { glyph: '↓', bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { glyph: '↑', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
+    if (type === 'transfer') return { glyph: '⇄', bg: theme.brandSoft, fg: theme.brand, label: 'Traspaso' };
     return { glyph: '→', bg: theme.border, fg: theme.muted, label: 'Retiro' };
 }
 
@@ -63,10 +68,13 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
 
     const cfg = getTypeConfig(theme, txn.type);
     const isIncome = txn.type === 'income';
+    const isTransfer = txn.type === 'transfer';
 
-    const accountName = txn.creditCardId
-        ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta')
-        : (ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—');
+    const accountName = isTransfer
+        ? `${ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—'} → ${ACCOUNT_LABELS[accounts.find(a => a.id === txn.toAccountId)?.type] ?? '—'}`
+        : txn.creditCardId
+            ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta')
+            : (ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—');
 
     const handleDelete = () => {
         Alert.alert(
@@ -144,7 +152,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                                 txn.category === 'goal' ? { color: theme.savings }
                                     : txn.type === 'expense' && { color: theme.moneyOut },
                             ]}>
-                                {isIncome ? '+' : '−'}{formatCurrency(txn.amount)}
+                                {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrency(txn.amount)}
                             </Text>
                             <Text style={sheet.reason}>{txn.reason}</Text>
 
@@ -278,6 +286,7 @@ export default function HistoryScreen() {
                             <View style={styles.txnCard}>
                                 {txns.map((txn, i) => {
                                     const isIncome = txn.type === 'income';
+                                    const isTransfer = txn.type === 'transfer';
                                     const isLast = i === txns.length - 1;
                                     return (
                                         <TouchableOpacity
@@ -303,7 +312,7 @@ export default function HistoryScreen() {
                                                             : txn.type === 'expense' ? styles.amountExpense
                                                                 : styles.amountNeg,
                                                 ]}>
-                                                    {isIncome ? '+' : '−'}{formatCurrencyShort(txn.amount)}
+                                                    {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
                                                 <TxnBadge type={txn.type} theme={theme} sheet={sheet} />
                                             </View>

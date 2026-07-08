@@ -17,12 +17,16 @@ import DecimalInput from '../components/DecimalInput';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
-// of the app, no per-type dark hero tones.
+// of the app, no per-type dark hero tones. Transfer uses brand, same
+// reasoning as the MSI toggle below: it's a special flow (money
+// moving between the user's own accounts), not a money-in/money-out
+// signal, so it shouldn't borrow moneyIn or moneyOut.
 function getTypes(theme) {
     return {
         expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
         income: { label: 'Ingreso', color: theme.moneyIn, on: theme.brandOn },
         withdrawal: { label: 'Retiro', color: theme.ink, on: theme.bg },
+        transfer: { label: 'Traspaso', color: theme.brand, on: theme.brandOn },
     };
 }
 
@@ -45,6 +49,7 @@ export default function TransactionScreen() {
     const [selectedCategory, setCategory] = useState(prefill?.category || null);
     const [selectedAccount, setAccount] = useState(prefill?.accountId || accounts[0]?.id || null);
     const [selectedCard, setCard] = useState(null);
+    const [toAccount, setToAccount] = useState(null);
     const [useCredit, setUseCredit] = useState(false);
     const [isMSI, setIsMSI] = useState(false);
     const [msiMonths, setMsiMonths] = useState(12);
@@ -59,6 +64,7 @@ export default function TransactionScreen() {
     const handleTypeChange = (t) => {
         setType(t); setCategory(null);
         setUseCredit(false); setCard(null); setIsMSI(false);
+        setToAccount(null);
     };
 
     const handleConfirm = async () => {
@@ -68,7 +74,11 @@ export default function TransactionScreen() {
         if (!reason.trim()) {
             Alert.alert('Falta la razón', 'Describe brevemente el movimiento'); return;
         }
-        if (!selectedCategory) {
+        if (type === 'transfer') {
+            if (!toAccount) {
+                Alert.alert('Falta la cuenta destino', 'Selecciona a dónde va el dinero'); return;
+            }
+        } else if (!selectedCategory) {
             Alert.alert('Falta la categoría', 'Selecciona una categoría'); return;
         }
         if (isMSI && canUseMSI) {
@@ -88,8 +98,9 @@ export default function TransactionScreen() {
         }
         const result = await addTransaction({
             type, amount: parseFloat(amount), reason: reason.trim(),
-            category: selectedCategory,
+            category: type === 'transfer' ? null : selectedCategory,
             accountId: useCredit ? null : selectedAccount,
+            toAccountId: type === 'transfer' ? toAccount : null,
             creditCardId: useCredit ? selectedCard : null,
         });
         if (result?.error) {
@@ -190,72 +201,144 @@ export default function TransactionScreen() {
                     placeholderTextColor={theme.muted}
                 />
 
-                {/* Category pills */}
-                <Text style={styles.fieldLabel}>CATEGORÍA</Text>
-                <View style={styles.pillsWrap}>
-                    {categories.map(cat => {
-                        const active = selectedCategory === cat.id;
-                        return (
-                            <TouchableOpacity
-                                key={cat.id}
-                                style={[
-                                    styles.catPill,
-                                    active
-                                        ? { backgroundColor: cur.color, borderColor: cur.color }
-                                        : { borderColor: theme.border },
-                                ]}
-                                onPress={() => setCategory(cat.id)}
-                            >
-                                <Text style={[
-                                    styles.catPillText,
-                                    active ? { color: cur.on } : { color: theme.muted },
-                                ]}>
-                                    {cat.label}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-
-                {/* Account */}
-                <Text style={styles.fieldLabel}>CUENTA</Text>
-                {type === 'expense' && creditCards.length > 0 && (
-                    <TouchableOpacity
-                        style={styles.toggle}
-                        onPress={() => { setUseCredit(!useCredit); setIsMSI(false); }}
-                    >
-                        <View style={[styles.checkbox, useCredit && styles.checkboxOn]}>
-                            {useCredit && <Text style={styles.checkmark}>✓</Text>}
+                {/* Category pills — a transfer moves the user's own
+                    money between their own accounts, there's nothing
+                    to categorize */}
+                {type !== 'transfer' && (
+                    <>
+                        <Text style={styles.fieldLabel}>CATEGORÍA</Text>
+                        <View style={styles.pillsWrap}>
+                            {categories.map(cat => {
+                                const active = selectedCategory === cat.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={cat.id}
+                                        style={[
+                                            styles.catPill,
+                                            active
+                                                ? { backgroundColor: cur.color, borderColor: cur.color }
+                                                : { borderColor: theme.border },
+                                        ]}
+                                        onPress={() => setCategory(cat.id)}
+                                    >
+                                        <Text style={[
+                                            styles.catPillText,
+                                            active ? { color: cur.on } : { color: theme.muted },
+                                        ]}>
+                                            {cat.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
-                        <Text style={styles.toggleText}>Pagar con tarjeta de crédito</Text>
-                    </TouchableOpacity>
+                    </>
                 )}
-                <View style={styles.pillsWrap}>
-                    {(useCredit ? creditCards : accounts).map(item => {
-                        const isSelected = useCredit
-                            ? selectedCard === item.id
-                            : selectedAccount === item.id;
-                        return (
+
+                {/* Account(s) */}
+                {type === 'transfer' ? (
+                    <>
+                        <Text style={styles.fieldLabel}>CUENTA ORIGEN</Text>
+                        <View style={styles.pillsWrap}>
+                            {accounts.map(item => {
+                                const isSelected = selectedAccount === item.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={[
+                                            styles.catPill,
+                                            isSelected
+                                                ? { backgroundColor: theme.ink, borderColor: theme.ink }
+                                                : { borderColor: theme.border },
+                                        ]}
+                                        onPress={() => {
+                                            setAccount(item.id);
+                                            // Origin just changed — if it now
+                                            // matches the destination, clear
+                                            // the destination instead of
+                                            // silently leaving an invalid
+                                            // "same account" pair selected.
+                                            if (toAccount === item.id) setToAccount(null);
+                                        }}
+                                    >
+                                        <Text style={[
+                                            styles.catPillText,
+                                            isSelected ? { color: theme.bg } : { color: theme.muted },
+                                        ]}>
+                                            {ACCOUNT_LABELS[item.type]}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        <Text style={styles.fieldLabel}>CUENTA DESTINO</Text>
+                        <View style={styles.pillsWrap}>
+                            {accounts.filter(item => item.id !== selectedAccount).map(item => {
+                                const isSelected = toAccount === item.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={[
+                                            styles.catPill,
+                                            isSelected
+                                                ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                : { borderColor: theme.border },
+                                        ]}
+                                        onPress={() => setToAccount(item.id)}
+                                    >
+                                        <Text style={[
+                                            styles.catPillText,
+                                            isSelected ? { color: theme.brandOn } : { color: theme.muted },
+                                        ]}>
+                                            {ACCOUNT_LABELS[item.type]}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </>
+                ) : (
+                    <>
+                        <Text style={styles.fieldLabel}>CUENTA</Text>
+                        {type === 'expense' && creditCards.length > 0 && (
                             <TouchableOpacity
-                                key={item.id}
-                                style={[
-                                    styles.catPill,
-                                    isSelected
-                                        ? { backgroundColor: theme.ink, borderColor: theme.ink }
-                                        : { borderColor: theme.border },
-                                ]}
-                                onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
+                                style={styles.toggle}
+                                onPress={() => { setUseCredit(!useCredit); setIsMSI(false); }}
                             >
-                                <Text style={[
-                                    styles.catPillText,
-                                    isSelected ? { color: theme.bg } : { color: theme.muted },
-                                ]}>
-                                    {useCredit ? item.name : ACCOUNT_LABELS[item.type]}
-                                </Text>
+                                <View style={[styles.checkbox, useCredit && styles.checkboxOn]}>
+                                    {useCredit && <Text style={styles.checkmark}>✓</Text>}
+                                </View>
+                                <Text style={styles.toggleText}>Pagar con tarjeta de crédito</Text>
                             </TouchableOpacity>
-                        );
-                    })}
-                </View>
+                        )}
+                        <View style={styles.pillsWrap}>
+                            {(useCredit ? creditCards : accounts).map(item => {
+                                const isSelected = useCredit
+                                    ? selectedCard === item.id
+                                    : selectedAccount === item.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={[
+                                            styles.catPill,
+                                            isSelected
+                                                ? { backgroundColor: theme.ink, borderColor: theme.ink }
+                                                : { borderColor: theme.border },
+                                        ]}
+                                        onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
+                                    >
+                                        <Text style={[
+                                            styles.catPillText,
+                                            isSelected ? { color: theme.bg } : { color: theme.muted },
+                                        ]}>
+                                            {useCredit ? item.name : ACCOUNT_LABELS[item.type]}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </>
+                )}
 
                 {/* MSI toggle — uses brand, the one accent reserved for
                     primary CTAs, since MSI is a special flow, not a

@@ -54,10 +54,25 @@ export function useFinanceStore() {
 
     // Transaction handling 
     const addTransaction = async (transaction) => {
-        // An expense or withdrawal can't take an account below zero —
-        // that's not "spending money you have", that's creating debt
-        // a plain account was never meant to hold.
-        if ((transaction.type === 'expense' || transaction.type === 'withdrawal') && transaction.accountId) {
+        // A transfer moves money between two of the user's OWN accounts.
+        // It needs a real, different destination before anything else —
+        // otherwise it's indistinguishable from a plain withdrawal.
+        if (transaction.type === 'transfer') {
+            if (!transaction.toAccountId) {
+                return { error: 'Selecciona una cuenta destino.' };
+            }
+            if (transaction.toAccountId === transaction.accountId) {
+                return { error: 'La cuenta destino debe ser diferente a la de origen.' };
+            }
+        }
+
+        // An expense, withdrawal or transfer can't take an account below
+        // zero — that's not "spending/moving money you have", that's
+        // creating debt a plain account was never meant to hold.
+        if (
+            (transaction.type === 'expense' || transaction.type === 'withdrawal' || transaction.type === 'transfer')
+            && transaction.accountId
+        ) {
             const account = accounts.find(a => a.id === transaction.accountId);
             if (account && account.balance - transaction.amount < 0) {
                 return { error: `${account.name} solo tiene ${account.balance.toFixed(2)} disponibles.` };
@@ -79,6 +94,18 @@ export function useFinanceStore() {
             await updateAccountBalance(transaction.accountId, transaction.amount);
         } else if (transaction.type === 'expense' || transaction.type === 'withdrawal') {
             await updateAccountBalance(transaction.accountId, -transaction.amount);
+        } else if (transaction.type === 'transfer') {
+            // Move the money for real: out of the source, into the
+            // destination. Total balance across all accounts never
+            // changes — unlike an expense/withdrawal, this can't make
+            // money vanish. The second call MUST be chained off the
+            // first call's return value (not the `accounts` state
+            // variable) — both updates touch the same accounts array
+            // in the same tick, and `accounts` in this closure won't
+            // reflect the first update yet, so chaining is what stops
+            // the second write from clobbering the first.
+            const afterSource = await updateAccountBalance(transaction.accountId, -transaction.amount);
+            await updateAccountBalance(transaction.toAccountId, transaction.amount, afterSource);
         }
 
         if (transaction.type === 'expense' && transaction.creditCardId) {
@@ -93,7 +120,16 @@ export function useFinanceStore() {
         if (!txn) return;
 
         // reverse balance effect
-        if (txn.accountId) {
+        if (txn.type === 'transfer') {
+            // Reverse both legs: give the source its money back, take
+            // it back out of the destination — same chaining rule as
+            // in addTransaction (second call must build on the first
+            // call's result, not the stale `accounts` closure).
+            const afterSource = await updateAccountBalance(txn.accountId, txn.amount);
+            if (txn.toAccountId) {
+                await updateAccountBalance(txn.toAccountId, -txn.amount, afterSource);
+            }
+        } else if (txn.accountId) {
             if (txn.type === 'income') {
                 await updateAccountBalance(txn.accountId, -txn.amount);
             } else if (txn.type === 'expense' || txn.type === 'withdrawal') {
@@ -116,7 +152,24 @@ export function useFinanceStore() {
         // If amount changed, adjust balances by the delta
         if (changes.amount !== undefined && changes.amount !== txn.amount) {
             const delta = changes.amount - txn.amount;
-            if (txn.accountId) {
+
+            if (txn.type === 'transfer') {
+                // Editing a transfer's amount moves the delta on BOTH
+                // ends: the source loses more (or less), the
+                // destination gains more (or less) — same rule as
+                // everywhere else, neither side can be pushed below
+                // zero.
+                const sourceAcc = accounts.find(a => a.id === txn.accountId);
+                if (sourceAcc && sourceAcc.balance - delta < 0) {
+                    return { error: `${sourceAcc.name} solo tiene ${sourceAcc.balance.toFixed(2)} disponibles.` };
+                }
+                const destAcc = accounts.find(a => a.id === txn.toAccountId);
+                if (destAcc && destAcc.balance + delta < 0) {
+                    return { error: `${destAcc.name} solo tiene ${destAcc.balance.toFixed(2)} disponibles.` };
+                }
+                const afterSource = await updateAccountBalance(txn.accountId, -delta);
+                await updateAccountBalance(txn.toAccountId, delta, afterSource);
+            } else if (txn.accountId) {
                 const balanceDelta = txn.type === 'income' ? delta : -delta;
                 // Same rule as a new transaction: an expense/withdrawal
                 // edit can't push the account below zero.
