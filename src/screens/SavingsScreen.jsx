@@ -315,6 +315,8 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
     const [amount, setAmount] = useState('');
     const [selectedAccId, setSelectedAccId] = useState(savingsAccounts[0]?.id || '');
     const isDeposit = mode === 'deposit';
+    const remaining = Math.max(0, (goal?.targetAmount || 0) - (goal?.savedAmount || 0));
+    const wouldOverflow = isDeposit && parseFloat(amount) > remaining;
 
     const handleConfirm = async () => {
         const amt = parseFloat(amount);
@@ -345,6 +347,18 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
                         placeholderTextColor={theme.muted}
                         autoFocus
                     />
+
+                    {/* The store already blocks an overflowing contribution
+                        outright — this is just letting the person see it
+                        (and fix it in one tap) before they hit "Aportar"
+                        instead of only after. */}
+                    {isDeposit && (
+                        <TouchableOpacity onPress={() => setAmount(remaining.toFixed(2))}>
+                            <Text style={[styles.sheetHint, wouldOverflow && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                Faltan {remaining.toFixed(2)} para completarlo — toca para llenar
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
                     <Text style={styles.sheetLabel}>{isDeposit ? 'DESDE QUÉ CUENTA' : 'REGRESAR A'}</Text>
                     {savingsAccounts.length === 0 ? (

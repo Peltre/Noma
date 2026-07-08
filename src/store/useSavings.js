@@ -171,6 +171,24 @@ export function useSavings(accounts = []) {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
+        const goal = savingsGoals.find(g => g.id === goalId);
+        if (!goal) {
+            return { error: 'No se encontró el objetivo.' };
+        }
+        // Contributing more than what's left would overfund the goal —
+        // savedAmount would pass targetAmount, and later "Marcar como
+        // comprado" only ever spends targetAmount (see SavingsScreen),
+        // so the extra would quietly get reclassified as "unallocated"
+        // the moment the goal is deleted, with no movement explaining
+        // where it went. Capping the contribution here means
+        // savedAmount can never legitimately exceed targetAmount.
+        const remaining = goal.targetAmount - goal.savedAmount;
+        if (remaining <= 0) {
+            return { error: 'Este objetivo ya está completo.' };
+        }
+        if (amount > remaining) {
+            return { error: `Con eso te pasarías del objetivo — solo faltan ${remaining.toFixed(2)}.` };
+        }
         const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
         if (!acc || acc.balance < amount) {
             return { error: 'Saldo insuficiente en la cuenta de ahorro.' };

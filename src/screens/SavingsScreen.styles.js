@@ -369,6 +369,14 @@ export default function createSavingsStyles(theme) {
             marginTop: Spacing.md,
             marginBottom: Spacing.xs,
         },
+        // Small tappable hint under an amount field (e.g. "Faltan X")
+        sheetHint: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+            marginTop: -Spacing.xs,
+            marginBottom: Spacing.xs,
+            textDecorationLine: 'underline',
+        },
         sheetInput: {
             backgroundColor: theme.bg,
             borderRadius: Radius.sm,
