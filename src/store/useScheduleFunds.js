@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
 import { addMonths, parseISO, startOfDay, differenceInDays, addDays } from "date-fns";
+import { round2 } from "../utils/formatCurrency";
 
 const KEY = 'scheduledFunds';
 
@@ -78,9 +79,9 @@ export function useScheduledFunds() {
             id: Date.now().toString(),
             type: 'msi',
             name,
-            totalAmount,
+            totalAmount: round2(totalAmount),
             months,
-            monthlyAmount: parseFloat(monthly.toFixed(2)),
+            monthlyAmount: round2(monthly),
             paidMonths: 0,
             nextDate: firstDate, // ISO string of first payment date
             accountId: accountId || null,

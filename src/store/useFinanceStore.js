@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { saveData, loadData, removeData } from './storage';
+import { round2 } from '../utils/formatCurrency';
 
 // storage keys
 const KEYS = {
@@ -44,7 +45,7 @@ export function useFinanceStore() {
         const base = currentAccounts || accounts;
         const updated = base.map(acc =>
             acc.id === accountId
-                ? { ...acc, balance: acc.balance + amount }
+                ? { ...acc, balance: round2(acc.balance + amount) }
                 : acc
         );
         setAccounts(updated)
@@ -64,6 +65,12 @@ export function useFinanceStore() {
         if (!transaction.amount || transaction.amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
+        // Round once, here, and use this rounded copy for everything
+        // below (including what gets saved) — same reason as
+        // updateAccountBalance: floats can carry more than 2 decimals
+        // in from arithmetic even when the UI itself only ever lets
+        // someone type 2.
+        transaction = { ...transaction, amount: round2(transaction.amount) };
 
         // A transfer moves money between two of the user's OWN accounts.
         // It needs a real, different destination before anything else —
@@ -198,6 +205,10 @@ export function useFinanceStore() {
             if (changes.amount <= 0) {
                 return { error: 'El monto debe ser mayor a cero.' };
             }
+            // Same reasoning as addTransaction: round once, use the
+            // rounded value both for the delta math below and for
+            // what actually gets saved.
+            changes = { ...changes, amount: round2(changes.amount) };
             const delta = changes.amount - txn.amount;
 
             if (txn.type === 'transfer') {
@@ -269,7 +280,7 @@ export function useFinanceStore() {
     const updateCreditCardDebt = async (cardId, amount) => {
         const updated = creditCards.map(card =>
             card.id === cardId
-                ? { ...card, currentDebt: Math.max(0, card.currentDebt + amount) }
+                ? { ...card, currentDebt: Math.max(0, round2(card.currentDebt + amount)) }
                 : card
         );
         setCreditCards(updated)
@@ -279,7 +290,7 @@ export function useFinanceStore() {
     const payCreditCard = async (cardId, amount) => {
         const updated = creditCards.map(card =>
             card.id === cardId
-                ? { ...card, currentDebt: Math.max(0, card.currentDebt - amount) }
+                ? { ...card, currentDebt: Math.max(0, round2(card.currentDebt - amount)) }
                 : card
         );
         setCreditCards(updated)
@@ -297,7 +308,7 @@ export function useFinanceStore() {
     const setInitialBalances = async (balances) => {
         const updated = accounts.map(acc => {
             const found = balances.find(b => b.accountId === acc.id);
-            return found ? { ...acc, balance: Math.max(0, found.balance) } : acc;
+            return found ? { ...acc, balance: Math.max(0, round2(found.balance)) } : acc;
         });
         setAccounts(updated);
         await saveData(KEYS.accounts, updated);
@@ -313,8 +324,8 @@ export function useFinanceStore() {
     }
 
     // General Computed Values 
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-    const totalDebt = creditCards.reduce((sum, card) => sum + card.currentDebt, 0);
+    const totalBalance = round2(accounts.reduce((sum, acc) => sum + acc.balance, 0));
+    const totalDebt = round2(creditCards.reduce((sum, card) => sum + card.currentDebt, 0));
 
     return {
         // State

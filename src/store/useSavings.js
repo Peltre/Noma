@@ -15,6 +15,7 @@
 
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
+import { round2 } from "../utils/formatCurrency";
 
 const KEYS = {
     savingsAccounts: 'savingsAccounts',
@@ -63,18 +64,26 @@ export function useSavings(accounts = []) {
     // unallocated. Leaving goals out of this sum was the bug: it made
     // the breakdown total (and "sin asignar") drop every time someone
     // funded a goal, as if that money had become unaccounted for.
-    const savingsBreakdownTotal =
+    //
+    // Rounded here too, not just for display: adding up several clean
+    // 2-decimal numbers can still land on something like
+    // 99.99999999999999 (plain float addition), and this value feeds
+    // straight into an `amount > unallocatedSavings` comparison below
+    // — an unrounded artifact there could reject a perfectly valid
+    // deposit for a fraction of a cent it doesn't actually owe.
+    const savingsBreakdownTotal = round2(
         savingsAccounts.reduce((sum, a) => sum + a.balance, 0) +
-        savingsGoals.reduce((sum, g) => sum + g.savedAmount, 0);
+        savingsGoals.reduce((sum, g) => sum + g.savedAmount, 0)
+    );
     // Whatever's left in Ahorros that isn't in a named bucket yet.
-    const unallocatedSavings = Math.max(0, mainSavingsBalance - savingsBreakdownTotal);
+    const unallocatedSavings = round2(Math.max(0, mainSavingsBalance - savingsBreakdownTotal));
 
     // Savings accounts (breakdown buckets)
 
     // Creates a bucket and, optionally, immediately assigns it part of
     // the unallocated total (capped — can't hand out more than exists).
     const addSavingsAccount = async ({ name, color, initialBalance = 0 }) => {
-        const assigned = Math.min(Math.max(initialBalance, 0), unallocatedSavings);
+        const assigned = round2(Math.min(Math.max(initialBalance, 0), unallocatedSavings));
         const newAcc = {
             id: Date.now().toString(),
             name,
@@ -105,12 +114,13 @@ export function useSavings(accounts = []) {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
+        amount = round2(amount);
         if (amount > unallocatedSavings) {
             return { error: `Solo tienes ${unallocatedSavings.toFixed(2)} sin asignar en Ahorros.` };
         }
         const updated = savingsAccounts.map(a =>
             a.id === toSavingsAccountId
-                ? { ...a, balance: a.balance + amount }
+                ? { ...a, balance: round2(a.balance + amount) }
                 : a
         );
         setSavingsAccounts(updated);
@@ -126,13 +136,14 @@ export function useSavings(accounts = []) {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
+        amount = round2(amount);
         const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
         if (!acc || acc.balance < amount) {
             return { error: 'Esta cuenta no tiene asignado ese monto.' };
         }
         const updated = savingsAccounts.map(a =>
             a.id === fromSavingsAccountId
-                ? { ...a, balance: a.balance - amount }
+                ? { ...a, balance: round2(a.balance - amount) }
                 : a
         );
         setSavingsAccounts(updated);
@@ -146,7 +157,7 @@ export function useSavings(accounts = []) {
             id: Date.now().toString(),
             name,
             emoji: emoji || '🎯',
-            targetAmount,
+            targetAmount: round2(targetAmount),
             savedAmount: 0,
             deadline,
             createdAt: new Date().toISOString(),
@@ -171,6 +182,7 @@ export function useSavings(accounts = []) {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
+        amount = round2(amount);
         const goal = savingsGoals.find(g => g.id === goalId);
         if (!goal) {
             return { error: 'No se encontró el objetivo.' };
@@ -182,7 +194,7 @@ export function useSavings(accounts = []) {
         // the moment the goal is deleted, with no movement explaining
         // where it went. Capping the contribution here means
         // savedAmount can never legitimately exceed targetAmount.
-        const remaining = goal.targetAmount - goal.savedAmount;
+        const remaining = round2(goal.targetAmount - goal.savedAmount);
         if (remaining <= 0) {
             return { error: 'Este objetivo ya está completo.' };
         }
@@ -195,7 +207,7 @@ export function useSavings(accounts = []) {
         }
         const updatedAccs = savingsAccounts.map(a =>
             a.id === fromSavingsAccountId
-                ? { ...a, balance: a.balance - amount }
+                ? { ...a, balance: round2(a.balance - amount) }
                 : a
         );
         setSavingsAccounts(updatedAccs);
@@ -212,7 +224,7 @@ export function useSavings(accounts = []) {
             g.id === goalId
                 ? {
                     ...g,
-                    savedAmount: g.savedAmount + amount,
+                    savedAmount: round2(g.savedAmount + amount),
                     contributions: [contribution, ...g.contributions],
                 }
                 : g
@@ -227,13 +239,14 @@ export function useSavings(accounts = []) {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
+        amount = round2(amount);
         const goal = savingsGoals.find(g => g.id === goalId);
         if (!goal || goal.savedAmount < amount) {
             return { error: 'El objetivo no tiene suficientes fondos.' };
         }
         const updatedAccs = savingsAccounts.map(a =>
             a.id === toSavingsAccountId
-                ? { ...a, balance: a.balance + amount }
+                ? { ...a, balance: round2(a.balance + amount) }
                 : a
         );
         setSavingsAccounts(updatedAccs);
@@ -250,7 +263,7 @@ export function useSavings(accounts = []) {
             g.id === goalId
                 ? {
                     ...g,
-                    savedAmount: g.savedAmount - amount,
+                    savedAmount: round2(g.savedAmount - amount),
                     contributions: [contribution, ...g.contributions],
                 }
                 : g

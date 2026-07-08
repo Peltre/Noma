@@ -45,7 +45,13 @@ function PayCardSheet({ card, accounts, onClose }) {
     if (!card) return null;
 
     const amt = parseFloat(amount) || 0;
-    const canConfirm = amt > 0 && amt <= card.currentDebt + 0.0001 && accountId && !loading;
+    // No epsilon fudge needed here anymore — card.currentDebt is now
+    // always rounded to a clean 2-decimal value at the source
+    // (updateCreditCardDebt/payCreditCard), so a straight comparison
+    // against a user-typed amount (also capped at 2 decimals by
+    // DecimalInput) can't miss a valid "pay it all off" by a
+    // fraction-of-a-cent float artifact the way it used to.
+    const canConfirm = amt > 0 && amt <= card.currentDebt && accountId && !loading;
 
     const handleConfirm = async () => {
         if (!canConfirm) return;
