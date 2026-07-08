@@ -10,6 +10,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CATEGORIES, ACCOUNT_LABELS, Spacing } from '../constants';
+import { formatCurrency } from '../utils';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
@@ -82,15 +83,24 @@ export default function TransactionScreen() {
             Alert.alert('Falta la categoría', 'Selecciona una categoría'); return;
         }
         if (isMSI && canUseMSI) {
-            await addMSI({
-                name: reason.trim(), totalAmount: parseFloat(amount),
-                months: msiMonths, firstDate: firstPay.toISOString(),
-                accountId: null, creditCardId: selectedCard,
-            });
-            await addTransaction({
+            // addTransaction first — it's the one that validates the
+            // credit limit. Only schedule the MSI installments if the
+            // actual purchase/debt was created successfully; otherwise
+            // we'd end up with a scheduled fund tracking a purchase
+            // that never happened.
+            const result = await addTransaction({
                 type: 'expense', amount: parseFloat(amount),
                 reason: `${reason.trim()} (MSI ${msiMonths}m)`,
                 category: selectedCategory,
+                accountId: null, creditCardId: selectedCard,
+            });
+            if (result?.error) {
+                Alert.alert('No se pudo registrar', result.error);
+                return;
+            }
+            await addMSI({
+                name: reason.trim(), totalAmount: parseFloat(amount),
+                months: msiMonths, firstDate: firstPay.toISOString(),
                 accountId: null, creditCardId: selectedCard,
             });
             navigation.goBack();
@@ -104,7 +114,7 @@ export default function TransactionScreen() {
             creditCardId: useCredit ? selectedCard : null,
         });
         if (result?.error) {
-            Alert.alert('Fondos insuficientes', result.error);
+            Alert.alert('No se pudo registrar', result.error);
             return;
         }
         // Only mark the pending fund as confirmed if this is still the
@@ -337,6 +347,22 @@ export default function TransactionScreen() {
                                 );
                             })}
                         </View>
+
+                        {/* Credit available — the store enforces the
+                            actual limit, this is just showing the
+                            person before they hit "Confirmar" instead
+                            of only after. */}
+                        {useCredit && selectedCard && (() => {
+                            const card = creditCards.find(c => c.id === selectedCard);
+                            if (!card) return null;
+                            const available = Math.max(0, card.limit - card.currentDebt);
+                            const overLimit = totalAmt > available;
+                            return (
+                                <Text style={[styles.fieldHint, overLimit && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                    Disponible: {formatCurrency(available)} de {formatCurrency(card.limit)}
+                                </Text>
+                            );
+                        })()}
                     </>
                 )}
 

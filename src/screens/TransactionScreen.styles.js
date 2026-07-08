@@ -134,6 +134,13 @@ export default function createTransactionStyles(theme) {
             marginTop: Spacing.md,
         },
 
+        // Small inline hint under a field (e.g. credit available)
+        fieldHint: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+            marginTop: Spacing.xs,
+        },
+
         // Text input
         input: {
             backgroundColor: theme.bg,

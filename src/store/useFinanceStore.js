@@ -79,6 +79,18 @@ export function useFinanceStore() {
             }
         }
 
+        // Same idea for credit: a purchase can't push a card's debt past
+        // its limit. This also covers MSI purchases — those create their
+        // full-amount debt through this same `expense` + creditCardId
+        // path, so this one check protects both.
+        if (transaction.type === 'expense' && transaction.creditCardId) {
+            const card = creditCards.find(c => c.id === transaction.creditCardId);
+            if (card && card.limit > 0 && card.currentDebt + transaction.amount > card.limit) {
+                const available = Math.max(0, card.limit - card.currentDebt);
+                return { error: `${card.name} solo tiene ${available.toFixed(2)} de crédito disponible.` };
+            }
+        }
+
         const newTransaction = {
             id: Date.now().toString(),
             date: new Date().toISOString(),
@@ -182,6 +194,15 @@ export function useFinanceStore() {
                 await updateAccountBalance(txn.accountId, balanceDelta);
             }
             if (txn.type === 'expense' && txn.creditCardId) {
+                // Only a larger amount can push the card over its limit —
+                // a smaller one only pays debt down, always safe.
+                if (delta > 0) {
+                    const card = creditCards.find(c => c.id === txn.creditCardId);
+                    if (card && card.limit > 0 && card.currentDebt + delta > card.limit) {
+                        const available = Math.max(0, card.limit - card.currentDebt);
+                        return { error: `${card.name} solo tiene ${available.toFixed(2)} de crédito disponible.` };
+                    }
+                }
                 await updateCreditCardDebt(txn.creditCardId, delta);
             }
         }
@@ -227,10 +248,16 @@ export function useFinanceStore() {
 
     // Sets initial balances for new users during onboarding
     // **Does NOT create transactions, just sets the starting point
+    // Clamped to >= 0 here too — the rest of the app has never
+    // allowed a negative account balance since the "no account can be
+    // on negative numbers" guard was added to addTransaction, but
+    // onboarding's free-text amount fields never got the same
+    // protection, so a typo like "-500" would start someone's very
+    // first balance in the red with no warning.
     const setInitialBalances = async (balances) => {
         const updated = accounts.map(acc => {
             const found = balances.find(b => b.accountId === acc.id);
-            return found ? { ...acc, balance: found.balance } : acc;
+            return found ? { ...acc, balance: Math.max(0, found.balance) } : acc;
         });
         setAccounts(updated);
         await saveData(KEYS.accounts, updated);
