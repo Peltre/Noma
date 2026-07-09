@@ -13,9 +13,14 @@ const KEYS = {
 };
 
 // Initial state (new user)
+// No default debit account anymore — debit accounts are entirely
+// user-created (onboarding, or the "+ Agregar cuenta" flow in Home),
+// same pattern as credit cards starting at zero. Efectivo and Ahorros
+// stay as the two singular, always-present accounts: several other
+// parts of the app (useSavings.js's mainSavingsBalance lookup, for
+// one) assume exactly one of each exists.
 const initialAccounts = [
     { id: '1', type: 'cash', name: 'Efectivo', balance: 0 },
-    { id: '2', type: 'debit', name: 'Debito', balance: 0 },
     { id: '3', type: 'savings', name: 'Ahorros', balance: 0 },
 ];
 
@@ -51,6 +56,86 @@ export function useFinanceStore() {
         setAccounts(updated)
         await saveData(KEYS.accounts, updated);
         return updated;
+    };
+
+    // Create a new account. Scoped to 'debit' for now — cash and
+    // savings are the two singular accounts other parts of the app
+    // assume exist exactly once (see initialAccounts above), so this
+    // rejects anything else rather than silently allowing a second
+    // one to sneak in through some future screen.
+    //
+    // `initialBalance` defaults to 0 and should almost always stay
+    // that way: a brand new debit account is a real bank account with
+    // no history in this app yet, so — same principle as everywhere
+    // else this conversation — there's no legitimate way to hand it a
+    // starting balance without a real transaction funding it (unlike
+    // a new named Ahorros bucket, which can draw from Ahorros' own
+    // already-real "unallocated" pool). The one deliberate exception
+    // is onboarding, which is explicitly the "here's what I already
+    // have" declaration moment for every account, debit included.
+    const addAccount = async ({ name, type, color, pattern, initialBalance = 0 }) => {
+        if (!name || !name.trim()) {
+            return { error: 'Ponle un nombre a la cuenta.' };
+        }
+        if (type !== 'debit') {
+            return { error: 'Por ahora solo se pueden agregar cuentas de débito.' };
+        }
+        const newAccount = {
+            id: Date.now().toString(),
+            type,
+            name: name.trim(),
+            color: color || null,
+            pattern: pattern || null,
+            balance: Math.max(0, round2(initialBalance)),
+        };
+        const updated = [...accounts, newAccount];
+        setAccounts(updated);
+        await saveData(KEYS.accounts, updated);
+        return newAccount;
+    };
+
+    // Rename / recolor / re-pattern an existing debit account. Balance
+    // is never touched here — that only ever moves through a real
+    // transaction.
+    const updateAccountDetails = async ({ accountId, name, color, pattern }) => {
+        const acc = accounts.find(a => a.id === accountId);
+        if (!acc) {
+            return { error: 'No se encontró la cuenta.' };
+        }
+        if (acc.type !== 'debit') {
+            return { error: 'Esta cuenta no se puede editar.' };
+        }
+        if (!name || !name.trim()) {
+            return { error: 'Ponle un nombre a la cuenta.' };
+        }
+        const updated = accounts.map(a =>
+            a.id === accountId
+                ? { ...a, name: name.trim(), color: color ?? a.color, pattern: pattern ?? a.pattern }
+                : a
+        );
+        setAccounts(updated);
+        await saveData(KEYS.accounts, updated);
+        return { ok: true };
+    };
+
+    // Same rule as deleting a named savings account: only when it's
+    // sitting at exactly zero, so deleting one can never make money
+    // disappear along with it.
+    const deleteAccount = async (accountId) => {
+        const acc = accounts.find(a => a.id === accountId);
+        if (!acc) {
+            return { error: 'No se encontró la cuenta.' };
+        }
+        if (acc.type !== 'debit') {
+            return { error: 'Esta cuenta no se puede eliminar.' };
+        }
+        if (acc.balance !== 0) {
+            return { error: 'Esta cuenta tiene saldo. Muévelo a otra cuenta antes de eliminarla.' };
+        }
+        const updated = accounts.filter(a => a.id !== accountId);
+        setAccounts(updated);
+        await saveData(KEYS.accounts, updated);
+        return { ok: true };
     };
 
     // Transaction handling 
@@ -262,14 +347,71 @@ export function useFinanceStore() {
 
     // Credit Card handling
     const addCreditCard = async (card) => {
+        if (!card.name || !card.name.trim()) {
+            return { error: 'Ponle un nombre a la tarjeta.' };
+        }
+        if (!card.limit || card.limit <= 0) {
+            return { error: 'El límite debe ser mayor a cero.' };
+        }
         const newCard = {
             id: Date.now().toString(),
             currentDebt: 0,
             ...card,
+            name: card.name.trim(),
+            limit: round2(card.limit),
+            color: card.color || null,
+            pattern: card.pattern || null,
         };
         const updated = [...creditCards, newCard];
         setCreditCards(updated);
         await saveData(KEYS.creditCards, updated);
+        return newCard;
+    };
+
+    // Rename / recolor / re-limit an existing card. currentDebt is
+    // never touched here — that only ever moves through a real
+    // transaction (a purchase, a payment, or an MSI installment).
+    const updateCreditCard = async (cardId, changes) => {
+        const card = creditCards.find(c => c.id === cardId);
+        if (!card) {
+            return { error: 'No se encontró la tarjeta.' };
+        }
+        if (changes.name !== undefined && !changes.name.trim()) {
+            return { error: 'Ponle un nombre a la tarjeta.' };
+        }
+        if (changes.limit !== undefined && changes.limit <= 0) {
+            return { error: 'El límite debe ser mayor a cero.' };
+        }
+        const updated = creditCards.map(c =>
+            c.id === cardId
+                ? {
+                    ...c,
+                    ...changes,
+                    name: changes.name !== undefined ? changes.name.trim() : c.name,
+                    limit: changes.limit !== undefined ? round2(changes.limit) : c.limit,
+                }
+                : c
+        );
+        setCreditCards(updated);
+        await saveData(KEYS.creditCards, updated);
+        return { ok: true };
+    };
+
+    // Same rule as everywhere else in the app: only when there's no
+    // debt left, so deleting a card can never make owed money
+    // disappear along with it.
+    const deleteCreditCard = async (cardId) => {
+        const card = creditCards.find(c => c.id === cardId);
+        if (!card) {
+            return { error: 'No se encontró la tarjeta.' };
+        }
+        if (card.currentDebt !== 0) {
+            return { error: 'Esta tarjeta tiene deuda pendiente. Págala antes de eliminarla.' };
+        }
+        const updated = creditCards.filter(c => c.id !== cardId);
+        setCreditCards(updated);
+        await saveData(KEYS.creditCards, updated);
+        return { ok: true };
     };
 
     // Clamped to >= 0 for the same reason payCreditCard already was:
@@ -340,9 +482,14 @@ export function useFinanceStore() {
         updateTransaction,
         deleteTransaction,
         addCreditCard,
+        updateCreditCard,
+        deleteCreditCard,
         updateCreditCardDebt,
         payCreditCard,
         updateAccountBalance,
+        addAccount,
+        updateAccountDetails,
+        deleteAccount,
         resetAll,
         setInitialBalances,
     };
