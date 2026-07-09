@@ -18,7 +18,7 @@ import Svg, { Rect, Path, Circle } from 'react-native-svg';
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
 import { formatCurrencyShort } from "../utils";
-import { ACCOUNT_LABELS, FREQUENCY_LABELS } from '../constants';
+import { FREQUENCY_LABELS } from '../constants';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
 import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
@@ -189,7 +189,7 @@ export default function ScheduledFundsScreen() {
                                         </Text>
                                         {account && (
                                             <Text style={styles.fundMetaText}>
-                                                → {ACCOUNT_LABELS[account.type]}
+                                                → {account.name}
                                             </Text>
                                         )}
                                     </View>
@@ -287,7 +287,7 @@ export default function ScheduledFundsScreen() {
                                         styles.accountOptionText,
                                         accountId === acc.id && { color: theme.bg },
                                     ]}>
-                                        {ACCOUNT_LABELS[acc.type]}
+                                        {acc.name}
                                     </Text>
                                 </TouchableOpacity>
                             ))}

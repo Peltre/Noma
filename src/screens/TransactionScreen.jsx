@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CATEGORIES, ACCOUNT_LABELS, Spacing } from '../constants';
+import { CATEGORIES, Spacing } from '../constants';
 import { formatCurrency } from '../utils';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
@@ -274,7 +274,7 @@ export default function TransactionScreen() {
                                             styles.catPillText,
                                             isSelected ? { color: theme.bg } : { color: theme.muted },
                                         ]}>
-                                            {ACCOUNT_LABELS[item.type]}
+                                            {item.name}
                                         </Text>
                                     </TouchableOpacity>
                                 );
@@ -300,7 +300,7 @@ export default function TransactionScreen() {
                                             styles.catPillText,
                                             isSelected ? { color: theme.brandOn } : { color: theme.muted },
                                         ]}>
-                                            {ACCOUNT_LABELS[item.type]}
+                                            {item.name}
                                         </Text>
                                     </TouchableOpacity>
                                 );
@@ -341,7 +341,7 @@ export default function TransactionScreen() {
                                             styles.catPillText,
                                             isSelected ? { color: theme.bg } : { color: theme.muted },
                                         ]}>
-                                            {useCredit ? item.name : ACCOUNT_LABELS[item.type]}
+                                            {item.name}
                                         </Text>
                                     </TouchableOpacity>
                                 );

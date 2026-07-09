@@ -10,7 +10,7 @@ import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
-import { Spacing, ACCOUNT_LABELS, getCategoryLabel } from '../constants';
+import { Spacing, getCategoryLabel } from '../constants';
 import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
@@ -71,10 +71,10 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
     const isTransfer = txn.type === 'transfer';
 
     const accountName = isTransfer
-        ? `${ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—'} → ${ACCOUNT_LABELS[accounts.find(a => a.id === txn.toAccountId)?.type] ?? '—'}`
+        ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
         : txn.creditCardId
             ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta')
-            : (ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—');
+            : (accounts.find(a => a.id === txn.accountId)?.name ?? '—');
 
     const handleDelete = () => {
         Alert.alert(
