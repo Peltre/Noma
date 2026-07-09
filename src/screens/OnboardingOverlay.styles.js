@@ -112,8 +112,15 @@ export default function createOnboardingStyles(theme) {
             textAlign: 'center',
             padding: Spacing.lg,
         },
+        helperNote: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+            marginTop: Spacing.xs,
+            marginBottom: Spacing.sm,
+            lineHeight: 16,
+        },
 
-        // Account cards
+        // Account cards (debit card list — each becomes a real account)
         accountCard: {
             backgroundColor: theme.bg,
             borderRadius: Radius.sm,

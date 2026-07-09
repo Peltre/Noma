@@ -16,9 +16,19 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
 import DecimalInput from "../components/DecimalInput";
+import { ACCOUNT_LABELS } from "../constants";
+import { SAVINGS_COLORS } from "../store/useSavings";
 import createOnboardingStyles from './OnboardingOverlay.styles';
 
 const TOTAL_STEPS = 4;
+
+// Same rule the rest of the app enforces on every account balance:
+// never negative. Onboarding's amount fields are free-text (DecimalInput
+// doesn't block a literal "-"), so this is the one place that guards
+// the very first numbers a new user's balances start from.
+function positiveFloat(str) {
+    return Math.max(0, parseFloat(str) || 0);
+}
 
 // Step icons — same stroke language as the rest of the app, no emojis.
 function IconSparkle({ color }) {
@@ -115,6 +125,7 @@ export default function Onboarding({ visible }) {
     const {
         updateSettings,
         setInitialBalances,
+        addAccount,
     } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createOnboardingStyles(theme), [theme]);
@@ -125,10 +136,13 @@ export default function Onboarding({ visible }) {
     // Step 1 - The name
     const [userName, setUserName] = useState('');
 
-    // Step 3 - Cash & debit cards
+    // Step 3 - Cash & debit
+    // Each entry here becomes its own real account (via addAccount)
+    // when the user finishes — not summed into one lump. An entry
+    // left with no name is treated as "skipped", not created.
     const [cashAmount, setCashAmount] = useState('');
     const [debitCards, setDebitCards] = useState([
-        { id: '1', name: '', balance: '' }
+        { id: '1', name: '', balance: '' },
     ]);
 
     // Step 4 - Savings
@@ -149,29 +163,44 @@ export default function Onboarding({ visible }) {
         else setStep(1);
     };
 
-    // Debit card helpers
-    const addDebitCards = () => {
+    // Debit card list helpers — each entry maps 1:1 to a real account
+    // created in handleFinish, unlike the old version of this screen.
+    const addDebitCard = () => {
         setDebitCards([...debitCards, { id: Date.now().toString(), name: '', balance: '' }]);
     };
-
     const updateDebitCard = (id, field, value) => {
         setDebitCards(debitCards.map(c => c.id === id ? { ...c, [field]: value } : c));
     };
-
     const removeDebitCard = (id) => {
         if (debitCards.length > 1) setDebitCards(debitCards.filter(c => c.id !== id));
     };
 
     // Finish
     const handleFinish = async (skipSavings = false) => {
-        const totalDebit = debitCards.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
-        const savings = (!skipSavings && hasSavings) ? parseFloat(savingsAmount) || 0 : 0;
+        const savings = (!skipSavings && hasSavings) ? positiveFloat(savingsAmount) : 0;
 
         await setInitialBalances([
-            { accountId: '1', balance: parseFloat(cashAmount) || 0 },
-            { accountId: '2', balance: totalDebit },
+            { accountId: '1', balance: positiveFloat(cashAmount) },
             { accountId: '3', balance: savings },
         ]);
+
+        // Each named debit card becomes its own real account — an
+        // entry with no name is left blank on purpose (skipped, not
+        // created as a nameless account). Colors cycle through the
+        // same palette Ahorros sub-accounts use, so they're
+        // distinguishable from the very first screen instead of all
+        // starting identical.
+        let colorIndex = 0;
+        for (const card of debitCards) {
+            if (!card.name.trim()) continue;
+            await addAccount({
+                name: card.name.trim(),
+                type: 'debit',
+                color: SAVINGS_COLORS[colorIndex % SAVINGS_COLORS.length],
+                initialBalance: positiveFloat(card.balance),
+            });
+            colorIndex++;
+        }
 
         // Marking onboardingCompleted last (and awaited) so the overlay
         // closes only once everything else has actually been saved.
@@ -271,7 +300,7 @@ export default function Onboarding({ visible }) {
 
                         {/* Cash */}
                         <View style={styles.fieldGroup}>
-                            <Text style={styles.fieldLabel}>Efectivo</Text>
+                            <Text style={styles.fieldLabel}>{ACCOUNT_LABELS.cash}</Text>
                             <DecimalInput
                                 style={styles.input}
                                 value={cashAmount}
@@ -281,9 +310,12 @@ export default function Onboarding({ visible }) {
                             />
                         </View>
 
-                        {/* Debit cards */}
+                        {/* Debit — each entry becomes its own real
+                            account (see handleFinish + addAccount in
+                            useFinanceStore.js), so this can be as many
+                            cards as the person actually has. */}
                         <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>
-                            TARJETAS DE DEBITO
+                            TARJETAS DE DÉBITO
                         </Text>
                         {debitCards.map((card, index) => (
                             <View style={styles.accountCard} key={card.id}>
@@ -314,8 +346,15 @@ export default function Onboarding({ visible }) {
                                 />
                             </View>
                         ))}
+                        <TouchableOpacity style={styles.addBtn} onPress={addDebitCard}>
+                            <Text style={styles.addBtnText}>+ Agregar otra tarjeta</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.helperNote}>
+                            Déjala en blanco si no tienes (o no quieres agregar) una tarjeta de débito — puedes agregar más después desde Home.
+                        </Text>
+
                         <View style={styles.bottomRow}>
-                            <TouchableOpacity style={styles.addBtn} onPress={() => setStep(2)}>
+                            <TouchableOpacity style={styles.backBtn} onPress={() => setStep(2)}>
                                 <Text style={styles.backBtnText}>←</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -413,7 +452,7 @@ export default function Onboarding({ visible }) {
                     <View style={styles.card}>
                         {step !== 2 && (
                             <View style={styles.progressRow}>
-                                {[1, 2, 3, 4].map(i => (
+                                {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(i => (
                                     <View
                                         key={i}
                                         style={[
