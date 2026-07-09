@@ -1,6 +1,6 @@
 // AddCardScreen styles — theme-driven, same pattern as CardsScreen.
-// cardPreview keeps a fixed dark palette (see CardsScreen.styles.js
-// note) — it mirrors the real physical card, not the app theme.
+// The card preview itself lives in CardFace.jsx now; this file is
+// just the screen chrome (header, form, pickers) around it.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius } from '../constants';
 
@@ -22,71 +22,9 @@ export default function createAddCardStyles(theme) {
         backText: { fontSize: FontSize.lg, color: theme.ink, fontWeight: '600' },
         title: { fontSize: FontSize.xl, fontWeight: '800', color: theme.ink, letterSpacing: -0.3 },
 
-        // Card preview
-        cardPreview: {
+        previewWrap: {
             marginHorizontal: Spacing.lg,
             marginBottom: Spacing.lg,
-            borderRadius: Radius.lg,
-            padding: Spacing.lg,
-            height: 190,
-            justifyContent: 'space-between',
-            overflow: 'hidden',
-            position: 'relative',
-        },
-        // Decorative orbs inside preview
-        previewOrbA: {
-            position: 'absolute', width: 160, height: 160,
-            borderRadius: 80,
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            top: -40, right: -40,
-        },
-        previewOrbB: {
-            position: 'absolute', width: 100, height: 100,
-            borderRadius: 50,
-            backgroundColor: 'rgba(255,255,255,0.04)',
-            bottom: -20, left: 20,
-        },
-        previewTop: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            zIndex: 2,
-        },
-        previewBank: {
-            fontSize: FontSize.lg, fontWeight: '800',
-            color: '#FFFFFF', letterSpacing: -0.3,
-            flex: 1,
-        },
-        // SIM chip visual
-        previewChip: {
-            width: 32, height: 24, borderRadius: 4,
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            justifyContent: 'center', alignItems: 'center',
-        },
-        previewChipInner: {
-            width: 20, height: 14, borderRadius: 2,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
-        },
-        previewBottom: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            zIndex: 2,
-        },
-        previewLimitLbl: {
-            fontSize: FontSize.xs, color: 'rgba(255,255,255,0.5)',
-            fontWeight: '600', letterSpacing: 1,
-            textTransform: 'uppercase', marginBottom: 2,
-        },
-        previewLimit: {
-            fontSize: FontSize.xxl, fontWeight: '800',
-            color: '#FFFFFF', letterSpacing: -1,
-        },
-        previewDates: { alignItems: 'flex-end', gap: 3 },
-        previewDateText: {
-            fontSize: FontSize.xs, color: 'rgba(255,255,255,0.5)',
-            fontWeight: '600',
         },
 
         // Form
@@ -114,6 +52,53 @@ export default function createAddCardStyles(theme) {
 
         row: { flexDirection: 'row', gap: Spacing.md },
 
+        // Type selector (Débito / Crédito)
+        typeRow: { flexDirection: 'row', gap: Spacing.sm },
+        typeBtn: {
+            flex: 1, paddingVertical: Spacing.sm + 2,
+            borderRadius: Radius.sm,
+            backgroundColor: theme.surface,
+            borderWidth: 1.5, borderColor: theme.border,
+            alignItems: 'center',
+        },
+        typeBtnActive: {
+            backgroundColor: theme.ink,
+            borderColor: theme.ink,
+        },
+        typeBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.muted },
+        typeBtnTextActive: { color: theme.bg },
+
+        // Color picker — same dot-grid pattern used for Ahorros
+        // sub-accounts and debit accounts.
+        colorRow: {
+            flexDirection: 'row', flexWrap: 'wrap',
+            gap: Spacing.sm, marginTop: Spacing.xs,
+        },
+        colorDot: {
+            width: 32, height: 32, borderRadius: 16,
+            borderWidth: 2, borderColor: 'transparent',
+        },
+        colorDotActive: {
+            borderColor: theme.ink,
+        },
+
+        // Pattern picker
+        patternRow: {
+            flexDirection: 'row', flexWrap: 'wrap',
+            gap: Spacing.sm, marginTop: Spacing.xs,
+        },
+        patternChip: {
+            paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+            borderRadius: Radius.full, backgroundColor: theme.surface,
+            borderWidth: 1.5, borderColor: theme.border,
+        },
+        patternChipActive: {
+            backgroundColor: theme.ink,
+            borderColor: theme.ink,
+        },
+        patternChipText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.muted },
+        patternChipTextActive: { color: theme.bg },
+
         confirmBtn: {
             marginTop: Spacing.lg,
             backgroundColor: theme.ink,
@@ -121,8 +106,25 @@ export default function createAddCardStyles(theme) {
             paddingVertical: 16,
             alignItems: 'center',
         },
+        confirmBtnDisabled: { opacity: 0.6 },
         confirmBtnText: {
             color: theme.bg, fontSize: FontSize.md, fontWeight: '700',
+        },
+
+        // Delete (edit mode only) — disabled state explains why
+        // instead of just refusing to respond to a tap.
+        deleteBtn: {
+            marginTop: Spacing.sm,
+            alignItems: 'center',
+            padding: Spacing.md,
+        },
+        deleteBtnDisabled: {},
+        deleteBtnText: {
+            fontSize: FontSize.sm, fontWeight: '600',
+            color: theme.moneyOut,
+        },
+        deleteBtnTextDisabled: {
+            color: theme.muted,
         },
     });
 }

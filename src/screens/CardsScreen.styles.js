@@ -1,7 +1,7 @@
 // CardsScreen styles — theme-driven, same pattern as Home/History.
-// The visual card itself (visualCard*) intentionally keeps its own
-// dark palette (CARD_COLORS in the screen) regardless of app theme —
-// it's meant to look like a physical card, not a themed surface.
+// The card face itself (color, pattern, badge) lives in
+// CardFace.jsx's own StyleSheet now — everything here is the screen
+// chrome around it (grid, filter, detail sheet).
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
@@ -23,6 +23,24 @@ export default function createCardsStyles(theme) {
             backgroundColor: theme.ink,
         },
         addBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.bg },
+
+        // Filter (Todas / Débito / Crédito)
+        filterRow: {
+            flexDirection: 'row', gap: Spacing.sm,
+            paddingHorizontal: Spacing.lg, marginBottom: Spacing.md,
+        },
+        filterChip: {
+            paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2,
+            borderRadius: Radius.full,
+            backgroundColor: theme.surface,
+            borderWidth: 1.5, borderColor: theme.border,
+        },
+        filterChipActive: {
+            backgroundColor: theme.ink,
+            borderColor: theme.ink,
+        },
+        filterChipText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.muted },
+        filterChipTextActive: { color: theme.bg },
 
         // Empty state
         emptyState: {
@@ -49,82 +67,21 @@ export default function createCardsStyles(theme) {
         },
         emptyBtnText: { color: theme.bg, fontWeight: '700', fontSize: FontSize.sm },
 
-        // Card list
-        list: { paddingHorizontal: Spacing.lg, gap: Spacing.lg },
-        cardWrap: {},
-
-        // Visual card (dark, like a real credit card — fixed palette,
-        // not theme-dependent; see note at top of file)
-        visualCard: {
-            borderRadius: Radius.lg,
-            padding: Spacing.lg,
-            marginBottom: Spacing.sm,
-            overflow: 'hidden',
-            position: 'relative',
+        // Card stack — a fanned "wallet" deck instead of a grid.
+        // Each tile is full-width; the overlap itself comes from a
+        // negative marginTop applied inline per-card in the screen
+        // (depends on index, so it can't live in a static
+        // StyleSheet entry).
+        stack: {
+            paddingHorizontal: Spacing.lg,
+            paddingBottom: Spacing.sm,
         },
-        visualCardOrb: {
-            position: 'absolute', width: 200, height: 200,
-            borderRadius: 100,
-            backgroundColor: 'rgba(255,255,255,0.04)',
-            top: -60, right: -60,
-        },
-        visualCardTop: {
-            flexDirection: 'row', justifyContent: 'space-between',
-            alignItems: 'flex-start', marginBottom: Spacing.xl,
-            zIndex: 2,
-        },
-        visualCardName: {
-            fontSize: FontSize.lg, fontWeight: '800',
-            color: '#FFFFFF', letterSpacing: -0.3, flex: 1,
-        },
-        chipWrap: {
-            width: 30, height: 22, borderRadius: 4,
-            backgroundColor: 'rgba(255,255,255,0.18)',
-            justifyContent: 'center', alignItems: 'center',
-        },
-        chipInner: {
-            width: 18, height: 13, borderRadius: 2,
-            backgroundColor: 'rgba(255,255,255,0.12)',
-            borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
-        },
-        visualCardBottom: {
-            flexDirection: 'row', justifyContent: 'space-between',
-            alignItems: 'flex-end', zIndex: 2, marginBottom: Spacing.md,
-        },
-        debtLbl: {
-            fontSize: FontSize.xs, color: 'rgba(255,255,255,0.45)',
-            fontWeight: '600', letterSpacing: 1,
-            textTransform: 'uppercase', marginBottom: 2,
-        },
-        debtAmt: {
-            fontSize: FontSize.xxl, fontWeight: '900',
-            color: '#FFFFFF', letterSpacing: -1,
-        },
-        limitBlock: { alignItems: 'flex-end' },
-        limitLbl: {
-            fontSize: FontSize.xs, color: 'rgba(255,255,255,0.4)',
-            fontWeight: '600', textTransform: 'uppercase',
-            letterSpacing: 1, marginBottom: 2,
-        },
-        limitAmt: {
-            fontSize: FontSize.lg, fontWeight: '700',
-            color: 'rgba(255,255,255,0.7)',
-        },
-        progressTrack: {
-            height: 3, borderRadius: 2,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            overflow: 'hidden', marginBottom: 6, zIndex: 2,
-        },
-        progressFill: {
-            height: '100%', backgroundColor: theme.moneyOut,
-            borderRadius: 2,
-        },
-        pctText: {
-            fontSize: FontSize.xs, color: 'rgba(255,255,255,0.35)',
-            fontWeight: '600', zIndex: 2,
+        stackCard: {
+            width: '100%',
+            ...Shadow.float,
         },
 
-        // Detail rows card
+        // Detail rows card (shown inside the detail sheet)
         detailCard: {
             backgroundColor: theme.surface,
             borderRadius: Radius.sm,
@@ -141,7 +98,7 @@ export default function createCardsStyles(theme) {
         detailKey: { fontSize: FontSize.sm, color: theme.muted, fontWeight: '500' },
         detailVal: { fontSize: FontSize.sm, color: theme.ink, fontWeight: '700' },
 
-        // Pay button
+        // Pay button (inside detail sheet, credit only)
         payBtn: {
             backgroundColor: theme.ink,
             borderRadius: Radius.sm,
@@ -149,10 +106,9 @@ export default function createCardsStyles(theme) {
             alignItems: 'center',
             marginBottom: Spacing.sm,
         },
-        payBtnDone: { backgroundColor: theme.border },
         payBtnText: { color: theme.bg, fontWeight: '700', fontSize: FontSize.sm },
 
-        // Pay sheet (modal)
+        // Sheets (pay / detail) — shared shell
         modalBg: {
             flex: 1,
             backgroundColor: 'rgba(0,0,0,0.5)',
@@ -220,6 +176,15 @@ export default function createCardsStyles(theme) {
         },
         btnCancelText: { fontSize: FontSize.md, fontWeight: '600', color: theme.ink },
         btnPrimary: {
+            flex: 2, height: 52, borderRadius: Radius.sm,
+            backgroundColor: theme.moneyOut,
+            justifyContent: 'center', alignItems: 'center',
+        },
+        // Delete action in the detail sheet — same shape as btnPrimary
+        // but its own name since its color is conditional (moneyOut
+        // when deletable, border/muted when blocked) and the "Editar"
+        // action shares this row too.
+        btnDelete: {
             flex: 2, height: 52, borderRadius: Radius.sm,
             backgroundColor: theme.moneyOut,
             justifyContent: 'center', alignItems: 'center',
