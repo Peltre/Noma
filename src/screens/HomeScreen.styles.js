@@ -128,6 +128,13 @@ export default function createHomeStyles(theme) {
             color: theme.ink,
             marginTop: 3,
         },
+        allocManageLink: {
+            fontSize: FontSize.xs,
+            fontWeight: '700',
+            color: theme.brand,
+            marginTop: Spacing.sm,
+            textAlign: 'center',
+        },
 
         // Action buttons
         actionRow: {

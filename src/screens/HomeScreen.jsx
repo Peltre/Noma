@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { formatCurrency, formatCurrencyShort } from '../utils';
-import { ACCOUNT_LABELS, getCategoryLabel } from '../constants';
+import { getCategoryLabel } from '../constants';
 import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
@@ -16,15 +16,19 @@ import PendingFundCard from '../components/PendingFundCard';
 import NightSkyArt from '../components/NightSkyArt';
 
 // Which color token each account type gets in the allocation bar.
-// Unknown types rotate through the same 3-color palette.
-const ACCOUNT_FALLBACK_ORDER = ['cashTone', 'moneyIn', 'savings'];
-
-function getAccountColor(theme, type, index) {
-    if (type === 'cash') return theme.cashTone;
-    if (type === 'debit') return theme.moneyIn;
-    if (type === 'savings') return theme.savings;
-    const key = ACCOUNT_FALLBACK_ORDER[index % ACCOUNT_FALLBACK_ORDER.length];
-    return theme[key];
+// A debit account can carry its own `color` (set from the Tarjetas
+// tab, same SAVINGS_COLORS palette Ahorros sub-accounts use) so
+// multiple debit accounts stay visually distinguishable in the list —
+// that custom color always wins when present. Accounts without one
+// (Efectivo, Ahorros, and any debit account that hasn't been given a
+// color yet) fall back to the fixed per-type color exactly as before,
+// so the common single-account case looks unchanged.
+function getAccountColor(theme, account) {
+    if (account.color) return account.color;
+    if (account.type === 'cash') return theme.cashTone;
+    if (account.type === 'debit') return theme.moneyIn;
+    if (account.type === 'savings') return theme.savings;
+    return theme.muted;
 }
 
 // Only two accents with fixed meaning: moneyIn = comes in or is saved,
@@ -101,7 +105,7 @@ function MSIPaySheet({ fund, accounts, onClose }) {
                                 onPress={() => setAccountId(a.id)}
                             >
                                 <Text style={[styles.msiChipText, accountId === a.id && styles.msiChipTextActive]}>
-                                    {ACCOUNT_LABELS[a.type] ?? a.name}
+                                    {a.name}
                                 </Text>
                             </TouchableOpacity>
                         ))}
@@ -201,18 +205,22 @@ export default function HomeScreen() {
                     </View>
                 </View>
 
-                {/* Allocation bar, replaces the old pills */}
+                {/* Allocation bar, replaces the old pills.
+                    Read-only here on purpose — adding, renaming, or
+                    deleting a debit account now lives in the Tarjetas
+                    tab alongside credit cards, so débito/crédito share
+                    one place to manage both instead of two. */}
                 {accounts.length > 0 && (
                     <View style={styles.alloc}>
                         <View style={styles.allocBar}>
-                            {accounts.map((acc, i) => {
+                            {accounts.map((acc) => {
                                 const pct = allocTotal > 0
                                     ? (Math.max(acc.balance, 0) / allocTotal) * 100
                                     : 100 / accounts.length;
                                 return (
                                     <View
                                         key={acc.id}
-                                        style={{ width: `${pct}%`, backgroundColor: getAccountColor(theme, acc.type, i) }}
+                                        style={{ width: `${pct}%`, backgroundColor: getAccountColor(theme, acc) }}
                                     />
                                 );
                             })}
@@ -226,12 +234,12 @@ export default function HomeScreen() {
                             )}
                         </View>
                         <View style={styles.allocLegend}>
-                            {accounts.map((acc, i) => (
+                            {accounts.map((acc) => (
                                 <View key={acc.id} style={styles.allocItem}>
                                     <View style={styles.allocLabelRow}>
-                                        <View style={[styles.allocDot, { backgroundColor: getAccountColor(theme, acc.type, i) }]} />
+                                        <View style={[styles.allocDot, { backgroundColor: getAccountColor(theme, acc) }]} />
                                         <Text style={styles.allocLabel} numberOfLines={1}>
-                                            {ACCOUNT_LABELS[acc.type] ?? acc.name}
+                                            {acc.name}
                                         </Text>
                                     </View>
                                     <Text style={styles.allocValue}>{formatCurrencyShort(acc.balance)}</Text>
@@ -391,7 +399,7 @@ export default function HomeScreen() {
                                             </Text>
                                             <Text style={styles.txnSub}>
                                                 {txn.type === 'transfer'
-                                                    ? `${ACCOUNT_LABELS[accounts.find(a => a.id === txn.accountId)?.type] ?? '—'} → ${ACCOUNT_LABELS[accounts.find(a => a.id === txn.toAccountId)?.type] ?? '—'}`
+                                                    ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
                                                     : getCategoryLabel(txn.type, txn.category)}
                                             </Text>
                                         </View>
