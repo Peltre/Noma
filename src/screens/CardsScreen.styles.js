@@ -1,7 +1,8 @@
 // CardsScreen styles — theme-driven, same pattern as Home/History.
 // The card face itself (color, pattern, badge) lives in
-// CardFace.jsx's own StyleSheet now — everything here is the screen
-// chrome around it (grid, filter, detail sheet).
+// CardFace.jsx's own StyleSheet, and the stacking/animation
+// mechanics live in FocusStack.jsx — everything here is screen
+// chrome: header, deck headers, empty states, sheets, popover.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
@@ -24,25 +25,7 @@ export default function createCardsStyles(theme) {
         },
         addBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.bg },
 
-        // Filter (Todas / Débito / Crédito)
-        filterRow: {
-            flexDirection: 'row', gap: Spacing.sm,
-            paddingHorizontal: Spacing.lg, marginBottom: Spacing.md,
-        },
-        filterChip: {
-            paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2,
-            borderRadius: Radius.full,
-            backgroundColor: theme.surface,
-            borderWidth: 1.5, borderColor: theme.border,
-        },
-        filterChipActive: {
-            backgroundColor: theme.ink,
-            borderColor: theme.ink,
-        },
-        filterChipText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.muted },
-        filterChipTextActive: { color: theme.bg },
-
-        // Empty state
+        // Empty state (no cards at all)
         emptyState: {
             alignItems: 'center', paddingTop: 60, paddingHorizontal: Spacing.xl,
         },
@@ -67,19 +50,73 @@ export default function createCardsStyles(theme) {
         },
         emptyBtnText: { color: theme.bg, fontWeight: '700', fontSize: FontSize.sm },
 
-        // Card stack — a fanned "wallet" deck instead of a grid.
-        // Each tile is full-width; the overlap itself comes from a
-        // negative marginTop applied inline per-card in the screen
-        // (depends on index, so it can't live in a static
-        // StyleSheet entry).
-        stack: {
-            paddingHorizontal: Spacing.lg,
-            paddingBottom: Spacing.sm,
+        // Empty state for a single type (one deck has zero cards while
+        // the other doesn't) — a slim dashed prompt instead of a
+        // header for zero cards.
+        emptyTypeRow: {
+            marginHorizontal: Spacing.lg, marginBottom: Spacing.md,
+            paddingVertical: 18, borderRadius: Radius.sm,
+            borderWidth: 1.5, borderColor: theme.border, borderStyle: 'dashed',
+            alignItems: 'center',
         },
-        stackCard: {
-            width: '100%',
+        emptyTypeText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.muted },
+
+        // Deck section (Débito / Crédito) header
+        deckSection: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm },
+        deckHead: {
+            flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+            paddingVertical: 10,
+        },
+        deckHeadLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+        deckDot: { width: 9, height: 9, borderRadius: 5 },
+        deckTitle: { fontSize: FontSize.md, fontWeight: '800', color: theme.ink },
+        deckCount: {
+            fontSize: 10.5, fontWeight: '700', color: theme.muted,
+            backgroundColor: theme.border, paddingHorizontal: 7, paddingVertical: 2,
+            borderRadius: Radius.full,
+        },
+        deckHeadRight: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+        deckTotal: { fontSize: FontSize.sm, fontWeight: '800', color: theme.ink },
+        chev: { color: theme.muted, fontSize: 13 },
+        chevCollapsed: { transform: [{ rotate: '-90deg' }] },
+        deckStackWrap: { paddingBottom: Spacing.sm },
+
+        // Floating "+" (opens the type picker)
+        fab: {
+            position: 'absolute', right: Spacing.lg, bottom: Spacing.lg,
+            width: 56, height: 56, borderRadius: 28,
+            backgroundColor: theme.brand,
+            justifyContent: 'center', alignItems: 'center',
             ...Shadow.float,
         },
+        fabIcon: { fontSize: 26, fontWeight: '400', color: theme.brandOn, marginTop: -2 },
+
+        // Long-press quick-actions popover
+        popoverBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+        popover: {
+            position: 'absolute',
+            flexDirection: 'row', gap: Spacing.xs,
+            backgroundColor: theme.surface, borderRadius: Radius.md,
+            borderWidth: 1, borderColor: theme.border,
+            padding: Spacing.xs,
+            ...Shadow.float,
+        },
+        popoverBtn: { alignItems: 'center', width: 56, paddingVertical: 6, borderRadius: Radius.sm },
+        popoverIconWrap: {
+            width: 30, height: 30, borderRadius: 15,
+            backgroundColor: theme.border,
+            justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+        },
+        popoverIcon: { fontSize: 14 },
+        popoverLabel: { fontSize: 10, fontWeight: '700', color: theme.ink },
+
+        // Type picker (Débito / Crédito), shown before AddCardScreen
+        typePickRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+        typePickBtn: {
+            flex: 1, borderRadius: Radius.md, borderWidth: 1.5,
+            paddingVertical: 22, alignItems: 'center',
+        },
+        typePickText: { fontSize: FontSize.md, fontWeight: '800', color: theme.ink },
 
         // Detail rows card (shown inside the detail sheet)
         detailCard: {
@@ -108,7 +145,7 @@ export default function createCardsStyles(theme) {
         },
         payBtnText: { color: theme.bg, fontWeight: '700', fontSize: FontSize.sm },
 
-        // Sheets (pay / detail) — shared shell
+        // Sheets (pay / detail / type-picker) — shared shell
         modalBg: {
             flex: 1,
             backgroundColor: 'rgba(0,0,0,0.5)',

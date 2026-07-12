@@ -30,7 +30,7 @@ export default function AddCardScreen() {
     const editCard = route.params?.editCard || null;
     const isEdit = !!editCard;
 
-    const [cardType, setCardType] = useState(editCard?.cardType || 'debit'); // 'debit' | 'credit'
+    const [cardType, setCardType] = useState(editCard?.cardType || route.params?.presetType || 'debit'); // 'debit' | 'credit'
     const [name, setName] = useState(editCard?.name || '');
     const [limit, setLimit] = useState(editCard?.limit ? String(editCard.limit) : '');
     const [cutoffDay, setCutoffDay] = useState(editCard?.cutoffDay ? String(editCard.cutoffDay) : '');

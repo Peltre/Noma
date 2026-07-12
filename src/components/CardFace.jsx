@@ -7,9 +7,13 @@
 // (same reasoning CardsScreen.styles.js already had): it's meant to
 // look like a physical card, not a themed surface.
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import Svg, { Defs, Pattern, Path, Circle, Rect } from 'react-native-svg';
 import { FontSize, Spacing, Radius } from '../constants';
+
+// Shared with FocusStack.jsx so the stack's slot math always matches
+// whatever height the "large" card face actually renders at.
+export const CARD_LARGE_HEIGHT = 190;
 
 // Small set of subtle repeating textures a card can carry on top of
 // its color — same minimalist, hand-drawn SVG language as the rest of
@@ -102,10 +106,23 @@ export default function CardFace({
     progressPct,
     variant = 'grid',
     placeholder,
+    // Animated.Value (0–1), optional. Lets a parent (FocusStack) drive
+    // the amount's visibility explicitly instead of relying on one
+    // card being physically covered by another — see FocusStack.jsx
+    // for why that distinction matters. Every other caller omits this
+    // and gets the old always-visible behavior for free.
+    amountOpacity,
+    // Number (px), optional. Nudges the name/badge row up (negative)
+    // or down (positive) without touching the card's own padding —
+    // FocusStack uses this to sit the name closer to the top edge on
+    // a peeking (non-focused) card, where there's only ~44px of the
+    // card actually visible. Omit it and you get the normal position.
+    headerOffsetY,
 }) {
     const isCompact = variant === 'grid';
     const bg = color || '#1A1A2E';
     const [size, setSize] = useState({ width: 0, height: 0 });
+    const BottomWrapper = amountOpacity ? Animated.View : View;
 
     return (
         <View
@@ -124,7 +141,7 @@ export default function CardFace({
             )}
             <View style={styles.orb} />
 
-            <View style={styles.top}>
+            <View style={[styles.top, headerOffsetY !== undefined && { marginTop: headerOffsetY }]}>
                 <Text
                     style={[styles.name, isCompact && styles.nameCompact]}
                     numberOfLines={1}
@@ -135,7 +152,7 @@ export default function CardFace({
             </View>
 
             {valueLabel !== undefined && (
-                <View style={styles.bottom}>
+                <BottomWrapper style={[styles.bottom, amountOpacity ? { opacity: amountOpacity } : null]}>
                     <Text style={[styles.valueLabel, isCompact && styles.valueLabelCompact]}>
                         {valueLabel}
                     </Text>
@@ -147,7 +164,7 @@ export default function CardFace({
                             <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
                         </View>
                     )}
-                </View>
+                </BottomWrapper>
             )}
         </View>
     );
@@ -166,7 +183,7 @@ const styles = StyleSheet.create({
     },
     cardLarge: {
         padding: Spacing.lg,
-        height: 190,
+        height: CARD_LARGE_HEIGHT,
     },
     orb: {
         position: 'absolute', width: 160, height: 160,

@@ -1,20 +1,24 @@
-// Unified "Tarjetas" screen: débito + crédito together, filterable,
-// a grid of compact CardFace tiles, tap any one for full detail.
+// Unified "Tarjetas" screen: débito + crédito as two independent
+// decks, each a FocusStack (see components/FocusStack.jsx) — cards
+// stacked behind each other, tap a peeking one to bring it to the
+// front, tap the front one for full detail. Long-press anywhere for
+// a quick Editar/Pagar/Eliminar popover without leaving the screen.
 import { useMemo, useState } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    Modal, KeyboardAvoidingView, Platform, Alert,
+    Modal, KeyboardAvoidingView, Platform, Alert, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { formatCurrency, formatCurrencyShort } from '../utils';
+import { formatCurrency } from '../utils';
 import { Spacing } from '../constants';
 import createCardsStyles from './CardsScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace from '../components/CardFace';
-import Svg, { Rect, Path } from 'react-native-svg';
+import FocusStack from '../components/FocusStack';
+import Svg, { Rect, Path, Circle } from 'react-native-svg';
 
 // Small credit card icon (SVG) — used only for the empty state
 function CardIcon({ color = 'rgba(255,255,255,0.6)' }) {
@@ -27,19 +31,61 @@ function CardIcon({ color = 'rgba(255,255,255,0.6)' }) {
     );
 }
 
-const FILTERS = [
-    { key: 'all', label: 'Todas' },
-    { key: 'debit', label: 'Débito' },
-    { key: 'credit', label: 'Crédito' },
-];
+// Tiny utilization ring for the Crédito deck's header — how much of
+// the combined limit across all credit cards is currently used up.
+function MiniRing({ pct, theme }) {
+    const size = 22, stroke = 3;
+    const r = (size - stroke) / 2;
+    const circumference = 2 * Math.PI * r;
+    const dash = Math.max(0, Math.min(100, pct)) / 100 * circumference;
+    return (
+        <Svg width={size} height={size}>
+            <Circle cx={size / 2} cy={size / 2} r={r} stroke={theme.border} strokeWidth={stroke} fill="none" />
+            <Circle
+                cx={size / 2} cy={size / 2} r={r}
+                stroke={theme.moneyOut} strokeWidth={stroke} fill="none"
+                strokeDasharray={`${dash}, ${circumference}`}
+                strokeLinecap="round"
+                // Start the arc at 12 o'clock instead of svg's default 3 o'clock
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+        </Svg>
+    );
+}
 
-// CardFace's variant="grid" is 132px tall (see CardFace.jsx's
-// cardCompact style). Hiding all but ~44px of that under the next
-// card is what produces the fanned wallet look — that 44px is enough
-// room to still read a covered card's name and DÉBITO/CRÉDITO badge.
-const STACK_CARD_HEIGHT = 132;
-const STACK_PEEK = 44;
-const STACK_HIDDEN = STACK_CARD_HEIGHT - STACK_PEEK;
+// Shared delete rule (can't delete something that still holds real
+// money/debt) — used both here (quick-action popover) and inside
+// CardDetailSheet below. Unlike the sheet's disabled button, the
+// popover has no obvious "why can't I tap this" affordance, so this
+// path explains itself with an alert instead of just refusing.
+function promptDeleteCard(card, { deleteAccount, deleteCreditCard }) {
+    const isCredit = card.cardType === 'credit';
+    const canDelete = isCredit ? card.currentDebt === 0 : card.balance === 0;
+    if (!canDelete) {
+        Alert.alert(
+            'No se puede eliminar',
+            isCredit ? 'Paga la deuda antes de eliminar esta tarjeta.' : 'Vacía la cuenta antes de eliminar esta tarjeta.'
+        );
+        return;
+    }
+    Alert.alert(
+        'Eliminar tarjeta',
+        `¿Eliminar "${card.name}"? Esto no se puede deshacer.`,
+        [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+                text: 'Eliminar', style: 'destructive', onPress: async () => {
+                    const result = isCredit
+                        ? await deleteCreditCard(card.id)
+                        : await deleteAccount(card.id);
+                    if (result?.error) {
+                        Alert.alert('No se pudo eliminar', result.error);
+                    }
+                }
+            },
+        ]
+    );
+}
 
 // Pay-card sheet: pick a source account and how much to pay against a
 // credit card's debt. This is what actually moves the money — records
@@ -140,8 +186,8 @@ function PayCardSheet({ card, accounts, onClose }) {
     );
 }
 
-// Tap any card in the grid → this. Full detail for either type,
-// plus edit/delete, plus "Pagar" for a credit card that has debt.
+// Tap the front card of any deck → this. Full detail for either
+// type, plus edit/delete, plus "Pagar" for a credit card with debt.
 function CardDetailSheet({ card, onClose, onPay, onEdit }) {
     const { deleteAccount, deleteCreditCard } = useFinance();
     const { theme } = useTheme();
@@ -266,24 +312,161 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
     );
 }
 
+// Floating Editar/Pagar/Eliminar menu — appears where you long-pressed,
+// for either type. Positioned from the on-screen coordinates FocusStack
+// already measured for us, clamped so it never renders off-screen.
+function QuickActionsPopover({ card, position, onClose, onEdit, onPay, onDelete }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    if (!card) return null;
+
+    const isCredit = card.cardType === 'credit';
+    const showPay = isCredit && card.currentDebt > 0;
+    const btnCount = showPay ? 3 : 2;
+    const POPOVER_WIDTH = btnCount * 64 + 16;
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+    const rawLeft = position ? position.x : screenWidth / 2 - POPOVER_WIDTH / 2;
+    const rawTop = position ? position.y - 76 : screenHeight / 2 - 100;
+    const left = Math.min(Math.max(rawLeft, 12), screenWidth - POPOVER_WIDTH - 12);
+    const top = Math.max(rawTop, 56);
+
+    return (
+        <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+            <TouchableOpacity style={styles.popoverBackdrop} activeOpacity={1} onPress={onClose} />
+            <View style={[styles.popover, { top, left }]}>
+                <TouchableOpacity style={styles.popoverBtn} onPress={onEdit}>
+                    <View style={styles.popoverIconWrap}><Text style={styles.popoverIcon}>✏️</Text></View>
+                    <Text style={styles.popoverLabel}>Editar</Text>
+                </TouchableOpacity>
+                {showPay && (
+                    <TouchableOpacity style={styles.popoverBtn} onPress={onPay}>
+                        <View style={[styles.popoverIconWrap, { backgroundColor: theme.moneyInSoft }]}>
+                            <Text style={styles.popoverIcon}>💵</Text>
+                        </View>
+                        <Text style={styles.popoverLabel}>Pagar</Text>
+                    </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.popoverBtn} onPress={onDelete}>
+                    <View style={[styles.popoverIconWrap, { backgroundColor: theme.moneyOutSoft }]}>
+                        <Text style={styles.popoverIcon}>🗑️</Text>
+                    </View>
+                    <Text style={[styles.popoverLabel, { color: theme.moneyOut }]}>Eliminar</Text>
+                </TouchableOpacity>
+            </View>
+        </Modal>
+    );
+}
+
+// "+" → this, before AddCardScreen. Picking a type up front means
+// AddCardScreen opens with the right type already selected instead of
+// making the person choose twice.
+function AddTypeSheet({ onClose, onPick }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    return (
+        <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+            <View style={styles.modalBg}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+                <View style={styles.sheet}>
+                    <View style={styles.sheetHandle} />
+                    <Text style={styles.sheetTitle}>Nueva tarjeta</Text>
+                    <Text style={styles.sheetSubtitle}>¿Qué tipo vas a agregar?</Text>
+                    <View style={styles.typePickRow}>
+                        <TouchableOpacity
+                            style={[styles.typePickBtn, { backgroundColor: theme.moneyInSoft, borderColor: theme.moneyIn }]}
+                            onPress={() => onPick('debit')}
+                        >
+                            <Text style={styles.typePickText}>Débito</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.typePickBtn, { backgroundColor: theme.moneyOutSoft, borderColor: theme.moneyOut }]}
+                            onPress={() => onPick('credit')}
+                        >
+                            <Text style={styles.typePickText}>Crédito</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+// One deck (Débito or Crédito): collapsible header with a running
+// total, and — when it has at least one card — a FocusStack. Empty
+// decks collapse down to a single "add your first one" row instead
+// of showing a header for zero cards.
+function DeckSection({
+    label, dotColor, total, utilPct, cards,
+    collapsed, onToggle, focusedId, onFocusChange,
+    onOpenDetail, onLongPressCard, onAddEmpty, styles, theme,
+}) {
+    if (cards.length === 0) {
+        return (
+            <TouchableOpacity style={styles.emptyTypeRow} onPress={onAddEmpty} activeOpacity={0.7}>
+                <Text style={styles.emptyTypeText}>+ Agrega tu primera tarjeta de {label.toLowerCase()}</Text>
+            </TouchableOpacity>
+        );
+    }
+    return (
+        <View style={styles.deckSection}>
+            <TouchableOpacity style={styles.deckHead} onPress={onToggle} activeOpacity={0.7}>
+                <View style={styles.deckHeadLeft}>
+                    <View style={[styles.deckDot, { backgroundColor: dotColor }]} />
+                    <Text style={styles.deckTitle}>{label}</Text>
+                    <Text style={styles.deckCount}>{cards.length}</Text>
+                </View>
+                <View style={styles.deckHeadRight}>
+                    {utilPct !== undefined && <MiniRing pct={utilPct} theme={theme} />}
+                    <Text style={styles.deckTotal}>{total}</Text>
+                    <Text style={[styles.chev, collapsed && styles.chevCollapsed]}>⌄</Text>
+                </View>
+            </TouchableOpacity>
+            {!collapsed && (
+                <View style={styles.deckStackWrap}>
+                    <FocusStack
+                        cards={cards}
+                        focusedId={focusedId}
+                        onFocusChange={onFocusChange}
+                        onOpenDetail={onOpenDetail}
+                        onLongPressCard={onLongPressCard}
+                    />
+                </View>
+            )}
+        </View>
+    );
+}
+
 export default function CardsScreen() {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
-    const { creditCards, accounts } = useFinance();
+    const { creditCards, accounts, deleteAccount, deleteCreditCard } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
+
     const [payingCard, setPayingCard] = useState(null);
     const [selectedCard, setSelectedCard] = useState(null);
-    const [filter, setFilter] = useState('all');
+    const [collapsed, setCollapsed] = useState({ debit: false, credit: false });
+    const [focused, setFocused] = useState({ debit: null, credit: null });
+    const [quickCard, setQuickCard] = useState(null);
+    const [quickPos, setQuickPos] = useState(null);
+    const [showTypePicker, setShowTypePicker] = useState(false);
 
-    // Débito accounts + credit cards, tagged with a shared `cardType`
-    // so the stack, filter, and detail sheet can treat them uniformly.
-    const debitAccounts = accounts.filter(a => a.type === 'debit');
-    const allCards = [
-        ...debitAccounts.map(a => ({ ...a, cardType: 'debit' })),
-        ...creditCards.map(c => ({ ...c, cardType: 'credit' })),
-    ];
-    const filteredCards = filter === 'all' ? allCards : allCards.filter(c => c.cardType === filter);
+    const debitAccounts = accounts.filter(a => a.type === 'debit').map(a => ({ ...a, cardType: 'debit' }));
+    const creditCardsTagged = creditCards.map(c => ({ ...c, cardType: 'credit' }));
+    const hasAnyCards = debitAccounts.length + creditCardsTagged.length > 0;
+
+    const totalDebit = debitAccounts.reduce((s, a) => s + a.balance, 0);
+    const totalDebt = creditCardsTagged.reduce((s, c) => s + c.currentDebt, 0);
+    const totalLimit = creditCardsTagged.reduce((s, c) => s + c.limit, 0);
+    const utilPct = totalLimit > 0 ? Math.min(Math.round((totalDebt / totalLimit) * 100), 100) : 0;
+
+    const closeQuickMenu = () => { setQuickCard(null); setQuickPos(null); };
+
+    const openAdd = (presetType) => {
+        setShowTypePicker(false);
+        navigation.navigate('AddCard', presetType ? { presetType } : undefined);
+    };
 
     return (
         <View style={styles.safeArea}>
@@ -292,30 +475,12 @@ export default function CardsScreen() {
                 {/* ── Header ── */}
                 <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                     <Text style={styles.title}>Tarjetas</Text>
-                    <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddCard')}>
+                    <TouchableOpacity style={styles.addBtn} onPress={() => setShowTypePicker(true)}>
                         <Text style={styles.addBtnText}>+ Nueva</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* ── Filter ── */}
-                {allCards.length > 0 && (
-                    <View style={styles.filterRow}>
-                        {FILTERS.map(f => (
-                            <TouchableOpacity
-                                key={f.key}
-                                style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
-                                onPress={() => setFilter(f.key)}
-                            >
-                                <Text style={[styles.filterChipText, filter === f.key && styles.filterChipTextActive]}>
-                                    {f.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-
-                {/* ── Empty states ── */}
-                {allCards.length === 0 ? (
+                {!hasAnyCards ? (
                     <View style={styles.emptyState}>
                         <View style={styles.emptyIconWrap}>
                             <CardIcon color={theme.muted} />
@@ -324,54 +489,54 @@ export default function CardsScreen() {
                         <Text style={styles.emptySub}>
                             Agrega una tarjeta de débito o crédito para llevar el control de tu dinero y tu deuda
                         </Text>
-                        <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('AddCard')}>
+                        <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowTypePicker(true)}>
                             <Text style={styles.emptyBtnText}>+ Agregar tarjeta</Text>
                         </TouchableOpacity>
                     </View>
-                ) : filteredCards.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptySub}>No tienes tarjetas de este tipo todavía</Text>
-                    </View>
                 ) : (
-                    <View style={styles.stack}>
-                        {filteredCards.map((card, i) => {
-                            const isCredit = card.cardType === 'credit';
-                            const pct = isCredit && card.limit > 0
-                                ? Math.min(Math.round((card.currentDebt / card.limit) * 100), 100)
-                                : undefined;
-                            return (
-                                <TouchableOpacity
-                                    key={card.id}
-                                    // Each card after the first is pulled up to
-                                    // overlap the one before it — later siblings
-                                    // paint on top by default in RN (same as the
-                                    // web), so this alone produces the fanned
-                                    // "wallet" look with no zIndex needed. The
-                                    // exposed strip at the top of a covered card
-                                    // is still its own TouchableOpacity, so it
-                                    // stays tappable even while mostly hidden.
-                                    style={[styles.stackCard, i > 0 && { marginTop: -STACK_HIDDEN }]}
-                                    onPress={() => setSelectedCard(card)}
-                                    activeOpacity={0.9}
-                                >
-                                    <CardFace
-                                        name={card.name}
-                                        type={card.cardType}
-                                        color={card.color}
-                                        pattern={card.pattern}
-                                        variant="grid"
-                                        valueLabel={isCredit ? 'DEUDA' : 'SALDO'}
-                                        valueText={formatCurrencyShort(isCredit ? card.currentDebt : card.balance)}
-                                        progressPct={pct}
-                                    />
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
+                    <>
+                        <DeckSection
+                            label="Débito"
+                            dotColor={theme.moneyIn}
+                            total={formatCurrency(totalDebit)}
+                            cards={debitAccounts}
+                            collapsed={collapsed.debit}
+                            onToggle={() => setCollapsed(c => ({ ...c, debit: !c.debit }))}
+                            focusedId={focused.debit}
+                            onFocusChange={(id) => setFocused(f => ({ ...f, debit: id }))}
+                            onOpenDetail={setSelectedCard}
+                            onLongPressCard={(card, pos) => { setQuickCard(card); setQuickPos(pos); }}
+                            onAddEmpty={() => openAdd('debit')}
+                            styles={styles}
+                            theme={theme}
+                        />
+                        <DeckSection
+                            label="Crédito"
+                            dotColor={theme.moneyOut}
+                            total={formatCurrency(totalDebt)}
+                            utilPct={creditCardsTagged.length ? utilPct : undefined}
+                            cards={creditCardsTagged}
+                            collapsed={collapsed.credit}
+                            onToggle={() => setCollapsed(c => ({ ...c, credit: !c.credit }))}
+                            focusedId={focused.credit}
+                            onFocusChange={(id) => setFocused(f => ({ ...f, credit: id }))}
+                            onOpenDetail={setSelectedCard}
+                            onLongPressCard={(card, pos) => { setQuickCard(card); setQuickPos(pos); }}
+                            onAddEmpty={() => openAdd('credit')}
+                            styles={styles}
+                            theme={theme}
+                        />
+                    </>
                 )}
 
-                <View style={{ height: Spacing.xl + Spacing.lg }} />
+                <View style={{ height: Spacing.xl + Spacing.lg + 64 }} />
             </ScrollView>
+
+            {hasAnyCards && (
+                <TouchableOpacity style={styles.fab} onPress={() => setShowTypePicker(true)} activeOpacity={0.85}>
+                    <Text style={styles.fabIcon}>+</Text>
+                </TouchableOpacity>
+            )}
 
             {selectedCard && (
                 <CardDetailSheet
@@ -395,6 +560,36 @@ export default function CardsScreen() {
                     card={payingCard}
                     accounts={accounts}
                     onClose={() => setPayingCard(null)}
+                />
+            )}
+
+            {quickCard && (
+                <QuickActionsPopover
+                    card={quickCard}
+                    position={quickPos}
+                    onClose={closeQuickMenu}
+                    onEdit={() => {
+                        const card = quickCard;
+                        closeQuickMenu();
+                        navigation.navigate('AddCard', { editCard: card });
+                    }}
+                    onPay={() => {
+                        const card = quickCard;
+                        closeQuickMenu();
+                        setPayingCard(card);
+                    }}
+                    onDelete={() => {
+                        const card = quickCard;
+                        closeQuickMenu();
+                        promptDeleteCard(card, { deleteAccount, deleteCreditCard });
+                    }}
+                />
+            )}
+
+            {showTypePicker && (
+                <AddTypeSheet
+                    onClose={() => setShowTypePicker(false)}
+                    onPick={openAdd}
                 />
             )}
         </View>
