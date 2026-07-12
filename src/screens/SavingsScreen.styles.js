@@ -75,6 +75,12 @@ export default function createSavingsStyles(theme) {
             fontWeight: '700',
             color: theme.savings,
         },
+        breakdownRisk: {
+            fontSize: FontSize.xs,
+            fontWeight: '700',
+            color: theme.moneyOut,
+            lineHeight: 16,
+        },
         inputHint: {
             fontSize: FontSize.xs,
             color: theme.muted,
@@ -153,10 +159,22 @@ export default function createSavingsStyles(theme) {
             color: theme.ink,
             marginBottom: 2,
         },
+        accountLinked: {
+            fontSize: 10.5,
+            color: theme.muted,
+            fontWeight: '600',
+            marginBottom: 2,
+        },
         accountBalance: {
             fontSize: FontSize.xs,
             color: theme.muted,
             fontWeight: '500',
+        },
+        accountRisk: {
+            fontSize: 10.5,
+            color: theme.moneyOut,
+            fontWeight: '700',
+            marginTop: 2,
         },
         accountActions: {
             flexDirection: 'row',
@@ -269,6 +287,18 @@ export default function createSavingsStyles(theme) {
             fontWeight: '600',
             textAlign: 'center',
         },
+        riskRow: {
+            backgroundColor: theme.moneyOutSoft,
+            borderRadius: Radius.sm - 2,
+            padding: Spacing.sm,
+            marginBottom: Spacing.sm,
+        },
+        riskText: {
+            fontSize: FontSize.xs,
+            color: theme.moneyOut,
+            fontWeight: '600',
+            textAlign: 'center',
+        },
         completeRow: { alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm },
         completeText: {
             fontSize: FontSize.sm,
@@ -376,6 +406,14 @@ export default function createSavingsStyles(theme) {
             marginTop: -Spacing.xs,
             marginBottom: Spacing.xs,
             textDecorationLine: 'underline',
+        },
+        sheetHintSmall: {
+            fontSize: 10.5,
+            color: theme.muted,
+            fontWeight: '500',
+            lineHeight: 14,
+            marginTop: Spacing.xs,
+            marginBottom: Spacing.xs,
         },
         sheetInput: {
             backgroundColor: theme.bg,

@@ -118,6 +118,15 @@ export default function CardFace({
     // a peeking (non-focused) card, where there's only ~44px of the
     // card actually visible. Omit it and you get the normal position.
     headerOffsetY,
+    // String, optional (e.g. "🔒 $400"). Shows a small pill in the
+    // card's bottom-right corner — the one spot its layout leaves
+    // empty (name+badge own the top row, value+progress sit at the
+    // bottom-LEFT). Used on débito/efectivo cards that have at least
+    // one apartado linked to them, so "part of this balance is
+    // already spoken for" is visible without opening the card's
+    // detail sheet. Omit it and nothing renders — every other caller
+    // is unaffected.
+    savingsBadge,
 }) {
     const isCompact = variant === 'grid';
     const bg = color || '#1A1A2E';
@@ -166,6 +175,12 @@ export default function CardFace({
                     )}
                 </BottomWrapper>
             )}
+
+            {savingsBadge && (
+                <View style={styles.savingsBadge}>
+                    <Text style={styles.savingsBadgeText} numberOfLines={1}>{savingsBadge}</Text>
+                </View>
+            )}
         </View>
     );
 }
@@ -176,6 +191,18 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         position: 'relative',
         justifyContent: 'space-between',
+    },
+    savingsBadge: {
+        position: 'absolute',
+        right: Spacing.md, bottom: Spacing.md,
+        backgroundColor: 'rgba(0,0,0,0.35)',
+        paddingHorizontal: 8, paddingVertical: 4,
+        borderRadius: Radius.full,
+        maxWidth: '48%',
+        zIndex: 2,
+    },
+    savingsBadgeText: {
+        fontSize: 10, fontWeight: '700', color: '#FFFFFF',
     },
     cardCompact: {
         padding: Spacing.md,

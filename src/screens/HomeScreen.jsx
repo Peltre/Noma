@@ -27,6 +27,10 @@ function getAccountColor(theme, account) {
     if (account.color) return account.color;
     if (account.type === 'cash') return theme.cashTone;
     if (account.type === 'debit') return theme.moneyIn;
+    // No new account can be type 'savings' anymore (see
+    // useFinanceStore.js's initialAccounts) — this stays only so a
+    // stale one from old local test data still colors sensibly
+    // instead of falling through to the generic gray below.
     if (account.type === 'savings') return theme.savings;
     return theme.muted;
 }
@@ -82,6 +86,14 @@ function MSIPaySheet({ fund, accounts, onClose }) {
         await payCreditCard(fund.creditCardId, fund.monthlyAmount);
         await confirmMSI(fund.id);
         setLoading(false);
+        if (result.savingsWarning) {
+            Alert.alert(
+                'Usaste fondos de ahorro',
+                `Este pago usó ${formatCurrency(result.savingsWarning.newlyAtRisk)} que tenías apartado como ahorro en ${result.savingsWarning.accountName}.`,
+                [{ text: 'Entendido', onPress: onClose }]
+            );
+            return;
+        }
         onClose();
     };
 

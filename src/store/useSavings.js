@@ -1,18 +1,32 @@
-// Hook to handle savings accounts & objectives
+// Hook to handle savings buckets ("apartados") & objectives (goals).
 //
-// The "Ahorros" account (type: 'savings' in the main accounts store)
-// is the single source of truth for how much money you actually have
-// saved. It only changes through a normal transaction (an Ingreso or
-// Retiro with Ahorros as the account) — same as any other account.
+// PHASE 1 of the savings redesign — this file only. SavingsScreen.jsx
+// still expects the old API at this point and WILL be broken/crash
+// until it's rewritten in Phase 2 — that's expected, not a bug here.
 //
-// Named savings accounts here (Cajita Nu, etc.) do NOT hold separate
-// money. They're labels that break the Ahorros total down into
-// buckets, purely for organization. Moving money into/out of a named
-// bucket never touches cash/debit/the Ahorros account itself — it's
-// capped by however much of Ahorros is still "unallocated" (not
-// already sitting in a named bucket), so it's impossible to make a
-// named bucket's total exceed the real Ahorros balance.
-
+// ── The model ──
+// There is no separate "Ahorros" pot anymore. An apartado is a label
+// on top of part of a REAL account's balance (débito or efectivo) —
+// it never moves money anywhere. That account keeps showing its full
+// real balance always; the apartado just remembers "how much of
+// this is spoken for."
+//
+//   Cuenta real (débito/efectivo) → Apartado (linkedAccountId) → Objetivo
+//
+// Every layer is just a number reserved on top of the layer below it.
+// Nothing here ever touches `accounts` balances — only a real
+// transaction (useFinanceStore's addTransaction) does that.
+//
+// ── Déficit ──
+// Because the linked account's real balance can drop below what's
+// earmarked in it (you spent from that card), an apartado's number
+// is never silently corrected — it stays exactly what you set it to,
+// and a live "risk" amount is computed on top instead (see
+// getAccountDeficit / getSavingsAccountRisk / getGoalRisk below).
+// When one account backs several apartados and comes up short, the
+// shortfall is split across them proportional to how much each one
+// claims — an apartado with 70% of the account's earmark absorbs 70%
+// of that account's deficit.
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
 import { round2 } from "../utils/formatCurrency";
@@ -22,7 +36,7 @@ const KEYS = {
     savingsGoals: 'savingsGoals',
 };
 
-// palette for savings account color dots
+// palette for apartado color dots
 export const SAVINGS_COLORS = [
     '#6B5B9E', // purple (default)
     '#3D5A4C', // sage
@@ -36,14 +50,13 @@ export const SAVINGS_COLORS = [
     '#2C7BB5', // ocean
 ];
 
+// Only débito/efectivo hold real, spendable money that can be earmarked
+// this way — crédito is debt, not a balance to reserve part of.
+const LINKABLE_TYPES = ['debit', 'cash'];
+
 export function useSavings(accounts = []) {
     const [savingsAccounts, setSavingsAccounts] = useState([]);
     const [savingsGoals, setSavingsGoals] = useState([]);
-
-    // The real total — comes from the general accounts store, moved
-    // only by actual transactions (Ingreso/Retiro with Ahorros as
-    // the account).
-    const mainSavingsBalance = accounts.find(a => a.type === 'savings')?.balance ?? 0;
 
     useEffect(() => {
         const load = async () => {
@@ -55,52 +68,110 @@ export function useSavings(accounts = []) {
         load();
     }, []);
 
-    // Sum of all named savings accounts — how much of the total is
-    // already broken down into a labeled bucket.
-    // Goal savedAmount is included too: contributing to a goal moves
-    // money OUT of a named account's balance and INTO the goal, but
-    // it's still just as "broken down" as it was before — just
-    // recategorized from account to goal, not returned to
-    // unallocated. Leaving goals out of this sum was the bug: it made
-    // the breakdown total (and "sin asignar") drop every time someone
-    // funded a goal, as if that money had become unaccounted for.
+    // ── Déficit / risk ──
+
+    // How much every apartado linked to this account claims in total,
+    // vs. how much the account actually has. `balanceOverride` lets a
+    // caller ask "what WOULD the deficit be at this balance" — used to
+    // check a transaction before/after without waiting for a render.
+    const getAccountDeficit = (accountId, balanceOverride) => {
+        const linked = savingsAccounts.filter(a => a.linkedAccountId === accountId);
+        const totalEarmarked = round2(linked.reduce((s, a) => s + a.earmarkedAmount, 0));
+        const account = accounts.find(a => a.id === accountId);
+        const balance = balanceOverride !== undefined ? balanceOverride : (account?.balance ?? 0);
+        const deficit = round2(Math.max(0, totalEarmarked - balance));
+        return { totalEarmarked, balance, deficit };
+    };
+
+    // Free room left in an account to create or grow an apartado —
+    // never negative, even if the account is already short.
+    const getFreeRoom = (accountId) => {
+        const account = accounts.find(a => a.id === accountId);
+        if (!account) return 0;
+        const { totalEarmarked } = getAccountDeficit(accountId);
+        return round2(Math.max(0, account.balance - totalEarmarked));
+    };
+
+    // One apartado's own slice of its account's deficit — proportional
+    // to how much of that account's total earmark this one claims.
+    const getSavingsAccountRisk = (savingsAccountId) => {
+        const sa = savingsAccounts.find(a => a.id === savingsAccountId);
+        if (!sa) return { atRisk: 0, safeAmount: 0 };
+        const { totalEarmarked, deficit } = getAccountDeficit(sa.linkedAccountId);
+        if (deficit <= 0 || totalEarmarked <= 0) {
+            return { atRisk: 0, safeAmount: sa.earmarkedAmount };
+        }
+        const atRisk = round2(deficit * (sa.earmarkedAmount / totalEarmarked));
+        return { atRisk, safeAmount: round2(sa.earmarkedAmount - atRisk) };
+    };
+
+    // A goal's at-risk amount: trace what it currently holds back to
+    // whichever apartados fed it (net of any withdrawals sent back
+    // out), then apply each of those apartados' own risk ratio.
     //
-    // Rounded here too, not just for display: adding up several clean
-    // 2-decimal numbers can still land on something like
-    // 99.99999999999999 (plain float addition), and this value feeds
-    // straight into an `amount > unallocatedSavings` comparison below
-    // — an unrounded artifact there could reject a perfectly valid
-    // deposit for a fraction of a cent it doesn't actually owe.
-    const savingsBreakdownTotal = round2(
-        savingsAccounts.reduce((sum, a) => sum + a.balance, 0) +
-        savingsGoals.reduce((sum, g) => sum + g.savedAmount, 0)
-    );
-    // Whatever's left in Ahorros that isn't in a named bucket yet.
-    const unallocatedSavings = round2(Math.max(0, mainSavingsBalance - savingsBreakdownTotal));
+    // Approximation, not exact accounting: if a goal was funded from
+    // apartado A and later partly withdrawn back to a DIFFERENT
+    // apartado B, this treats A's and B's flows independently rather
+    // than tracking which specific peso came from where — pooled
+    // money doesn't really have a "which one" once it's mixed, so
+    // this is the same simplification any budgeting app makes here.
+    const getGoalRisk = (goal) => {
+        const bySource = {};
+        goal.contributions.forEach(c => {
+            const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
+            if (!key) return;
+            const sign = c.type === 'deposit' ? 1 : -1;
+            bySource[key] = round2((bySource[key] || 0) + sign * c.amount);
+        });
+        let atRisk = 0;
+        Object.entries(bySource).forEach(([savingsAccountId, netAmount]) => {
+            if (netAmount <= 0) return;
+            const sa = savingsAccounts.find(a => a.id === savingsAccountId);
+            if (!sa) return; // that apartado no longer exists — can't trace risk for it
+            const { totalEarmarked, deficit } = getAccountDeficit(sa.linkedAccountId);
+            if (deficit <= 0 || totalEarmarked <= 0) return;
+            atRisk += netAmount * (deficit / totalEarmarked);
+        });
+        return round2(atRisk);
+    };
 
-    // Savings accounts (breakdown buckets)
+    // ── Apartados ──
 
-    // Creates a bucket and, optionally, immediately assigns it part of
-    // the unallocated total (capped — can't hand out more than exists).
-    const addSavingsAccount = async ({ name, color, initialBalance = 0 }) => {
-        const assigned = round2(Math.min(Math.max(initialBalance, 0), unallocatedSavings));
+    // Creates an apartado linked to a real débito/efectivo account,
+    // and — optionally — immediately earmarks part of that account's
+    // currently-free balance (capped, same "can't hand out more than
+    // exists" rule as everywhere else in this app).
+    const addSavingsAccount = async ({ name, color, linkedAccountId, initialAmount = 0 }) => {
+        if (!name || !name.trim()) {
+            return { error: 'Ponle un nombre al apartado.' };
+        }
+        const account = accounts.find(a => a.id === linkedAccountId);
+        if (!account) {
+            return { error: 'Elige una cuenta para ligar este apartado.' };
+        }
+        if (!LINKABLE_TYPES.includes(account.type)) {
+            return { error: 'Solo puedes ligar un apartado a una cuenta de débito o efectivo.' };
+        }
+        const free = getFreeRoom(linkedAccountId);
+        const assigned = round2(Math.min(Math.max(initialAmount, 0), free));
         const newAcc = {
             id: Date.now().toString(),
-            name,
-            color: color || '#6B5B9E',
-            balance: assigned,
+            name: name.trim(),
+            color: color || SAVINGS_COLORS[0],
+            linkedAccountId,
+            earmarkedAmount: assigned,
             createdAt: new Date().toISOString(),
         };
         const updated = [...savingsAccounts, newAcc];
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
-        return { newAcc, ok: true, capped: assigned < initialBalance };
+        return { newAcc, ok: true, capped: assigned < initialAmount };
     };
 
     const deleteSavingsAccount = async (accountId) => {
         const acc = savingsAccounts.find(a => a.id === accountId);
-        if (acc?.balance > 0) {
-            return { error: 'Esta cuenta tiene saldo asignado. Quítaselo antes de eliminarla.' };
+        if (acc?.earmarkedAmount > 0) {
+            return { error: 'Este apartado tiene dinero asignado. Quítaselo antes de eliminarlo.' };
         }
         const updated = savingsAccounts.filter(a => a.id !== accountId);
         setSavingsAccounts(updated);
@@ -108,50 +179,52 @@ export function useSavings(accounts = []) {
         return { ok: true };
     };
 
-    // Assign part of the unallocated Ahorros total into a named
-    // bucket. Purely a relabel — Ahorros itself doesn't change.
-    const depositToSavingsAccount = async ({ toSavingsAccountId, amount }) => {
+    // Earmark more of the linked account's balance into this apartado.
+    // Nothing moves — this is the whole "no fake pot" point — so it's
+    // just capped by how much of that specific account is still free.
+    const addToSavingsAccount = async ({ savingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
         amount = round2(amount);
-        if (amount > unallocatedSavings) {
-            return { error: `Solo tienes ${unallocatedSavings.toFixed(2)} sin asignar en Ahorros.` };
+        const sa = savingsAccounts.find(a => a.id === savingsAccountId);
+        if (!sa) {
+            return { error: 'No se encontró el apartado.' };
+        }
+        const free = getFreeRoom(sa.linkedAccountId);
+        if (amount > free) {
+            return { error: `Solo tienes ${free.toFixed(2)} libres en esa cuenta.` };
         }
         const updated = savingsAccounts.map(a =>
-            a.id === toSavingsAccountId
-                ? { ...a, balance: round2(a.balance + amount) }
-                : a
+            a.id === savingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + amount) } : a
         );
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
         return { ok: true };
     };
 
-    // Free up money from a named bucket back to "unallocated" —
-    // still inside Ahorros, just no longer labeled. To actually take
-    // money out of savings entirely, use a Retiro transaction with
-    // Ahorros as the account instead.
-    const withdrawFromSavingsAccount = async ({ fromSavingsAccountId, amount }) => {
+    // Un-earmark part of an apartado — frees up room in its linked
+    // account for something else. Always allowed down to 0; there's
+    // no "unallocated pot" to return it to because it was never
+    // anywhere else to begin with.
+    const removeFromSavingsAccount = async ({ savingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
         amount = round2(amount);
-        const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
-        if (!acc || acc.balance < amount) {
-            return { error: 'Esta cuenta no tiene asignado ese monto.' };
+        const sa = savingsAccounts.find(a => a.id === savingsAccountId);
+        if (!sa || sa.earmarkedAmount < amount) {
+            return { error: 'Este apartado no tiene asignado ese monto.' };
         }
         const updated = savingsAccounts.map(a =>
-            a.id === fromSavingsAccountId
-                ? { ...a, balance: round2(a.balance - amount) }
-                : a
+            a.id === savingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount - amount) } : a
         );
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
         return { ok: true };
     };
 
-    // Goals
+    // ── Goals ──
     const addSavingsGoal = async ({ name, targetAmount, emoji, deadline = null }) => {
         const newGoal = {
             id: Date.now().toString(),
@@ -169,15 +242,54 @@ export function useSavings(accounts = []) {
         return newGoal;
     };
 
-    const deleteSavingsGoal = async (goalId) => {
+    // Deleting a goal returns whatever it holds back to wherever it
+    // came from — net per apartado, since a goal can be fed from
+    // several and partly withdrawn from others along the way. This is
+    // the one place that money would otherwise just vanish: unlike
+    // the old fake-pot model, an apartado's earmarkedAmount is real
+    // stored state now, not something a derived "unallocated" total
+    // could quietly absorb.
+    //
+    // `returnFunds: false` is for the "marcar como comprado" flow
+    // (SavingsScreen's handleRedeemGoal) — there, the money already
+    // left for real through actual expense transactions against the
+    // linked accounts, so crediting it back here would double it.
+    const deleteSavingsGoal = async (goalId, { returnFunds = true } = {}) => {
         const goal = savingsGoals.find(g => g.id === goalId);
-        const updated = savingsGoals.filter(g => g.id !== goalId);
-        setSavingsGoals(updated);
-        await saveData(KEYS.savingsGoals, updated);
-        return { releasedAmount: goal?.savedAmount || 0 };
+        if (!goal) {
+            return { error: 'No se encontró el objetivo.' };
+        }
+
+        if (returnFunds) {
+            const bySource = {};
+            goal.contributions.forEach(c => {
+                const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
+                if (!key) return;
+                const sign = c.type === 'deposit' ? 1 : -1;
+                bySource[key] = round2((bySource[key] || 0) + sign * c.amount);
+            });
+
+            let updatedSavingsAccounts = savingsAccounts;
+            Object.entries(bySource).forEach(([savingsAccountId, netAmount]) => {
+                if (netAmount <= 0) return; // an apartado that was deleted mid-way, or net-negative, gets nothing back
+                updatedSavingsAccounts = updatedSavingsAccounts.map(a =>
+                    a.id === savingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + netAmount) } : a
+                );
+            });
+            setSavingsAccounts(updatedSavingsAccounts);
+            await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
+        }
+
+        const updatedGoals = savingsGoals.filter(g => g.id !== goalId);
+        setSavingsGoals(updatedGoals);
+        await saveData(KEYS.savingsGoals, updatedGoals);
+        return { ok: true, releasedAmount: returnFunds ? goal.savedAmount : 0 };
     };
 
-    // Move money from a named savings acc → earmark it in a goal
+    // Move money from an apartado → earmark it in a goal instead.
+    // Same relabeling-without-moving-real-money principle, one layer
+    // deeper: this reduces the apartado's earmark by exactly what the
+    // goal gains, so the account's total claimed amount never changes.
     const contributeToGoal = async ({ goalId, fromSavingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -187,13 +299,10 @@ export function useSavings(accounts = []) {
         if (!goal) {
             return { error: 'No se encontró el objetivo.' };
         }
-        // Contributing more than what's left would overfund the goal —
-        // savedAmount would pass targetAmount, and later "Marcar como
-        // comprado" only ever spends targetAmount (see SavingsScreen),
-        // so the extra would quietly get reclassified as "unallocated"
-        // the moment the goal is deleted, with no movement explaining
-        // where it went. Capping the contribution here means
-        // savedAmount can never legitimately exceed targetAmount.
+        // Same reasoning as before: capping here means savedAmount can
+        // never legitimately pass targetAmount, so "Marcar como
+        // comprado" (which only ever spends targetAmount) can't leave
+        // an unexplained leftover behind when the goal is cleared out.
         const remaining = round2(goal.targetAmount - goal.savedAmount);
         if (remaining <= 0) {
             return { error: 'Este objetivo ya está completo.' };
@@ -201,17 +310,16 @@ export function useSavings(accounts = []) {
         if (amount > remaining) {
             return { error: `Con eso te pasarías del objetivo — solo faltan ${remaining.toFixed(2)}.` };
         }
-        const acc = savingsAccounts.find(a => a.id === fromSavingsAccountId);
-        if (!acc || acc.balance < amount) {
-            return { error: 'Saldo insuficiente en la cuenta de ahorro.' };
+        const sa = savingsAccounts.find(a => a.id === fromSavingsAccountId);
+        if (!sa || sa.earmarkedAmount < amount) {
+            return { error: 'Ese apartado no tiene asignado ese monto.' };
         }
-        const updatedAccs = savingsAccounts.map(a =>
-            a.id === fromSavingsAccountId
-                ? { ...a, balance: round2(a.balance - amount) }
-                : a
+
+        const updatedSavingsAccounts = savingsAccounts.map(a =>
+            a.id === fromSavingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount - amount) } : a
         );
-        setSavingsAccounts(updatedAccs);
-        await saveData(KEYS.savingsAccounts, updatedAccs);
+        setSavingsAccounts(updatedSavingsAccounts);
+        await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
 
         const contribution = {
             id: Date.now().toString(),
@@ -222,11 +330,7 @@ export function useSavings(accounts = []) {
         };
         const updatedGoals = savingsGoals.map(g =>
             g.id === goalId
-                ? {
-                    ...g,
-                    savedAmount: round2(g.savedAmount + amount),
-                    contributions: [contribution, ...g.contributions],
-                }
+                ? { ...g, savedAmount: round2(g.savedAmount + amount), contributions: [contribution, ...g.contributions] }
                 : g
         );
         setSavingsGoals(updatedGoals);
@@ -234,7 +338,7 @@ export function useSavings(accounts = []) {
         return { ok: true };
     };
 
-    // Return earmarked goal funds back to a named savings acc
+    // Return earmarked goal funds back to a chosen apartado.
     const withdrawFromGoal = async ({ goalId, toSavingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -244,13 +348,16 @@ export function useSavings(accounts = []) {
         if (!goal || goal.savedAmount < amount) {
             return { error: 'El objetivo no tiene suficientes fondos.' };
         }
-        const updatedAccs = savingsAccounts.map(a =>
-            a.id === toSavingsAccountId
-                ? { ...a, balance: round2(a.balance + amount) }
-                : a
+        const sa = savingsAccounts.find(a => a.id === toSavingsAccountId);
+        if (!sa) {
+            return { error: 'No se encontró el apartado destino.' };
+        }
+
+        const updatedSavingsAccounts = savingsAccounts.map(a =>
+            a.id === toSavingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + amount) } : a
         );
-        setSavingsAccounts(updatedAccs);
-        await saveData(KEYS.savingsAccounts, updatedAccs);
+        setSavingsAccounts(updatedSavingsAccounts);
+        await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
 
         const contribution = {
             id: Date.now().toString(),
@@ -261,11 +368,7 @@ export function useSavings(accounts = []) {
         };
         const updatedGoals = savingsGoals.map(g =>
             g.id === goalId
-                ? {
-                    ...g,
-                    savedAmount: round2(g.savedAmount - amount),
-                    contributions: [contribution, ...g.contributions],
-                }
+                ? { ...g, savedAmount: round2(g.savedAmount - amount), contributions: [contribution, ...g.contributions] }
                 : g
         );
         setSavingsGoals(updatedGoals);
@@ -297,20 +400,22 @@ export function useSavings(accounts = []) {
     return {
         savingsAccounts,
         savingsGoals,
-        mainSavingsBalance,
-        savingsBreakdownTotal,
-        unallocatedSavings,
-        // Accounts
+        // Apartados
         addSavingsAccount,
         deleteSavingsAccount,
-        depositToSavingsAccount,
-        withdrawFromSavingsAccount,
+        addToSavingsAccount,
+        removeFromSavingsAccount,
         // Goals
         addSavingsGoal,
         deleteSavingsGoal,
         contributeToGoal,
         withdrawFromGoal,
         getMonthlySuggestion,
+        // Déficit / risk
+        getAccountDeficit,
+        getFreeRoom,
+        getSavingsAccountRisk,
+        getGoalRisk,
         resetSavings,
     };
 }

@@ -18,7 +18,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { View, Animated, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import CardFace, { CARD_LARGE_HEIGHT } from './CardFace';
-import { formatCurrency } from '../utils';
+import { formatCurrency, formatCurrencyShort } from '../utils';
 import { Radius, Shadow } from '../constants';
 
 // How much of a covered card peeks out above the one in front of it.
@@ -36,7 +36,7 @@ const ANIM_MS = 380;
 // number to move it — bigger negative = higher up.
 const PEEK_HEADER_OFFSET = -10;
 
-export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDetail, onLongPressCard }) {
+export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDetail, onLongPressCard, savingsAccounts = [] }) {
     // One Animated.Value per card id for position, one for amount
     // opacity — created once and reused across renders/reorders so
     // they animate FROM wherever they currently are, not from zero.
@@ -111,6 +111,15 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
                     ? Math.min(Math.round((card.currentDebt / card.limit) * 100), 100)
                     : undefined;
 
+                // Apartados linked to this specific débito account —
+                // n/a for crédito, since a card in debt isn't a real
+                // balance you could earmark part of.
+                const linkedApartados = isCredit ? [] : savingsAccounts.filter(sa => sa.linkedAccountId === card.id);
+                const earmarkedTotal = linkedApartados.reduce((s, sa) => s + sa.earmarkedAmount, 0);
+                const savingsBadge = earmarkedTotal > 0
+                    ? `🔒 ${formatCurrencyShort(earmarkedTotal)}${linkedApartados.length > 1 ? ` ·${linkedApartados.length}` : ''}`
+                    : undefined;
+
                 return (
                     <Animated.View
                         key={card.id}
@@ -148,6 +157,7 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
                                     progressPct={pct}
                                     amountOpacity={opacityAnims.current.get(card.id)}
                                     headerOffsetY={isFocused ? undefined : PEEK_HEADER_OFFSET}
+                                    savingsBadge={isFocused ? savingsBadge : undefined}
                                 />
                             </View>
                         </TouchableWithoutFeedback>

@@ -124,6 +124,14 @@ export default function TransactionScreen() {
         if (prefill?.fundId && type === prefill.type) {
             await confirmFund(prefill.fundId);
         }
+        if (result.savingsWarning) {
+            Alert.alert(
+                'Usaste fondos de ahorro',
+                `Este movimiento usó ${formatCurrency(result.savingsWarning.newlyAtRisk)} que tenías apartado como ahorro en ${result.savingsWarning.accountName}.`,
+                [{ text: 'Entendido', onPress: () => navigation.goBack() }]
+            );
+            return;
+        }
         navigation.goBack();
     };
 

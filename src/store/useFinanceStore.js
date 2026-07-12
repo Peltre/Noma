@@ -15,13 +15,18 @@ const KEYS = {
 // Initial state (new user)
 // No default debit account anymore — debit accounts are entirely
 // user-created (onboarding, or the "+ Agregar cuenta" flow in Home),
-// same pattern as credit cards starting at zero. Efectivo and Ahorros
-// stay as the two singular, always-present accounts: several other
-// parts of the app (useSavings.js's mainSavingsBalance lookup, for
-// one) assume exactly one of each exists.
+// same pattern as credit cards starting at zero. Efectivo stays as
+// the one singular, always-present account: useSavings.js's apartados
+// now link directly to a real débito/efectivo account instead of a
+// separate "Ahorros" pot, so that fake account no longer exists here.
+//
+// NOTE for local test data: anyone with an existing saved `accounts`
+// array from before this change will still have the old `type:
+// 'savings'` row (it's undeletable through the UI — see deleteAccount
+// below) sitting around with nothing pointing at it anymore. Settings
+// → reset clears it, same as any other fresh-start case.
 const initialAccounts = [
     { id: '1', type: 'cash', name: 'Efectivo', balance: 0 },
-    { id: '3', type: 'savings', name: 'Ahorros', balance: 0 },
 ];
 
 export function useFinanceStore() {
@@ -68,11 +73,10 @@ export function useFinanceStore() {
     // that way: a brand new debit account is a real bank account with
     // no history in this app yet, so — same principle as everywhere
     // else this conversation — there's no legitimate way to hand it a
-    // starting balance without a real transaction funding it (unlike
-    // a new named Ahorros bucket, which can draw from Ahorros' own
-    // already-real "unallocated" pool). The one deliberate exception
-    // is onboarding, which is explicitly the "here's what I already
-    // have" declaration moment for every account, debit included.
+    // starting balance without a real transaction funding it. The one
+    // deliberate exception is onboarding, which is explicitly the
+    // "here's what I already have" declaration moment for every
+    // account, debit included.
     const addAccount = async ({ name, type, color, pattern, initialBalance = 0 }) => {
         if (!name || !name.trim()) {
             return { error: 'Ponle un nombre a la cuenta.' };

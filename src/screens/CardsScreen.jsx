@@ -128,6 +128,14 @@ function PayCardSheet({ card, accounts, onClose }) {
             return;
         }
         await payCreditCard(card.id, amt);
+        if (result.savingsWarning) {
+            Alert.alert(
+                'Usaste fondos de ahorro',
+                `Este pago usó ${formatCurrency(result.savingsWarning.newlyAtRisk)} que tenías apartado como ahorro en ${result.savingsWarning.accountName}.`,
+                [{ text: 'Entendido', onPress: onClose }]
+            );
+            return;
+        }
         onClose();
     };
 
@@ -399,7 +407,7 @@ function AddTypeSheet({ onClose, onPick }) {
 function DeckSection({
     label, dotColor, total, utilPct, cards,
     collapsed, onToggle, focusedId, onFocusChange,
-    onOpenDetail, onLongPressCard, onAddEmpty, styles, theme,
+    onOpenDetail, onLongPressCard, onAddEmpty, styles, theme, savingsAccounts,
 }) {
     if (cards.length === 0) {
         return (
@@ -430,6 +438,7 @@ function DeckSection({
                         onFocusChange={onFocusChange}
                         onOpenDetail={onOpenDetail}
                         onLongPressCard={onLongPressCard}
+                        savingsAccounts={savingsAccounts}
                     />
                 </View>
             )}
@@ -440,7 +449,7 @@ function DeckSection({
 export default function CardsScreen() {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
-    const { creditCards, accounts, deleteAccount, deleteCreditCard } = useFinance();
+    const { creditCards, accounts, deleteAccount, deleteCreditCard, savingsAccounts } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
 
@@ -509,6 +518,7 @@ export default function CardsScreen() {
                             onAddEmpty={() => openAdd('debit')}
                             styles={styles}
                             theme={theme}
+                            savingsAccounts={savingsAccounts}
                         />
                         <DeckSection
                             label="Crédito"
