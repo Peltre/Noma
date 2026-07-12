@@ -12,6 +12,24 @@ export default function createSettingsStyles(theme) {
             padding: Spacing.lg,
             paddingBottom: Spacing.md,
         },
+        headerLeft: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.md,
+        },
+        backBtn: {
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: theme.border,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        backText: {
+            fontSize: FontSize.lg,
+            color: theme.ink,
+            fontWeight: '600',
+        },
         title: {
             fontSize: 28,
             fontWeight: '700',

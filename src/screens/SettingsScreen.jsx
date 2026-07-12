@@ -9,6 +9,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import Svg, { Circle, Path } from 'react-native-svg';
 import createSettingsStyles from './SettingsScreen.styles';
 
@@ -54,6 +55,7 @@ function IconTrash({ color }) {
 }
 
 export default function SettingsScreen() {
+    const navigation = useNavigation();
     const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
@@ -101,7 +103,12 @@ export default function SettingsScreen() {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Configuración</Text>
+                    <View style={styles.headerLeft}>
+                        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                            <Text style={styles.backText}>←</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.title}>Configuración</Text>
+                    </View>
                 </View>
 
                 {/* Profile */}

@@ -15,21 +15,30 @@ import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
+import DatePickerField from '../components/DatePickerField';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
 // of the app, no per-type dark hero tones. Transfer uses brand, same
 // reasoning as the MSI toggle below: it's a special flow (money
 // moving between the user's own accounts), not a money-in/money-out
-// signal, so it shouldn't borrow moneyIn or moneyOut.
+// signal, so it shouldn't borrow moneyIn or moneyOut. Scheduled gets
+// its own accent (theme.savings) so it doesn't collide with either.
 function getTypes(theme) {
     return {
         expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
         income: { label: 'Ingreso', color: theme.moneyIn, on: theme.brandOn },
         withdrawal: { label: 'Retiro', color: theme.ink, on: theme.bg },
         transfer: { label: 'Traspaso', color: theme.brand, on: theme.brandOn },
+        scheduled: { label: 'Programada', color: theme.savings, on: '#FFFFFF' },
     };
 }
+
+const FREQUENCIES = [
+    { key: 'weekly', label: 'Semanal' },
+    { key: 'biweekly', label: 'Quincenal' },
+    { key: 'monthly', label: 'Mensual' },
+];
 
 const MSI_OPTIONS = [3, 6, 9, 12, 18, 24];
 
@@ -37,7 +46,7 @@ export default function TransactionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const insets = useSafeAreaInsets();
-    const { accounts, creditCards, addTransaction, confirmFund, addMSI } = useFinance();
+    const { accounts, creditCards, addTransaction, confirmFund, addMSI, addScheduledFund } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createTransactionStyles(theme), [theme]);
     const TYPES = useMemo(() => getTypes(theme), [theme]);
@@ -54,6 +63,8 @@ export default function TransactionScreen() {
     const [useCredit, setUseCredit] = useState(false);
     const [isMSI, setIsMSI] = useState(false);
     const [msiMonths, setMsiMonths] = useState(12);
+    const [frequency, setFrequency] = useState('biweekly');
+    const [nextDate, setNextDate] = useState(null);
 
     const cur = TYPES[type];
     const categories = CATEGORIES[type];
@@ -65,7 +76,7 @@ export default function TransactionScreen() {
     const handleTypeChange = (t) => {
         setType(t); setCategory(null);
         setUseCredit(false); setCard(null); setIsMSI(false);
-        setToAccount(null);
+        setToAccount(null); setNextDate(null);
     };
 
     const handleConfirm = async () => {
@@ -73,7 +84,28 @@ export default function TransactionScreen() {
             Alert.alert('Monto inválido', 'Ingresa un monto mayor a cero'); return;
         }
         if (!reason.trim()) {
-            Alert.alert('Falta la razón', 'Describe brevemente el movimiento'); return;
+            Alert.alert(type === 'scheduled' ? 'Falta el nombre' : 'Falta la razón', 'Describe brevemente el movimiento'); return;
+        }
+        // Scheduling doesn't move any money now — it just remembers a
+        // recurring income so it shows as a reminder later (same
+        // mechanism ScheduledFundsScreen's own form already used).
+        if (type === 'scheduled') {
+            if (!nextDate) {
+                Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.'); return;
+            }
+            if (!selectedAccount) {
+                Alert.alert('Falta la cuenta', 'Selecciona una cuenta destino.'); return;
+            }
+            await addScheduledFund({
+                name: reason.trim(),
+                amount: parseFloat(amount),
+                frequency,
+                accountId: selectedAccount,
+                nextDate: nextDate.toISOString(),
+            });
+            Alert.alert('Programado', `"${reason.trim()}" aparecerá como recordatorio cuando se acerque la fecha.`);
+            navigation.goBack();
+            return;
         }
         if (type === 'transfer') {
             if (!toAccount) {
@@ -209,20 +241,21 @@ export default function TransactionScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Reason */}
-                <Text style={styles.fieldLabel}>¿EN QUÉ?</Text>
+                {/* Reason / name */}
+                <Text style={styles.fieldLabel}>{type === 'scheduled' ? 'NOMBRE' : '¿EN QUÉ?'}</Text>
                 <TextInput
                     style={styles.input}
                     value={reason}
                     onChangeText={setReason}
-                    placeholder="Describe el movimiento"
+                    placeholder={type === 'scheduled' ? 'Ej. Quincena, Renta, Freelance...' : 'Describe el movimiento'}
                     placeholderTextColor={theme.muted}
                 />
 
                 {/* Category pills — a transfer moves the user's own
-                    money between their own accounts, there's nothing
-                    to categorize */}
-                {type !== 'transfer' && (
+                    money between their own accounts, and a scheduled
+                    fund isn't a real movement yet, so neither has
+                    anything to categorize */}
+                {type !== 'transfer' && type !== 'scheduled' && (
                     <>
                         <Text style={styles.fieldLabel}>CATEGORÍA</Text>
                         <View style={styles.pillsWrap}>
@@ -314,6 +347,75 @@ export default function TransactionScreen() {
                                 );
                             })}
                         </View>
+                    </>
+                ) : type === 'scheduled' ? (
+                    <>
+                        <Text style={styles.fieldLabel}>FRECUENCIA</Text>
+                        <View style={styles.pillsWrap}>
+                            {FREQUENCIES.map(f => {
+                                const active = frequency === f.key;
+                                return (
+                                    <TouchableOpacity
+                                        key={f.key}
+                                        style={[
+                                            styles.catPill,
+                                            active
+                                                ? { backgroundColor: cur.color, borderColor: cur.color }
+                                                : { borderColor: theme.border },
+                                        ]}
+                                        onPress={() => setFrequency(f.key)}
+                                    >
+                                        <Text style={[
+                                            styles.catPillText,
+                                            active ? { color: cur.on } : { color: theme.muted },
+                                        ]}>
+                                            {f.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        <Text style={styles.fieldLabel}>PRÓXIMA FECHA</Text>
+                        <DatePickerField
+                            value={nextDate}
+                            onChange={setNextDate}
+                            placeholder="Selecciona una fecha"
+                            minimumDate={new Date()}
+                        />
+
+                        <Text style={[styles.fieldLabel, { marginTop: Spacing.sm }]}>CUENTA DESTINO</Text>
+                        <View style={styles.pillsWrap}>
+                            {accounts.map(item => {
+                                const isSelected = selectedAccount === item.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={[
+                                            styles.catPill,
+                                            isSelected
+                                                ? { backgroundColor: theme.ink, borderColor: theme.ink }
+                                                : { borderColor: theme.border },
+                                        ]}
+                                        onPress={() => setAccount(item.id)}
+                                    >
+                                        <Text style={[
+                                            styles.catPillText,
+                                            isSelected ? { color: theme.bg } : { color: theme.muted },
+                                        ]}>
+                                            {item.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        <TouchableOpacity
+                            style={{ marginTop: Spacing.sm }}
+                            onPress={() => navigation.navigate('ScheduledFunds')}
+                        >
+                            <Text style={styles.linkText}>Ver mis programados →</Text>
+                        </TouchableOpacity>
                     </>
                 ) : (
                     <>
@@ -424,7 +526,7 @@ export default function TransactionScreen() {
                     onPress={handleConfirm}
                 >
                     <Text style={[styles.confirmText, { color: isMSI ? theme.brandOn : cur.on }]}>
-                        {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
+                        {type === 'scheduled' ? 'Programar' : isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
                     </Text>
                 </TouchableOpacity>
 

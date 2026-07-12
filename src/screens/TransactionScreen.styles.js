@@ -140,6 +140,11 @@ export default function createTransactionStyles(theme) {
             color: theme.muted,
             marginTop: Spacing.xs,
         },
+        linkText: {
+            fontSize: FontSize.xs,
+            color: theme.brand,
+            fontWeight: '700',
+        },
 
         // Text input
         input: {

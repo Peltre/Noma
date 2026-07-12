@@ -22,6 +22,7 @@ function HomeStack() {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="AddTransaction" component={TransactionScreen} />
       <Stack.Screen name="ScheduledFunds" component={ScheduledFundsScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }
@@ -47,7 +48,6 @@ export default function AppNavigator() {
       <Tab.Screen name="HistoryTab" component={HistoryScreen} options={{ tabBarLabel: 'Historial' }} />
       <Tab.Screen name="SavingsTab" component={SavingsScreen} options={{ tabBarLabel: 'Ahorros' }} />
       <Tab.Screen name="CardsTab" component={CardsStack} options={{ tabBarLabel: 'Tarjetas' }} />
-      <Tab.Screen name="SettingsTab" component={SettingsScreen} options={{ tabBarLabel: 'Config.' }} />
     </Tab.Navigator>
   );
 }

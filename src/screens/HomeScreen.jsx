@@ -209,6 +209,15 @@ export default function HomeScreen() {
                             <Text style={styles.greeting}>Hola de nuevo</Text>
                             <Text style={styles.userName}>{settings.userName}</Text>
                         </View>
+                        <TouchableOpacity
+                            style={styles.kebabBtn}
+                            onPress={() => navigation.navigate('Settings')}
+                            hitSlop={{ top: 10, bottom: 10, left: 14, right: 6 }}
+                        >
+                            <View style={styles.kebabDot} />
+                            <View style={styles.kebabDot} />
+                            <View style={styles.kebabDot} />
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.heroBalance}>
@@ -271,22 +280,6 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 )}
-
-                {/* Action buttons */}
-                <View style={styles.actionRow}>
-                    <TouchableOpacity
-                        style={styles.btnPrimary}
-                        onPress={() => navigation.navigate('AddTransaction')}
-                    >
-                        <Text style={styles.btnPrimaryText}>+ Movimiento</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.btnSecondary}
-                        onPress={() => navigation.navigate('ScheduledFunds')}
-                    >
-                        <Text style={styles.btnSecondaryText}>Programar</Text>
-                    </TouchableOpacity>
-                </View>
 
                 {/* MSI pending */}
                 {pendingMSI.length > 0 && (

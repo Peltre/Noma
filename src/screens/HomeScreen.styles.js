@@ -41,6 +41,15 @@ export default function createHomeStyles(theme) {
             alignItems: 'center',
             zIndex: 1,
         },
+        kebabBtn: {
+            paddingLeft: Spacing.sm,
+            paddingVertical: Spacing.xs,
+            justifyContent: 'center', alignItems: 'center', gap: 3,
+        },
+        kebabDot: {
+            width: 3.5, height: 3.5, borderRadius: 2,
+            backgroundColor: theme.ink, opacity: 0.85,
+        },
         greeting: {
             fontSize: FontSize.sm,
             fontWeight: '600',
@@ -137,38 +146,6 @@ export default function createHomeStyles(theme) {
         },
 
         // Action buttons
-        actionRow: {
-            flexDirection: 'row',
-            gap: Spacing.sm,
-            paddingHorizontal: Spacing.lg,
-            paddingBottom: Spacing.md,
-        },
-        btnPrimary: {
-            flex: 1,
-            backgroundColor: theme.brand,
-            borderRadius: Radius.sm,
-            paddingVertical: 14,
-            alignItems: 'center',
-        },
-        btnPrimaryText: {
-            color: theme.brandOn,
-            fontWeight: '700',
-            fontSize: FontSize.sm,
-        },
-        btnSecondary: {
-            flex: 1,
-            borderRadius: Radius.sm,
-            paddingVertical: 14,
-            alignItems: 'center',
-            borderWidth: 1.5,
-            borderColor: theme.inkSoft,
-        },
-        btnSecondaryText: {
-            color: theme.ink,
-            fontWeight: '700',
-            fontSize: FontSize.sm,
-        },
-
         // Sections
         section: {
             paddingHorizontal: Spacing.lg,
