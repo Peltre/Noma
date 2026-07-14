@@ -477,7 +477,13 @@ function GoalCard({ goal, savingsAccounts, onDelete, onRedeem, getMonthlySuggest
     const percentage = goal.targetAmount > 0
         ? Math.min(Math.round((goal.savedAmount / goal.targetAmount) * 100), 100)
         : 0;
-    const isComplete = percentage >= 100;
+    // Complete has to come from the real amounts, never from the
+    // rounded `percentage` above — that one is only for display.
+    // Math.round would flip this to true as early as 99.5% funded
+    // (e.g. $995 of a $1,000 goal), which used to let "Marcar como
+    // comprado" fire while less money than promised was actually
+    // sitting in the source apartados.
+    const isComplete = goal.targetAmount > 0 && goal.savedAmount >= goal.targetAmount;
     const suggestion = getMonthlySuggestion(goal);
     const atRisk = getGoalRisk(goal);
 
@@ -646,9 +652,20 @@ export default function SavingsScreen() {
                 sa: savingsAccounts.find(a => a.id === savingsAccountId),
             }));
 
+        // What the confirmation below promises to deduct — the real
+        // sum of what's about to be charged, not goal.targetAmount.
+        // Sources whose apartado was deleted before redeeming get
+        // skipped in the loop further down (nothing left to trace
+        // them back to), so they're excluded here too — otherwise
+        // the dialog would promise more than what actually gets
+        // charged.
+        const totalToDeduct = round2(
+            sources.filter(s => s.sa).reduce((sum, s) => sum + s.amount, 0)
+        );
+
         Alert.alert(
             'Marcar como comprado',
-            `Se descontarán ${formatCurrencyShort(goal.targetAmount)} de tus cuentas y quedará registrado en tu historial.`,
+            `Se descontarán ${formatCurrencyShort(totalToDeduct)} de tus cuentas y quedará registrado en tu historial.`,
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
