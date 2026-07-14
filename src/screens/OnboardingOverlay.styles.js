@@ -106,12 +106,6 @@ export default function createOnboardingStyles(theme) {
             borderColor: theme.border,
             ...Shadow.card,
         },
-        inputLarge: {
-            fontSize: 28,
-            fontWeight: '700',
-            textAlign: 'center',
-            padding: Spacing.lg,
-        },
         helperNote: {
             fontSize: FontSize.xs,
             color: theme.muted,
@@ -163,35 +157,6 @@ export default function createOnboardingStyles(theme) {
             fontSize: FontSize.sm,
             fontWeight: '600',
             color: theme.muted,
-        },
-
-        // Yes/No selector — "yes" leans on moneyIn (affirmative,
-        // same fixed accent used for income everywhere else)
-        yesNoRow: {
-            flexDirection: 'row',
-            gap: Spacing.sm,
-            marginBottom: Spacing.md,
-        },
-        yesNoBtn: {
-            flex: 1,
-            padding: Spacing.md,
-            borderRadius: Radius.sm,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            backgroundColor: theme.bg,
-            alignItems: 'center',
-        },
-        yesNoBtnActive: {
-            backgroundColor: theme.moneyInSoft,
-            borderColor: theme.moneyIn,
-        },
-        yesNoBtnText: {
-            fontSize: FontSize.md,
-            fontWeight: '600',
-            color: theme.muted,
-        },
-        yesNoBtnTextActive: {
-            color: theme.moneyIn,
         },
 
         // Tour highlight tooltip
@@ -251,14 +216,6 @@ export default function createOnboardingStyles(theme) {
         },
         nextBtnDisabled: {
             backgroundColor: theme.border,
-        },
-        laterBtn: {
-            alignItems: 'center',
-            paddingTop: Spacing.md,
-        },
-        laterBtnText: {
-            fontSize: FontSize.sm,
-            color: theme.muted,
         },
     });
 }

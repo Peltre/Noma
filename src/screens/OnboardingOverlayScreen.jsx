@@ -20,7 +20,7 @@ import { ACCOUNT_LABELS } from "../constants";
 import { SAVINGS_COLORS } from "../store/useSavings";
 import createOnboardingStyles from './OnboardingOverlay.styles';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 // Same rule the rest of the app enforces on every account balance:
 // never negative. Onboarding's amount fields are free-text (DecimalInput
@@ -83,17 +83,6 @@ function IconCash({ color }) {
         </Svg>
     );
 }
-function IconBank({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
-            <Path d="M3 9l9-5 9 5" stroke={color} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
-            <Path d="M4 9h16v2H4z" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
-            <Path d="M5 11v7M9.5 11v7M14.5 11v7M19 11v7" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-            <Path d="M4 20h16" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
 // Tour tips shown in step 2, 1 per slide
 const TOUR_TIPS = [
     {
@@ -145,10 +134,6 @@ export default function Onboarding({ visible }) {
         { id: '1', name: '', balance: '' },
     ]);
 
-    // Step 4 - Savings
-    const [hasSavings, setHasSavings] = useState(null);
-    const [savingsAmount, setSavingsAmount] = useState('');
-
     // Tour nav
     const nextTourSlide = () => {
         if (tourSlide < TOUR_TIPS.length - 1) {
@@ -176,12 +161,9 @@ export default function Onboarding({ visible }) {
     };
 
     // Finish
-    const handleFinish = async (skipSavings = false) => {
-        const savings = (!skipSavings && hasSavings) ? positiveFloat(savingsAmount) : 0;
-
+    const handleFinish = async () => {
         await setInitialBalances([
             { accountId: '1', balance: positiveFloat(cashAmount) },
-            { accountId: '3', balance: savings },
         ]);
 
         // Each named debit card becomes its own real account — an
@@ -213,7 +195,6 @@ export default function Onboarding({ visible }) {
     // Can proceed?
     const canProceed = () => {
         if (step === 1) return userName.trim().length > 0;
-        if (step === 4) return hasSavings !== null;
         return true;
     };
 
@@ -359,84 +340,13 @@ export default function Onboarding({ visible }) {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.nextBtn}
-                                onPress={() => setStep(4)}
-                            >
-                                <Text style={styles.nextBtnText}>Continuar →</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </ScrollView>
-                )
-            // Step 4 - Savings
-            case 4:
-                return (
-                    <>
-                        <View style={styles.iconBadge}><IconBank color={theme.brand} /></View>
-                        <Text style={styles.title}>¿Tienes ahorros?</Text>
-                        <Text style={styles.subtitle}>
-                            Dinero que tienes guardado y no consideras disponible para gastar del día a día.
-                        </Text>
-
-                        <View style={styles.yesNoRow}>
-                            <TouchableOpacity
-                                style={[styles.yesNoBtn, hasSavings === true && styles.yesNoBtnActive]}
-                                onPress={() => setHasSavings(true)}
-                            >
-                                <Text style={[styles.yesNoBtnText, hasSavings === true && styles.yesNoBtnTextActive]}>
-                                    Sí
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.yesNoBtn, hasSavings === false && styles.yesNoBtnActive]}
-                                onPress={() => setHasSavings(false)}
-                            >
-                                <Text style={[styles.yesNoBtnText, hasSavings === false && styles.yesNoBtnTextActive]}>
-                                    No
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {hasSavings === true && (
-                            <View style={styles.fieldGroup}>
-                                <Text style={styles.fieldLabel}>¿Cuánto tienes ahorrado?</Text>
-                                <DecimalInput
-                                    style={[styles.input, styles.inputLarge]}
-                                    value={savingsAmount}
-                                    onChangeText={setSavingsAmount}
-                                    placeholder="$0.00"
-                                    placeholderTextColor={theme.muted}
-                                    autoFocus
-                                />
-                            </View>
-                        )}
-
-                        {hasSavings === false && (
-                            <Text style={{ color: theme.muted, fontSize: 14, textAlign: 'center' }}>
-                                Sin problema, puedes agregar ahorros después desde la app.
-                            </Text>
-                        )}
-
-                        <View style={styles.bottomRow}>
-                            <TouchableOpacity style={styles.backBtn} onPress={() => setStep(3)}>
-                                <Text style={styles.backBtnText}>←</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.nextBtn, !canProceed() && styles.nextBtnDisabled]}
-                                onPress={() => handleFinish(false)}
-                                disabled={!canProceed()}
+                                onPress={handleFinish}
                             >
                                 <Text style={styles.nextBtnText}>¡Listo, empezar!</Text>
                             </TouchableOpacity>
                         </View>
-
-                        {/* Skip savings option */}
-                        <TouchableOpacity
-                            style={styles.laterBtn}
-                            onPress={() => handleFinish(true)}
-                        >
-                            <Text style={styles.laterBtnText}>Configurar ahorros después</Text>
-                        </TouchableOpacity>
-                    </>
-                );
+                    </ScrollView>
+                )
             default:
                 return null;
         }
