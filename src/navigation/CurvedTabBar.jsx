@@ -145,6 +145,16 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
     const insets = useSafeAreaInsets();
     const [width, setWidth] = useState(0);
 
+    // AppNavigator sets tabBarStyle: { display: 'none' } on the
+    // focused tab's options while one of its nested full-screen
+    // routes (AddTransaction, Settings, etc.) is open. That option is
+    // normally applied automatically by React Navigation's own tab
+    // bar — since this is a custom one, we have to read it ourselves
+    // and bail out before rendering anything, or this bar (and its
+    // floating "+") would stay floating on top of those screens.
+    const focusedOptions = descriptors[state.routes[state.index].key].options;
+    if (focusedOptions.tabBarStyle?.display === 'none') return null;
+
     const totalHeight = BASE_HEIGHT + PEAK_EXTRA + insets.bottom;
 
     // The "+" isn't a real tab — there's no screen you're ever "on"
