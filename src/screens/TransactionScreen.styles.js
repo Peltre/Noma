@@ -157,7 +157,9 @@ export default function createTransactionStyles(theme) {
             borderColor: theme.border,
         },
 
-        // Category / account pills
+        // Shared pill style — reused for accounts, MSI months, and
+        // the frequency/date pickers inside "Programada". No longer
+        // used for a category picker; that's gone entirely.
         pillsWrap: {
             flexDirection: 'row',
             flexWrap: 'wrap',
@@ -205,6 +207,56 @@ export default function createTransactionStyles(theme) {
             fontSize: FontSize.md,
             fontWeight: '700',
             letterSpacing: 0.2,
+        },
+
+        // "Otro tipo" sheet — Retiro/Traspaso/Programada, opened from
+        // the hero's third pill instead of crowding the type row.
+        modalBg: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'flex-end',
+        },
+        typeSheet: {
+            backgroundColor: theme.surface,
+            borderTopLeftRadius: Radius.lg,
+            borderTopRightRadius: Radius.lg,
+            padding: Spacing.lg,
+            paddingBottom: Spacing.xl,
+        },
+        sheetHandle: {
+            width: 36, height: 4,
+            backgroundColor: theme.border,
+            borderRadius: 2,
+            alignSelf: 'center',
+            marginBottom: Spacing.lg,
+        },
+        typeSheetTitle: {
+            fontSize: FontSize.lg,
+            fontWeight: '800',
+            color: theme.ink,
+            marginBottom: Spacing.md,
+            textAlign: 'center',
+        },
+        typeOption: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.md,
+            paddingVertical: Spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+        },
+        typeOptionDot: {
+            width: 12, height: 12, borderRadius: 6,
+        },
+        typeOptionLabel: {
+            fontSize: FontSize.md,
+            fontWeight: '700',
+            color: theme.ink,
+            marginBottom: 2,
+        },
+        typeOptionDesc: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
         },
     });
 }

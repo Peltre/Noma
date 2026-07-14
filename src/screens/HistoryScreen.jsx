@@ -18,7 +18,6 @@ import DecimalInput from '../components/DecimalInput';
 const FILTERS = [
     { key: 'all', label: 'Todos' },
     { key: 'expense', label: 'Gastos' },
-    { key: 'withdrawal', label: 'Retiros' },
     { key: 'income', label: 'Ingresos' },
     { key: 'transfer', label: 'Traspasos' },
 ];

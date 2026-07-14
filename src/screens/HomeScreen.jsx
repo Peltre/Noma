@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { formatCurrency, formatCurrencyShort } from '../utils';
-import { getCategoryLabel } from '../constants';
 import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
@@ -405,7 +404,9 @@ export default function HomeScreen() {
                                             <Text style={styles.txnSub}>
                                                 {txn.type === 'transfer'
                                                     ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
-                                                    : getCategoryLabel(txn.type, txn.category)}
+                                                    : txn.creditCardId
+                                                        ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? '—')
+                                                        : (accounts.find(a => a.id === txn.accountId)?.name ?? '—')}
                                             </Text>
                                         </View>
                                         <Text style={[
