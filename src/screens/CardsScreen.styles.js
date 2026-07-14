@@ -81,16 +81,6 @@ export default function createCardsStyles(theme) {
         chevCollapsed: { transform: [{ rotate: '-90deg' }] },
         deckStackWrap: { paddingBottom: Spacing.sm },
 
-        // Floating "+" (opens the type picker)
-        fab: {
-            position: 'absolute', right: Spacing.lg, bottom: Spacing.lg,
-            width: 56, height: 56, borderRadius: 28,
-            backgroundColor: theme.brand,
-            justifyContent: 'center', alignItems: 'center',
-            ...Shadow.float,
-        },
-        fabIcon: { fontSize: 26, fontWeight: '400', color: theme.brandOn, marginTop: -2 },
-
         // Long-press quick-actions popover
         popoverBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
         popover: {

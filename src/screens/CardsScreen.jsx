@@ -539,14 +539,8 @@ export default function CardsScreen() {
                     </>
                 )}
 
-                <View style={{ height: Spacing.xl + Spacing.lg + 64 }} />
+                <View style={{ height: Spacing.xl + Spacing.lg }} />
             </ScrollView>
-
-            {hasAnyCards && (
-                <TouchableOpacity style={styles.fab} onPress={() => setShowTypePicker(true)} activeOpacity={0.85}>
-                    <Text style={styles.fabIcon}>+</Text>
-                </TouchableOpacity>
-            )}
 
             {selectedCard && (
                 <CardDetailSheet
