@@ -2,13 +2,17 @@
 // Hero with amount + type, sheet slides up with the rest
 //
 // Only Gasto/Ingreso sit in the hero as one-tap pills — they're the
-// overwhelming majority of what gets logged here. Retiro/Traspaso/
-// Programada live behind a single "Otro tipo" control instead of
-// competing for space in the same row: they don't just need less
-// room, their whole form shape is different (two accounts for a
-// traspaso, a future date for programada), so showing all five as
-// equal peers up front was promising a simplicity the rest of the
-// screen couldn't keep.
+// overwhelming majority of what gets logged here. Traspaso lives
+// behind a single "Otro tipo" control instead of competing for space
+// in the same row: a traspaso's form shape (two accounts) is
+// different enough that showing it as an equal peer up front was
+// promising a simplicity the rest of the screen couldn't keep. That
+// same "Otro tipo" sheet also has a shortcut to Fondos programados,
+// but that one is just navigation — a recurring reminder isn't a
+// real transaction type, and this screen doesn't keep its own copy
+// of that form anymore (see ScheduledFundsScreen — the only place
+// that creates one now, so there's a single source instead of two
+// forms that could quietly drift apart).
 //
 // No category picker anymore — it was a required field with no
 // payoff (nothing in the app filters or charts by it), so it was
@@ -32,22 +36,19 @@ import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
-import DatePickerField from '../components/DatePickerField';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
 // of the app, no per-type dark hero tones. Transfer uses brand, same
 // reasoning as the MSI toggle below: it's a special flow (money
 // moving between the user's own accounts), not a money-in/money-out
-// signal, so it shouldn't borrow moneyIn or moneyOut. Scheduled gets
-// its own accent (theme.savings) so it doesn't collide with either.
+// signal, so it shouldn't borrow moneyIn or moneyOut.
 function getTypes(theme) {
     return {
         expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
         income: { label: 'Ingreso', color: theme.moneyIn, on: theme.brandOn },
         withdrawal: { label: 'Retiro', color: theme.ink, on: theme.bg },
         transfer: { label: 'Traspaso', color: theme.brand, on: theme.brandOn },
-        scheduled: { label: 'Programada', color: theme.savings, on: '#FFFFFF' },
     };
 }
 
@@ -59,17 +60,10 @@ function getTypes(theme) {
 // vanish from the total with no destination, which is only right
 // for what the app already does on its own (paying a card, an MSI
 // installment) — never something worth a person picking by hand.
-const SECONDARY_TYPES = ['transfer', 'scheduled'];
+const SECONDARY_TYPES = ['transfer'];
 const TYPE_DESCRIPTIONS = {
     transfer: 'Mover dinero entre tus propias cuentas',
-    scheduled: 'Algo que se repite — quincena, renta, etc.',
 };
-
-const FREQUENCIES = [
-    { key: 'weekly', label: 'Semanal' },
-    { key: 'biweekly', label: 'Quincenal' },
-    { key: 'monthly', label: 'Mensual' },
-];
 
 const MSI_OPTIONS = [3, 6, 9, 12, 18, 24];
 
@@ -77,7 +71,7 @@ export default function TransactionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const insets = useSafeAreaInsets();
-    const { accounts, creditCards, addTransaction, confirmFund, addMSI, addScheduledFund } = useFinance();
+    const { accounts, creditCards, addTransaction, confirmFund, addMSI } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createTransactionStyles(theme), [theme]);
     const TYPES = useMemo(() => getTypes(theme), [theme]);
@@ -93,8 +87,6 @@ export default function TransactionScreen() {
     const [useCredit, setUseCredit] = useState(false);
     const [isMSI, setIsMSI] = useState(false);
     const [msiMonths, setMsiMonths] = useState(12);
-    const [frequency, setFrequency] = useState('biweekly');
-    const [nextDate, setNextDate] = useState(null);
     const [showTypeSheet, setShowTypeSheet] = useState(false);
 
     const cur = TYPES[type];
@@ -106,7 +98,7 @@ export default function TransactionScreen() {
     const handleTypeChange = (t) => {
         setType(t);
         setUseCredit(false); setCard(null); setIsMSI(false);
-        setToAccount(null); setNextDate(null);
+        setToAccount(null);
         setShowTypeSheet(false);
     };
 
@@ -115,28 +107,7 @@ export default function TransactionScreen() {
             Alert.alert('Monto inválido', 'Ingresa un monto mayor a cero'); return;
         }
         if (!reason.trim()) {
-            Alert.alert(type === 'scheduled' ? 'Falta el nombre' : 'Falta la razón', 'Describe brevemente el movimiento'); return;
-        }
-        // Scheduling doesn't move any money now — it just remembers a
-        // recurring income so it shows as a reminder later (same
-        // mechanism ScheduledFundsScreen's own form already used).
-        if (type === 'scheduled') {
-            if (!nextDate) {
-                Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.'); return;
-            }
-            if (!selectedAccount) {
-                Alert.alert('Falta la cuenta', 'Selecciona una cuenta destino.'); return;
-            }
-            await addScheduledFund({
-                name: reason.trim(),
-                amount: parseFloat(amount),
-                frequency,
-                accountId: selectedAccount,
-                nextDate: nextDate.toISOString(),
-            });
-            Alert.alert('Programado', `"${reason.trim()}" aparecerá como recordatorio cuando se acerque la fecha.`);
-            navigation.goBack();
-            return;
+            Alert.alert('Falta la razón', 'Describe brevemente el movimiento'); return;
         }
         if (type === 'transfer' && !toAccount) {
             Alert.alert('Falta la cuenta destino', 'Selecciona a dónde va el dinero'); return;
@@ -280,86 +251,17 @@ export default function TransactionScreen() {
             >
                 {/* Reason / name — the only descriptive field now, and
                     what History/Home actually show for this movement */}
-                <Text style={styles.fieldLabel}>{type === 'scheduled' ? 'NOMBRE' : '¿EN QUÉ?'}</Text>
+                <Text style={styles.fieldLabel}>¿EN QUÉ?</Text>
                 <TextInput
                     style={styles.input}
                     value={reason}
                     onChangeText={setReason}
-                    placeholder={type === 'scheduled' ? 'Ej. Quincena, Renta, Freelance...' : 'Describe el movimiento'}
+                    placeholder="Describe el movimiento"
                     placeholderTextColor={theme.muted}
                 />
 
                 {/* Account(s) */}
-                {type === 'scheduled' ? (
-                    <>
-                        <Text style={styles.fieldLabel}>FRECUENCIA</Text>
-                        <View style={styles.pillsWrap}>
-                            {FREQUENCIES.map(f => {
-                                const active = frequency === f.key;
-                                return (
-                                    <TouchableOpacity
-                                        key={f.key}
-                                        style={[
-                                            styles.catPill,
-                                            active
-                                                ? { backgroundColor: cur.color, borderColor: cur.color }
-                                                : { borderColor: theme.border },
-                                        ]}
-                                        onPress={() => setFrequency(f.key)}
-                                    >
-                                        <Text style={[
-                                            styles.catPillText,
-                                            active ? { color: cur.on } : { color: theme.muted },
-                                        ]}>
-                                            {f.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-
-                        <Text style={styles.fieldLabel}>PRÓXIMA FECHA</Text>
-                        <DatePickerField
-                            value={nextDate}
-                            onChange={setNextDate}
-                            placeholder="Selecciona una fecha"
-                            minimumDate={new Date()}
-                        />
-
-                        <Text style={[styles.fieldLabel, { marginTop: Spacing.sm }]}>CUENTA DESTINO</Text>
-                        <View style={styles.pillsWrap}>
-                            {accounts.map(item => {
-                                const isSelected = selectedAccount === item.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        style={[
-                                            styles.catPill,
-                                            isSelected
-                                                ? { backgroundColor: theme.ink, borderColor: theme.ink }
-                                                : { borderColor: theme.border },
-                                        ]}
-                                        onPress={() => setAccount(item.id)}
-                                    >
-                                        <Text style={[
-                                            styles.catPillText,
-                                            isSelected ? { color: theme.bg } : { color: theme.muted },
-                                        ]}>
-                                            {item.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-
-                        <TouchableOpacity
-                            style={{ marginTop: Spacing.sm }}
-                            onPress={() => navigation.navigate('ScheduledFunds')}
-                        >
-                            <Text style={styles.linkText}>Ver mis programados →</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : type === 'transfer' ? (
+                {type === 'transfer' ? (
                     <>
                         <Text style={styles.fieldLabel}>CUENTA ORIGEN</Text>
                         <View style={styles.pillsWrap}>
@@ -534,15 +436,16 @@ export default function TransactionScreen() {
                     onPress={handleConfirm}
                 >
                     <Text style={[styles.confirmText, { color: isMSI ? theme.brandOn : cur.on }]}>
-                        {type === 'scheduled' ? 'Programar' : isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
+                        {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
                     </Text>
                 </TouchableOpacity>
 
                 <View style={{ height: Spacing.xl + insets.bottom }} />
             </ScrollView>
 
-            {/* "Otro tipo" — Retiro/Traspaso/Programada, explained,
-                one tap away without ever crowding the hero */}
+            {/* "Otro tipo" — Traspaso, explained, plus a shortcut to
+                Fondos programados, one tap away without ever
+                crowding the hero */}
             <Modal visible={showTypeSheet} transparent animationType="slide" onRequestClose={() => setShowTypeSheet(false)}>
                 <View style={styles.modalBg}>
                     <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowTypeSheet(false)} />
@@ -562,6 +465,25 @@ export default function TransactionScreen() {
                                 </View>
                             </TouchableOpacity>
                         ))}
+                        {/* Not a transaction type — a recurring reminder
+                            doesn't move money the way everything else
+                            in this sheet does. This is just a shortcut
+                            so it's still discoverable from here; the
+                            actual form only lives in ScheduledFunds
+                            now (see the file header comment). */}
+                        <TouchableOpacity
+                            style={styles.typeOption}
+                            onPress={() => {
+                                setShowTypeSheet(false);
+                                navigation.navigate('ScheduledFunds');
+                            }}
+                        >
+                            <View style={[styles.typeOptionDot, { backgroundColor: theme.savings }]} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.typeOptionLabel}>Fondo programado</Text>
+                                <Text style={styles.typeOptionDesc}>Algo que se repite — quincena, renta, etc.</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
