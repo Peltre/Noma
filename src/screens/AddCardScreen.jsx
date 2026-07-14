@@ -63,6 +63,19 @@ export default function AddCardScreen() {
             if (!paymentDay || parseInt(paymentDay, 10) < 1 || parseInt(paymentDay, 10) > 31) {
                 Alert.alert('Día inválido', 'El día de pago debe ser entre 1 y 31'); return;
             }
+            // The one ordering that's wrong no matter how the two days
+            // get interpreted. Both are stored as a plain "day of
+            // month" (1–31) with no month attached, and a payment day
+            // that's numerically SMALLER than the cutoff day is
+            // usually the normal case in real life (e.g. corte día
+            // 28, pago día 15 — of the following month), so that
+            // can't be flagged without risking rejecting the most
+            // common real-world setup. The exact same day, though, is
+            // never valid — every real card leaves at least a few
+            // days between the statement closing and payment being due.
+            if (parseInt(cutoffDay, 10) === parseInt(paymentDay, 10)) {
+                Alert.alert('Días iguales', 'El día de corte y el día de pago no pueden ser el mismo.'); return;
+            }
         }
 
         setLoading(true);
@@ -220,6 +233,16 @@ export default function AddCardScreen() {
                                     <Text style={styles.inputHint}>Día del mes (1–31)</Text>
                                 </View>
                             </View>
+
+                            {/* Same live-feedback pattern as the credit-
+                                available hint below the account pills:
+                                show the problem before "Guardar", not
+                                only after. */}
+                            {cutoffDay && paymentDay && parseInt(cutoffDay, 10) === parseInt(paymentDay, 10) && (
+                                <Text style={[styles.inputHint, { color: theme.moneyOut, fontWeight: '700' }]}>
+                                    El día de corte y el día de pago no pueden ser el mismo
+                                </Text>
+                            )}
                         </>
                     )}
 
