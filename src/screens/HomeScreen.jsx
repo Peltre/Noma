@@ -35,11 +35,23 @@ function getAccountColor(theme, account) {
 }
 
 // Only two accents with fixed meaning: moneyIn = comes in or is saved,
-// moneyOut = goes out. A withdrawal is neither, so it stays neutral
-// instead of borrowing one of the two. A transfer isn't either one
-// either — same brand accent used for its type pill in
-// TransactionScreen, since it's a special flow, not gain or loss.
-function getTxnVisual(theme, type) {
+// moneyOut = goes out. A plain withdrawal (cajero, or anything with
+// no more specific category) is neither, so it stays neutral instead
+// of borrowing one of the two. A transfer isn't either one either —
+// same brand accent used for its type pill in TransactionScreen,
+// since it's a special flow, not gain or loss.
+//
+// Paying a credit card — whether it's one MSI installment or a
+// manual/full payment — is a `type: 'withdrawal'` under the hood
+// (that's what makes the balance math in useFinanceStore work: real
+// money leaves a real account), but neither one is a plain retiro
+// the way pulling cash from a cajero is. Both get the same moneyOut
+// accent PendingFundCard already uses for an MSI due before it's
+// paid, and their own glyph each so they don't blend into the
+// generic withdrawal icon or into each other.
+function getTxnVisual(theme, type, category) {
+    if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: 'M' };
+    if (category === 'card_payment') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: '$' };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, glyph: '↓' };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: '↑' };
     if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, glyph: '⇄' };
@@ -383,7 +395,7 @@ export default function HomeScreen() {
                     ) : (
                         <View style={styles.txnCard}>
                             {recentTransactions.map((txn, i) => {
-                                const visual = getTxnVisual(theme, txn.type);
+                                const visual = getTxnVisual(theme, txn.type, txn.category);
                                 return (
                                     <View
                                         key={txn.id}

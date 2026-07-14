@@ -23,11 +23,21 @@ const FILTERS = [
 ];
 
 // Only two accents with fixed meaning across the app: moneyIn/moneyOut.
-// A withdrawal is neither, so it stays neutral — same rule as Home.
-// A transfer isn't either one either, but it's not neutral-as-in-
+// A plain withdrawal (cajero, or anything with no more specific
+// category) is neither, so it stays neutral — same rule as Home. A
+// transfer isn't either one either, but it's not neutral-as-in-
 // "regular" like a withdrawal — it's a special flow, so it gets the
 // same brand accent as its type pill in TransactionScreen.
-function getTypeConfig(theme, type) {
+//
+// Paying a credit card — an MSI installment or a manual/full
+// payment — is still a real `type: 'withdrawal'` underneath (see
+// HomeScreen's getTxnVisual for why that has to stay true), but
+// neither reads as a plain retiro here: both get their own label and
+// the same moneyOut accent PendingFundCard already gives an MSI due
+// before it's paid.
+function getTypeConfig(theme, type, category) {
+    if (category === 'msi') return { glyph: 'M', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Mensualidad' };
+    if (category === 'card_payment') return { glyph: '$', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Pago de tarjeta' };
     if (type === 'income') return { glyph: '↓', bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { glyph: '↑', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
     if (type === 'transfer') return { glyph: '⇄', bg: theme.brandSoft, fg: theme.brand, label: 'Traspaso' };
@@ -35,8 +45,8 @@ function getTypeConfig(theme, type) {
 }
 
 // Small colored icon — glyph in colored box, no emoji
-function TxnIcon({ type, theme, sheet, size = 36 }) {
-    const cfg = getTypeConfig(theme, type);
+function TxnIcon({ type, category, theme, sheet, size = 36 }) {
+    const cfg = getTypeConfig(theme, type, category);
     return (
         <View style={[
             sheet.txnIcon,
@@ -48,8 +58,8 @@ function TxnIcon({ type, theme, sheet, size = 36 }) {
 }
 
 // Dot + text badge
-function TxnBadge({ type, theme, sheet }) {
-    const cfg = getTypeConfig(theme, type);
+function TxnBadge({ type, category, theme, sheet }) {
+    const cfg = getTypeConfig(theme, type, category);
     return (
         <View style={sheet.badge}>
             <View style={[sheet.badgeDot, { backgroundColor: cfg.fg }]} />
@@ -65,7 +75,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
     const [editReason, setReason] = useState(txn.reason);
     const [editAmount, setAmount] = useState(txn.amount.toString());
 
-    const cfg = getTypeConfig(theme, txn.type);
+    const cfg = getTypeConfig(theme, txn.type, txn.category);
     const isIncome = txn.type === 'income';
     const isTransfer = txn.type === 'transfer';
 
@@ -117,7 +127,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                     <View style={sheet.handle} />
 
                     {/* Icon + type */}
-                    <TxnIcon type={txn.type} theme={theme} sheet={sheet} size={52} />
+                    <TxnIcon type={txn.type} category={txn.category} theme={theme} sheet={sheet} size={52} />
                     <Text style={[sheet.typeLabel, { color: cfg.fg }]}>{cfg.label}</Text>
 
                     {editing ? (
@@ -218,7 +228,13 @@ export default function HistoryScreen() {
     const now = new Date();
     const thisMonth = transactions.filter(t => isSameMonth(parseISO(t.date), now));
     const totalExp = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const totalWd = thisMonth.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
+    // Neither an MSI installment nor a manual card payment counts
+    // toward "Retiros" here — that total is meant for plain
+    // withdrawals (cajero and anything uncategorized), not paying
+    // down a card, which both of these are.
+    const totalWd = thisMonth
+        .filter(t => t.type === 'withdrawal' && t.category !== 'msi' && t.category !== 'card_payment')
+        .reduce((s, t) => s + t.amount, 0);
     const totalInc = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
     return (
@@ -298,7 +314,7 @@ export default function HistoryScreen() {
                                             onPress={() => setSelectedTxn(txn)}
                                             activeOpacity={0.7}
                                         >
-                                            <TxnIcon type={txn.type} theme={theme} sheet={sheet} />
+                                            <TxnIcon type={txn.type} category={txn.category} theme={theme} sheet={sheet} />
                                             <View style={styles.txnInfo}>
                                                 <Text style={styles.txnName} numberOfLines={1}>
                                                     {txn.reason}
@@ -317,7 +333,7 @@ export default function HistoryScreen() {
                                                 ]}>
                                                     {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
-                                                <TxnBadge type={txn.type} theme={theme} sheet={sheet} />
+                                                <TxnBadge type={txn.type} category={txn.category} theme={theme} sheet={sheet} />
                                             </View>
                                         </TouchableOpacity>
                                     );

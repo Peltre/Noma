@@ -38,7 +38,7 @@ export const CATEGORIES = {
         // whatever category the original purchase had, so these are
         // easy to spot on their own in History instead of blending
         // into "Servicios" or any other bucket.
-        { id: 'msi', label: 'Pago MSI' },
+        { id: 'msi', label: 'Mensualidad' },
         { id: 'other', label: 'Otro' },
     ],
 };
