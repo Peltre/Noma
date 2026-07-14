@@ -96,13 +96,59 @@ export default function createSettingsStyles(theme) {
             borderRadius: Radius.sm,
             padding: Spacing.md,
             alignItems: 'center',
-            marginHorizontal: Spacing.lg,
-            marginBottom: Spacing.lg,
+            marginTop: Spacing.md,
         },
         saveBtnText: {
             color: theme.brandOn,
             fontSize: FontSize.md,
             fontWeight: '700',
+        },
+        // Theme picker rows — swatch previews the theme's own bg/brand
+        // so people can tell them apart before tapping, radio mirrors
+        // the checkbox language used for toggles elsewhere (MSI, etc.)
+        themeRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: Spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+            gap: Spacing.md,
+        },
+        themeSwatch: {
+            width: 40,
+            height: 40,
+            borderRadius: Radius.sm,
+            borderWidth: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        themeSwatchDot: {
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+        },
+        themeName: {
+            fontSize: FontSize.md,
+            fontWeight: '700',
+            color: theme.ink,
+            marginBottom: 2,
+        },
+        themeDesc: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+        },
+        radio: {
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            borderWidth: 1.5,
+            borderColor: theme.border,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        radioActive: {
+            backgroundColor: theme.brand,
+            borderColor: theme.brand,
         },
         versionText: {
             textAlign: 'center',

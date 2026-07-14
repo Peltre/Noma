@@ -54,10 +54,18 @@ function IconTrash({ color }) {
     );
 }
 
+function IconCheck({ color, size = 12 }) {
+    return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <Path d="M5 13l4.5 4.5L19 7" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
 export default function SettingsScreen() {
     const navigation = useNavigation();
     const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings } = useFinance();
-    const { theme } = useTheme();
+    const { theme, themeName, setTheme, themes, themeNames } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
     const [userName, setUserName] = useState('');
 
@@ -142,15 +150,48 @@ export default function SettingsScreen() {
                             </View>
                         </View>
                     </View>
+                    <TouchableOpacity
+                        style={styles.saveBtn}
+                        onPress={handleSave}
+                    >
+                        <Text style={styles.saveBtnText}>Guardar cambios</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Save button */}
-                <TouchableOpacity
-                    style={styles.saveBtn}
-                    onPress={handleSave}
-                >
-                    <Text style={styles.saveBtnText}>Guardar cambios</Text>
-                </TouchableOpacity>
+                {/* Appearance — the 3 themes already fully defined in
+                    constants/themes.js. Tapping one applies it right
+                    away (setTheme persists through the same settings
+                    store as everything else here), so this section
+                    doesn't need its own save button — the whole screen
+                    re-tinting itself is the confirmation. */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Apariencia</Text>
+                    <View style={styles.card}>
+                        {themeNames.map((name, i) => {
+                            const t = themes[name];
+                            const isActive = themeName === name;
+                            return (
+                                <TouchableOpacity
+                                    key={name}
+                                    style={[styles.themeRow, i === themeNames.length - 1 && styles.fieldRowLast]}
+                                    onPress={() => setTheme(name)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.themeSwatch, { backgroundColor: t.bg, borderColor: t.border }]}>
+                                        <View style={[styles.themeSwatchDot, { backgroundColor: t.brand }]} />
+                                    </View>
+                                    <View style={styles.fieldInfo}>
+                                        <Text style={styles.themeName}>{t.label}</Text>
+                                        <Text style={styles.themeDesc}>{t.description}</Text>
+                                    </View>
+                                    <View style={[styles.radio, isActive && styles.radioActive]}>
+                                        {isActive && <IconCheck color={theme.brandOn} />}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
 
                 {/* Danger zone - reset btn */}
                 <View style={styles.section}>

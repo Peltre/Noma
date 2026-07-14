@@ -8,8 +8,10 @@ const defaultSettings = {
     userName: 'Usuario',
     currency: 'MXN',
     onboardingCompleted: false,
-    // Fixed to 'medianoche' for now. The other themes already exist
-    // in constants/themes.js but we don't expose a picker yet.
+    // 'medianoche' is just the starting default for a new user — all
+    // 3 themes in constants/themes.js are chooseable from Settings
+    // (see SettingsScreen's "Apariencia" section), same as any other
+    // value here.
     theme: 'medianoche',
 };
 
