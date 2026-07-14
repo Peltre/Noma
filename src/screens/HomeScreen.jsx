@@ -389,7 +389,7 @@ export default function HomeScreen() {
                         <View style={styles.emptyState}>
                             <Text style={styles.emptyText}>Sin movimientos aún</Text>
                             <Text style={styles.emptySubText}>
-                                Toca "+ Movimiento" para comenzar
+                                Toca el "+" de la barra de abajo para comenzar
                             </Text>
                         </View>
                     ) : (
