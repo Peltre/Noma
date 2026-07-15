@@ -30,7 +30,7 @@ export default function createCardsStyles(theme) {
             alignItems: 'center', paddingTop: 60, paddingHorizontal: Spacing.xl,
         },
         emptyIconWrap: {
-            width: 64, height: 64, borderRadius: 20,
+            width: 64, height: 64, borderRadius: Radius.md,
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center',
             marginBottom: Spacing.md,
@@ -71,7 +71,7 @@ export default function createCardsStyles(theme) {
         deckDot: { width: 9, height: 9, borderRadius: 5 },
         deckTitle: { fontSize: FontSize.md, fontWeight: '800', color: theme.ink },
         deckCount: {
-            fontSize: 10.5, fontWeight: '700', color: theme.muted,
+            fontSize: FontSize.xs, fontWeight: '700', color: theme.muted,
             backgroundColor: theme.border, paddingHorizontal: 7, paddingVertical: 2,
             borderRadius: Radius.full,
         },
@@ -96,7 +96,7 @@ export default function createCardsStyles(theme) {
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center', marginBottom: 4,
         },
-        popoverLabel: { fontSize: 10, fontWeight: '700', color: theme.ink },
+        popoverLabel: { fontSize: FontSize.xs, fontWeight: '700', color: theme.ink },
 
         // Type picker (Débito / Crédito), shown before AddCardScreen
         typePickRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
@@ -175,7 +175,7 @@ export default function createCardsStyles(theme) {
             borderWidth: 1, borderColor: theme.border,
         },
         sheetInputLarge: {
-            fontSize: 28, fontWeight: '800',
+            fontSize: FontSize.xxl, fontWeight: '800',
             textAlign: 'center', letterSpacing: -1,
         },
         chipRow: {

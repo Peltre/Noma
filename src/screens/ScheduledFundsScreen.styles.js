@@ -25,7 +25,7 @@ export default function createScheduledFundsStyles(theme) {
         backBtn: {
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: Radius.sm,
             backgroundColor: theme.border,
             justifyContent: 'center',
             alignItems: 'center',

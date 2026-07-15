@@ -31,7 +31,7 @@ export default function createOnboardingStyles(theme) {
         // Card that slides up from bottom
         card: {
             backgroundColor: theme.surface,
-            borderRadius: 28,
+            borderRadius: Radius.lg,
             padding: Spacing.lg,
             paddingBottom: Spacing.lg,
             width: '100%',
@@ -62,7 +62,7 @@ export default function createOnboardingStyles(theme) {
         iconBadge: {
             width: 64,
             height: 64,
-            borderRadius: 20,
+            borderRadius: Radius.md,
             backgroundColor: theme.brandSoft,
             justifyContent: 'center',
             alignItems: 'center',
@@ -70,7 +70,7 @@ export default function createOnboardingStyles(theme) {
             marginBottom: Spacing.md,
         },
         title: {
-            fontSize: 24,
+            fontSize: FontSize.xxl,
             fontWeight: '700',
             color: theme.ink,
             marginBottom: Spacing.sm,
@@ -157,29 +157,6 @@ export default function createOnboardingStyles(theme) {
             fontSize: FontSize.sm,
             fontWeight: '600',
             color: theme.muted,
-        },
-
-        // Tour highlight tooltip
-        tooltip: {
-            backgroundColor: theme.ink,
-            borderRadius: Radius.md,
-            padding: Spacing.md,
-            marginBottom: Spacing.lg,
-            ...Shadow.float,
-        },
-        tooltipText: {
-            fontSize: FontSize.sm,
-            color: theme.bg,
-            lineHeight: 20,
-            textAlign: 'center',
-        },
-        tooltipArrow: {
-            alignItems: 'center',
-            marginTop: -8,
-        },
-        tooltipArrowText: {
-            fontSize: 20,
-            color: theme.ink,
         },
 
         // Bottom buttons

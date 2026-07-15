@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     savingsBadgeText: {
-        fontSize: 10, fontWeight: '700', color: '#FFFFFF',
+        fontSize: FontSize.xs, fontWeight: '700', color: '#FFFFFF',
     },
     cardCompact: {
         padding: Spacing.md,
@@ -252,11 +252,15 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.92)',
     },
     badgeText: {
-        fontSize: 9, fontWeight: '800',
+        fontSize: FontSize.xs, fontWeight: '800',
         letterSpacing: 0.6,
     },
     badgeTextDebit: { color: '#FFFFFF' },
     badgeTextCredit: { color: '#1A1A2E' },
+    // Deliberately a hair under FontSize.xs — the grid/compact card
+    // is small enough that the scale's own smallest step still reads
+    // as slightly too big for a decorative corner badge. Everywhere
+    // else in the app, FontSize.xs is the floor.
     badgeTextCompact: { fontSize: 8 },
     bottom: { zIndex: 2 },
     valueLabel: {
@@ -264,6 +268,7 @@ const styles = StyleSheet.create({
         fontWeight: '600', letterSpacing: 1,
         textTransform: 'uppercase', marginBottom: 2,
     },
+    // Same deliberate exception as badgeTextCompact above.
     valueLabelCompact: { fontSize: 9 },
     valueText: {
         fontSize: FontSize.xl, fontWeight: '800',

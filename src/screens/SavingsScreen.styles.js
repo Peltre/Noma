@@ -52,7 +52,7 @@ export default function createSavingsStyles(theme) {
             zIndex: 2,
         },
         heroAmount: {
-            fontSize: 44,
+            fontSize: FontSize.hero,
             fontWeight: '900',
             color: theme.ink,
             letterSpacing: -2,
@@ -160,7 +160,7 @@ export default function createSavingsStyles(theme) {
             marginBottom: 2,
         },
         accountLinked: {
-            fontSize: 10.5,
+            fontSize: FontSize.xs,
             color: theme.muted,
             fontWeight: '600',
             marginBottom: 2,
@@ -171,7 +171,7 @@ export default function createSavingsStyles(theme) {
             fontWeight: '500',
         },
         accountRisk: {
-            fontSize: 10.5,
+            fontSize: FontSize.xs,
             color: theme.moneyOut,
             fontWeight: '700',
         },
@@ -182,7 +182,7 @@ export default function createSavingsStyles(theme) {
         },
         actionBtn: {
             width: 30, height: 30,
-            borderRadius: 9,
+            borderRadius: Radius.sm,
             backgroundColor: theme.brandSoft,
             justifyContent: 'center',
             alignItems: 'center',
@@ -391,7 +391,7 @@ export default function createSavingsStyles(theme) {
             textDecorationLine: 'underline',
         },
         sheetHintSmall: {
-            fontSize: 10.5,
+            fontSize: FontSize.xs,
             color: theme.muted,
             fontWeight: '500',
             lineHeight: 14,
@@ -408,7 +408,7 @@ export default function createSavingsStyles(theme) {
             borderColor: theme.border,
         },
         sheetInputLarge: {
-            fontSize: 28,
+            fontSize: FontSize.xxl,
             fontWeight: '800',
             textAlign: 'center',
             letterSpacing: -1,

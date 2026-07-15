@@ -7,7 +7,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../store/useTheme';
-import { Shadow } from '../constants';
+import { Shadow, FontSize } from '../constants';
 import { IconHome, IconHistory, IconSavings, IconCards, IconPlus } from '../components/Icons';
 
 const BASE_HEIGHT = 48;
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     label: {
-        fontSize: 9,
+        fontSize: FontSize.xs,
         fontWeight: '700',
         letterSpacing: 0.4,
     },

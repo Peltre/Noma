@@ -91,7 +91,7 @@ export default function createHomeStyles(theme) {
             marginBottom: Spacing.xs,
         },
         balanceAmount: {
-            fontSize: 40,
+            fontSize: FontSize.hero,
             fontWeight: '800',
             color: theme.ink,
             letterSpacing: -1.5,
@@ -246,7 +246,7 @@ export default function createHomeStyles(theme) {
 
         txnIconWrap: {
             width: 36, height: 36,
-            borderRadius: 10,
+            borderRadius: Radius.sm,
             justifyContent: 'center',
             alignItems: 'center',
             flexShrink: 0,

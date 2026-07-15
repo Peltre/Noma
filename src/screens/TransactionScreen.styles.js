@@ -33,7 +33,7 @@ export default function createTransactionStyles(theme) {
             marginBottom: Spacing.lg,
         },
         backBtn: {
-            width: 36, height: 36, borderRadius: 10,
+            width: 36, height: 36, borderRadius: Radius.sm,
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center',
         },
@@ -72,13 +72,16 @@ export default function createTransactionStyles(theme) {
             marginBottom: Spacing.md,
             zIndex: 2,
         },
+        // Sized as a fixed proportion of amountInput below (roughly
+        // half), not its own scale step — this is a decorative
+        // companion to that field, not an independent role.
         currencySign: {
             fontSize: 36,
             fontWeight: '300',
             lineHeight: 80,
         },
         amountInput: {
-            fontSize: 64,
+            fontSize: FontSize.input,
             fontWeight: '900',
             color: theme.ink,
             minWidth: 120,

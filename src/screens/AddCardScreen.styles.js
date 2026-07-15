@@ -15,7 +15,7 @@ export default function createAddCardStyles(theme) {
             paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
         },
         backBtn: {
-            width: 36, height: 36, borderRadius: 10,
+            width: 36, height: 36, borderRadius: Radius.sm,
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center',
         },

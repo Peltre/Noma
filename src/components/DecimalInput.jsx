@@ -13,6 +13,7 @@
 // at once instead of a smaller fix per screen.
 import { TextInput, InputAccessoryView, View, Text, TouchableOpacity, Platform, StyleSheet, Keyboard } from 'react-native';
 import { useTheme } from '../store/useTheme';
+import { FontSize } from '../constants';
 
 const ACCESSORY_ID = 'decimal-pad-done';
 
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
     },
     doneText: {
-        fontSize: 16,
+        fontSize: FontSize.lg,
         fontWeight: '700',
     },
 });

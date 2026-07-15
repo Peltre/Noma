@@ -20,13 +20,13 @@ export default function createSettingsStyles(theme) {
         backBtn: {
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: Radius.sm,
             backgroundColor: theme.border,
             justifyContent: 'center',
             alignItems: 'center',
         },
         title: {
-            fontSize: 28,
+            fontSize: FontSize.xxl,
             fontWeight: '700',
             color: theme.ink,
         },
@@ -64,7 +64,7 @@ export default function createSettingsStyles(theme) {
         fieldIcon: {
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: Radius.sm,
             backgroundColor: theme.brandSoft,
             justifyContent: 'center',
             alignItems: 'center',
@@ -170,7 +170,7 @@ export default function createSettingsStyles(theme) {
         dangerIcon: {
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: Radius.sm,
             backgroundColor: theme.moneyOutSoft,
             justifyContent: 'center',
             alignItems: 'center',

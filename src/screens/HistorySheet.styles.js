@@ -38,7 +38,7 @@ export default function createSheetStyles(theme) {
             marginBottom: Spacing.xs,
         },
         amount: {
-            fontSize: 36,
+            fontSize: FontSize.hero,
             fontWeight: '900',
             color: theme.ink,
             letterSpacing: -1.5,
@@ -91,7 +91,7 @@ export default function createSheetStyles(theme) {
             borderColor: theme.border,
         },
         inputLarge: {
-            fontSize: 28,
+            fontSize: FontSize.xxl,
             fontWeight: '700',
             textAlign: 'center',
             marginBottom: Spacing.md,

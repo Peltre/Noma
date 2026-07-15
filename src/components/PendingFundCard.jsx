@@ -83,7 +83,7 @@ function createStyles(theme) {
         },
         iconBox: {
             width: 36, height: 36,
-            borderRadius: 10,
+            borderRadius: Radius.sm,
             justifyContent: 'center',
             alignItems: 'center',
             flexShrink: 0,

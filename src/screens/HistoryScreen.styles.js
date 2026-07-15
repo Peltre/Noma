@@ -44,7 +44,7 @@ export default function createHistoryStyles(theme) {
             transform: [{ rotate: '20deg' }],
         },
         heroTitle: {
-            fontSize: 32,
+            fontSize: FontSize.hero,
             fontWeight: '900',
             color: theme.ink,
             letterSpacing: -1.2,
