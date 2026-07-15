@@ -298,7 +298,7 @@ export default function createSavingsStyles(theme) {
         goalBtnRedeemText: {
             fontSize: FontSize.sm,
             fontWeight: '700',
-            color: '#FFFFFF',
+            color: theme.savingsOn,
         },
 
         goalBtns: {

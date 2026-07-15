@@ -13,13 +13,6 @@ import { IconHome, IconHistory, IconSavings, IconCards, IconPlus } from '../comp
 const BASE_HEIGHT = 48;
 const PEAK_EXTRA = 8;
 
-// Fixed regardless of theme — same reasoning CardFace.jsx already
-// uses for its own colors: this is a signature action, not a themed
-// surface, so it should look the same in Arena/Medianoche/Brasa
-// instead of inheriting each theme's own (very different) brand hue.
-const FAB_COLOR = '#5FC9BD';
-const FAB_ON = '#11151D';
-
 const ICONS = {
     HomeTab: IconHome,
     HistoryTab: IconHistory,
@@ -115,11 +108,11 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
 
                 <View style={styles.fabSlot}>
                     <TouchableOpacity
-                        style={[styles.fab, { backgroundColor: FAB_COLOR }]}
+                        style={[styles.fab, { backgroundColor: theme.brand }]}
                         activeOpacity={0.85}
                         onPress={() => navigation.navigate('HomeTab', { screen: 'AddTransaction' })}
                     >
-                        <IconPlus color={FAB_ON} size={26} />
+                        <IconPlus color={theme.brandOn} size={26} />
                     </TouchableOpacity>
                 </View>
 

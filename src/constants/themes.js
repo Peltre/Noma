@@ -8,10 +8,14 @@
 //   moneyOut expense (icon) / credit card debt / this month's spend
 //            in the allocation bar
 //   brand    dominant brand color: primary CTA, avatar, active tab
+//   brandOn  text/icon color for anything sitting on a `brand`-
+//            colored surface — chosen per theme so it stays readable
 //   savings  savings account in the allocation bar — a blue that
 //            hasn't been used anywhere else in the palette, so it
 //            reads as distinct and a little more lively than a
 //            plain neutral, without competing with brand.
+//   savingsOn  same idea as brandOn, for a `savings`-colored surface
+//            (e.g. the "Marcar como comprado" button)
 // An expense amount in text always uses `ink` (neutral), never
 // moneyOut. A single expense should not read as an alert.
 
@@ -40,6 +44,12 @@ export const Themes = {
 
         savings: '#3E7CB8',
         savingsSoft: 'rgba(62,124,184,0.14)',
+        // Preserves the app's current look (this button's text has
+        // always been white) — now backed by a real per-theme token
+        // instead of a bare '#FFFFFF' with no guarantee it'll still
+        // read correctly if a future theme's `savings` isn't this
+        // dark. Same role brandOn already plays for `brand`.
+        savingsOn: '#FFFFFF',
 
         cashTone: '#D9C7A3',
     },
@@ -68,6 +78,7 @@ export const Themes = {
 
         savings: '#5B9EF0',
         savingsSoft: 'rgba(91,158,240,0.18)',
+        savingsOn: '#FFFFFF',
 
         cashTone: '#4A4C52',
     },
@@ -96,6 +107,7 @@ export const Themes = {
 
         savings: '#5A93C4',
         savingsSoft: 'rgba(90,147,196,0.18)',
+        savingsOn: '#FFFFFF',
 
         cashTone: '#4A3C2C',
     },
