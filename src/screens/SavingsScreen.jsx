@@ -20,6 +20,7 @@ import { Spacing } from "../constants";
 import createSavingsStyles from './SavingsScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
+import { IconCheck, IconClose, IconWarningTriangle, IconPlus, IconMinus } from '../components/Icons';
 
 // Only débito/efectivo can back an apartado — same rule useSavings.js
 // enforces server-side, mirrored here so the picker never even shows
@@ -332,7 +333,7 @@ function AddGoalModal({ visible, onClose }) {
 
                     <TouchableOpacity style={styles.toggle} onPress={() => setHasDeadline(!hasDeadline)}>
                         <View style={[styles.checkbox, hasDeadline && styles.checkboxActive]}>
-                            {hasDeadline && <Text style={styles.checkmark}>✓</Text>}
+                            {hasDeadline && <IconCheck color={theme.brandOn} size={12} />}
                         </View>
                         <Text style={styles.toggleText}>Establecer fecha límite</Text>
                     </TouchableOpacity>
@@ -513,7 +514,7 @@ function GoalCard({ goal, savingsAccounts, onDelete, onRedeem, getMonthlySuggest
                     )}
                 </View>
                 <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={styles.goalDeleteText}>✕</Text>
+                    <IconClose color={theme.muted} size={13} />
                 </TouchableOpacity>
             </View>
 
@@ -535,9 +536,10 @@ function GoalCard({ goal, savingsAccounts, onDelete, onRedeem, getMonthlySuggest
             {/* Risk warning — one of the apartados feeding this goal has
                 less real money behind it than it promised */}
             {atRisk > 0 && (
-                <View style={styles.riskRow}>
+                <View style={[styles.riskRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs }]}>
+                    <IconWarningTriangle color={theme.moneyOut} size={13} />
                     <Text style={styles.riskText}>
-                        ⚠️ {formatCurrencyShort(atRisk)} en riesgo — un apartado de origen tiene menos saldo del que prometía
+                        {formatCurrencyShort(atRisk)} en riesgo — un apartado de origen tiene menos saldo del que prometía
                     </Text>
                 </View>
             )}
@@ -711,8 +713,9 @@ export default function SavingsScreen() {
 
                     {totalAtRisk > 0 && (
                         <View style={styles.breakdownRow}>
+                            <IconWarningTriangle color={theme.moneyOut} size={13} />
                             <Text style={styles.breakdownRisk}>
-                                ⚠️ {formatCurrencyShort(totalAtRisk)} en riesgo — alguna cuenta ligada tiene menos saldo del que sus apartados prometen
+                                {formatCurrencyShort(totalAtRisk)} en riesgo — alguna cuenta ligada tiene menos saldo del que sus apartados prometen
                             </Text>
                         </View>
                     )}
@@ -753,9 +756,12 @@ export default function SavingsScreen() {
                                             </Text>
                                             <Text style={styles.accountBalance}>{formatCurrency(acc.earmarkedAmount)}</Text>
                                             {atRisk > 0 && (
-                                                <Text style={styles.accountRisk}>
-                                                    ⚠️ {formatCurrencyShort(atRisk)} en riesgo
-                                                </Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                                    <IconWarningTriangle color={theme.moneyOut} size={11} />
+                                                    <Text style={styles.accountRisk}>
+                                                        {formatCurrencyShort(atRisk)} en riesgo
+                                                    </Text>
+                                                </View>
                                             )}
                                         </View>
                                         <View style={styles.accountActions}>
@@ -763,19 +769,19 @@ export default function SavingsScreen() {
                                                 style={styles.actionBtn}
                                                 onPress={() => setMoveMoneyTarget({ account: acc, mode: 'deposit' })}
                                             >
-                                                <Text style={styles.actionBtnText}>+</Text>
+                                                <IconPlus color={theme.brand} size={15} />
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={styles.actionBtn}
                                                 onPress={() => setMoveMoneyTarget({ account: acc, mode: 'withdraw' })}
                                             >
-                                                <Text style={styles.actionBtnText}>−</Text>
+                                                <IconMinus color={theme.brand} size={15} />
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 onPress={() => handleDeleteAccount(acc)}
                                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                             >
-                                                <Text style={styles.deleteText}>✕</Text>
+                                                <IconClose color={theme.muted} size={13} />
                                             </TouchableOpacity>
                                         </View>
                                     </View>

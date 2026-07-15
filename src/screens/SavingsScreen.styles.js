@@ -174,7 +174,6 @@ export default function createSavingsStyles(theme) {
             fontSize: 10.5,
             color: theme.moneyOut,
             fontWeight: '700',
-            marginTop: 2,
         },
         accountActions: {
             flexDirection: 'row',
@@ -187,17 +186,6 @@ export default function createSavingsStyles(theme) {
             backgroundColor: theme.brandSoft,
             justifyContent: 'center',
             alignItems: 'center',
-        },
-        actionBtnText: {
-            fontSize: FontSize.md,
-            fontWeight: '700',
-            color: theme.brand,
-            lineHeight: 18,
-        },
-        deleteText: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            paddingHorizontal: Spacing.xs,
         },
 
         // Goal card
@@ -230,11 +218,6 @@ export default function createSavingsStyles(theme) {
             fontSize: FontSize.xs,
             color: theme.muted,
             textTransform: 'capitalize',
-        },
-        goalDeleteText: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            paddingLeft: Spacing.sm,
         },
 
         // Progress bar
@@ -520,7 +503,6 @@ export default function createSavingsStyles(theme) {
             backgroundColor: theme.brand,
             borderColor: theme.brand,
         },
-        checkmark: { color: theme.brandOn, fontSize: 13, fontWeight: '700' },
         toggleText: { fontSize: FontSize.md, color: theme.ink, fontWeight: '500' },
         dateRow: { flexDirection: 'row', gap: Spacing.sm },
 

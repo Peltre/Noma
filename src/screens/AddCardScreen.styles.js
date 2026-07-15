@@ -19,7 +19,6 @@ export default function createAddCardStyles(theme) {
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center',
         },
-        backText: { fontSize: FontSize.lg, color: theme.ink, fontWeight: '600' },
         title: { fontSize: FontSize.xl, fontWeight: '800', color: theme.ink, letterSpacing: -0.3 },
 
         previewWrap: {

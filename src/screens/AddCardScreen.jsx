@@ -14,6 +14,7 @@ import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
 import { SAVINGS_COLORS } from '../store/useSavings';
+import { IconChevronLeft } from '../components/Icons';
 
 export default function AddCardScreen() {
     const navigation = useNavigation();
@@ -48,6 +49,16 @@ export default function AddCardScreen() {
 
     const typeIsCredit = cardType === 'credit';
     const canDeleteNow = isEdit && (typeIsCredit ? editCard.currentDebt === 0 : editCard.balance === 0);
+
+    // Live validity for the two day fields — same "show it before
+    // Guardar, not just after" idea as the credit-available hint.
+    // Empty is left alone here (not yet an error mid-typing); the
+    // hard block for empty/out-of-range still happens in
+    // handleConfirm below.
+    const cutoffOutOfRange = cutoffDay !== '' && (parseInt(cutoffDay, 10) < 1 || parseInt(cutoffDay, 10) > 31);
+    const paymentOutOfRange = paymentDay !== '' && (parseInt(paymentDay, 10) < 1 || parseInt(paymentDay, 10) > 31);
+    const sameDayError = !cutoffOutOfRange && !paymentOutOfRange
+        && cutoffDay && paymentDay && parseInt(cutoffDay, 10) === parseInt(paymentDay, 10);
 
     const handleConfirm = async () => {
         if (!name.trim()) {
@@ -137,7 +148,7 @@ export default function AddCardScreen() {
                 {/* Header */}
                 <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                     <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                        <Text style={styles.backText}>←</Text>
+                        <IconChevronLeft color={theme.ink} size={16} />
                     </TouchableOpacity>
                     <Text style={styles.title}>{isEdit ? 'Editar tarjeta' : 'Nueva tarjeta'}</Text>
                 </View>
@@ -217,7 +228,9 @@ export default function AddCardScreen() {
                                         keyboardType="number-pad"
                                         maxLength={2}
                                     />
-                                    <Text style={styles.inputHint}>Día del mes (1–31)</Text>
+                                    <Text style={[styles.inputHint, cutoffOutOfRange && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                        Día del mes (1–31)
+                                    </Text>
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.fieldLabel}>DÍA DE PAGO</Text>
@@ -230,7 +243,9 @@ export default function AddCardScreen() {
                                         keyboardType="number-pad"
                                         maxLength={2}
                                     />
-                                    <Text style={styles.inputHint}>Día del mes (1–31)</Text>
+                                    <Text style={[styles.inputHint, paymentOutOfRange && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                        Día del mes (1–31)
+                                    </Text>
                                 </View>
                             </View>
 
@@ -238,7 +253,7 @@ export default function AddCardScreen() {
                                 available hint below the account pills:
                                 show the problem before "Guardar", not
                                 only after. */}
-                            {cutoffDay && paymentDay && parseInt(cutoffDay, 10) === parseInt(paymentDay, 10) && (
+                            {sameDayError && (
                                 <Text style={[styles.inputHint, { color: theme.moneyOut, fontWeight: '700' }]}>
                                     El día de corte y el día de pago no pueden ser el mismo
                                 </Text>

@@ -14,6 +14,7 @@ import { Spacing, getCategoryLabel } from '../constants';
 import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
+import { IconArrowDown, IconArrowUp, IconSwap, IconArrowRight, IconRepeat, IconCash } from '../components/Icons';
 
 const FILTERS = [
     { key: 'all', label: 'Todos' },
@@ -36,15 +37,15 @@ const FILTERS = [
 // the same moneyOut accent PendingFundCard already gives an MSI due
 // before it's paid.
 function getTypeConfig(theme, type, category) {
-    if (category === 'msi') return { glyph: 'M', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Mensualidad' };
-    if (category === 'card_payment') return { glyph: '$', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Pago de tarjeta' };
-    if (type === 'income') return { glyph: '↓', bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
-    if (type === 'expense') return { glyph: '↑', bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
-    if (type === 'transfer') return { glyph: '⇄', bg: theme.brandSoft, fg: theme.brand, label: 'Traspaso' };
-    return { glyph: '→', bg: theme.border, fg: theme.muted, label: 'Retiro' };
+    if (category === 'msi') return { Icon: IconRepeat, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Mensualidad' };
+    if (category === 'card_payment') return { Icon: IconCash, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Pago de tarjeta' };
+    if (type === 'income') return { Icon: IconArrowDown, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
+    if (type === 'expense') return { Icon: IconArrowUp, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
+    if (type === 'transfer') return { Icon: IconSwap, bg: theme.brandSoft, fg: theme.brand, label: 'Traspaso' };
+    return { Icon: IconArrowRight, bg: theme.border, fg: theme.muted, label: 'Retiro' };
 }
 
-// Small colored icon — glyph in colored box, no emoji
+// Small colored icon box — no emoji, no text glyph
 function TxnIcon({ type, category, theme, sheet, size = 36 }) {
     const cfg = getTypeConfig(theme, type, category);
     return (
@@ -52,7 +53,7 @@ function TxnIcon({ type, category, theme, sheet, size = 36 }) {
             sheet.txnIcon,
             { width: size, height: size, borderRadius: size * 0.3, backgroundColor: cfg.bg },
         ]}>
-            <Text style={[sheet.txnGlyph, { color: cfg.fg }]}>{cfg.glyph}</Text>
+            <cfg.Icon color={cfg.fg} size={size * 0.44} />
         </View>
     );
 }

@@ -30,11 +30,6 @@ export default function createScheduledFundsStyles(theme) {
             justifyContent: 'center',
             alignItems: 'center',
         },
-        backText: {
-            fontSize: FontSize.lg,
-            color: theme.ink,
-            fontWeight: '600',
-        },
         title: {
             fontSize: FontSize.xl,
             fontWeight: '700',

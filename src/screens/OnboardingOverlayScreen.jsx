@@ -12,12 +12,14 @@ import {
     Modal,
 } from 'react-native';
 import { BlurView } from "expo-blur";
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
 import DecimalInput from "../components/DecimalInput";
 import { ACCOUNT_LABELS } from "../constants";
 import { SAVINGS_COLORS } from "../store/useSavings";
+import {
+    IconSparkle, IconWallet, IconPlus, IconDocument, IconCard, IconCash, IconChevronLeft,
+} from '../components/Icons';
 import createOnboardingStyles from './OnboardingOverlay.styles';
 
 const TOTAL_STEPS = 3;
@@ -30,59 +32,6 @@ function positiveFloat(str) {
     return Math.max(0, parseFloat(str) || 0);
 }
 
-// Step icons — same stroke language as the rest of the app, no emojis.
-function IconSparkle({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke={color} strokeWidth={1.5} strokeLinejoin="round" />
-        </Svg>
-    );
-}
-function IconWallet({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 22 22" fill="none">
-            <Circle cx="11" cy="11" r="7.5" stroke={color} strokeWidth={1.6} />
-            <Path
-                d="M11 6.5v9M8.4 8.7c0-1.1 1.2-1.9 2.6-1.9s2.6.8 2.6 1.7-1.1 1.4-2.6 1.6-2.6.6-2.6 1.7 1.2 1.8 2.6 1.8 2.6-.7 2.6-1.8"
-                stroke={color} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"
-            />
-        </Svg>
-    );
-}
-function IconPlus({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
-            <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={1.6} />
-            <Path d="M12 8v8M8 12h8" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
-        </Svg>
-    );
-}
-function IconDocument({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 22 22" fill="none">
-            <Rect x="3" y="3" width="16" height="16" rx="2.5" stroke={color} strokeWidth={1.6} />
-            <Path d="M7 8h8M7 11.5h8M7 15h5" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-        </Svg>
-    );
-}
-function IconCard({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 22 22" fill="none">
-            <Rect x="1" y="5" width="20" height="14" rx="2" stroke={color} strokeWidth={1.6} />
-            <Path d="M1 9h20" stroke={color} strokeWidth={1.6} />
-            <Path d="M5 14h3" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-        </Svg>
-    );
-}
-function IconCash({ color }) {
-    return (
-        <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
-            <Rect x="2" y="6" width="20" height="12" rx="2" stroke={color} strokeWidth={1.6} />
-            <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={1.6} />
-            <Path d="M5 9v.01M19 15v.01" stroke={color} strokeWidth={2} strokeLinecap="round" />
-        </Svg>
-    );
-}
 // Tour tips shown in step 2, 1 per slide
 const TOUR_TIPS = [
     {
@@ -205,7 +154,7 @@ export default function Onboarding({ visible }) {
             case 1:
                 return (
                     <>
-                        <View style={styles.iconBadge}><IconSparkle color={theme.brand} /></View>
+                        <View style={styles.iconBadge}><IconSparkle color={theme.brand} size={30} /></View>
                         <Text style={styles.title}>¡Bienvenido a Noma!</Text>
                         <Text style={styles.subtitle}>
                             Tu app para llevar el control de tu dinero de forma simple
@@ -239,7 +188,7 @@ export default function Onboarding({ visible }) {
                 const tip = TOUR_TIPS[tourSlide];
                 return (
                     <>
-                        <View style={styles.iconBadge}><tip.Icon color={theme.brand} /></View>
+                        <View style={styles.iconBadge}><tip.Icon color={theme.brand} size={30} /></View>
                         <Text style={styles.title}>{tip.title}</Text>
                         <Text style={styles.subtitle}>{tip.subtitle}</Text>
 
@@ -258,7 +207,7 @@ export default function Onboarding({ visible }) {
 
                         <View style={styles.bottomRow}>
                             <TouchableOpacity style={styles.backBtn} onPress={prevTourSlide}>
-                                <Text style={styles.backBtnText}>←</Text>
+                                <IconChevronLeft color={theme.ink} size={16} />
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.nextBtn} onPress={nextTourSlide}>
                                 <Text style={styles.nextBtnText}>
@@ -273,7 +222,7 @@ export default function Onboarding({ visible }) {
             case 3:
                 return (
                     <ScrollView showsVerticalScrollIndicator={false}>
-                        <View style={styles.iconBadge}><IconCash color={theme.brand} /></View>
+                        <View style={styles.iconBadge}><IconCash color={theme.brand} size={30} /></View>
                         <Text style={styles.title}>Tu dinero actual</Text>
                         <Text style={styles.subtitle}>
                             Ingresa cuanto dinero tienes en este momento para empezar con tu balance real
@@ -301,7 +250,7 @@ export default function Onboarding({ visible }) {
                         {debitCards.map((card, index) => (
                             <View style={styles.accountCard} key={card.id}>
                                 <View style={styles.accountCardHeader}>
-                                    <IconCard color={theme.muted} />
+                                    <IconCard color={theme.muted} size={30} />
                                     <Text style={styles.accountCardTitle}>
                                         Tarjeta {index + 1}
                                     </Text>
@@ -336,7 +285,7 @@ export default function Onboarding({ visible }) {
 
                         <View style={styles.bottomRow}>
                             <TouchableOpacity style={styles.backBtn} onPress={() => setStep(2)}>
-                                <Text style={styles.backBtnText}>←</Text>
+                                <IconChevronLeft color={theme.ink} size={16} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.nextBtn}

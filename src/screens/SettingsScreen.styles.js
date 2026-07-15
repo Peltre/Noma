@@ -25,11 +25,6 @@ export default function createSettingsStyles(theme) {
             justifyContent: 'center',
             alignItems: 'center',
         },
-        backText: {
-            fontSize: FontSize.lg,
-            color: theme.ink,
-            fontWeight: '600',
-        },
         title: {
             fontSize: 28,
             fontWeight: '700',

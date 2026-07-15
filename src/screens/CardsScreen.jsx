@@ -18,18 +18,8 @@ import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace from '../components/CardFace';
 import FocusStack from '../components/FocusStack';
-import Svg, { Rect, Path, Circle } from 'react-native-svg';
-
-// Small credit card icon (SVG) — used only for the empty state
-function CardIcon({ color = 'rgba(255,255,255,0.6)' }) {
-    return (
-        <Svg width={20} height={16} viewBox="0 0 20 16" fill="none">
-            <Rect x="0.75" y="0.75" width="18.5" height="14.5" rx="1.75" stroke={color} strokeWidth={1.5} />
-            <Path d="M0 5h20" stroke={color} strokeWidth={1.5} />
-            <Rect x="2" y="9" width="4" height="2.5" rx="0.5" fill={color} />
-        </Svg>
-    );
-}
+import Svg, { Circle } from 'react-native-svg';
+import { IconCard, IconPencil, IconCash, IconTrash, IconChevronDown } from '../components/Icons';
 
 // Tiny utilization ring for the Crédito deck's header — how much of
 // the combined limit across all credit cards is currently used up.
@@ -344,20 +334,20 @@ function QuickActionsPopover({ card, position, onClose, onEdit, onPay, onDelete 
             <TouchableOpacity style={styles.popoverBackdrop} activeOpacity={1} onPress={onClose} />
             <View style={[styles.popover, { top, left }]}>
                 <TouchableOpacity style={styles.popoverBtn} onPress={onEdit}>
-                    <View style={styles.popoverIconWrap}><Text style={styles.popoverIcon}>✏️</Text></View>
+                    <View style={styles.popoverIconWrap}><IconPencil color={theme.ink} size={18} /></View>
                     <Text style={styles.popoverLabel}>Editar</Text>
                 </TouchableOpacity>
                 {showPay && (
                     <TouchableOpacity style={styles.popoverBtn} onPress={onPay}>
                         <View style={[styles.popoverIconWrap, { backgroundColor: theme.moneyInSoft }]}>
-                            <Text style={styles.popoverIcon}>💵</Text>
+                            <IconCash color={theme.moneyIn} size={18} />
                         </View>
                         <Text style={styles.popoverLabel}>Pagar</Text>
                     </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.popoverBtn} onPress={onDelete}>
                     <View style={[styles.popoverIconWrap, { backgroundColor: theme.moneyOutSoft }]}>
-                        <Text style={styles.popoverIcon}>🗑️</Text>
+                        <IconTrash color={theme.moneyOut} size={17} />
                     </View>
                     <Text style={[styles.popoverLabel, { color: theme.moneyOut }]}>Eliminar</Text>
                 </TouchableOpacity>
@@ -427,7 +417,9 @@ function DeckSection({
                 <View style={styles.deckHeadRight}>
                     {utilPct !== undefined && <MiniRing pct={utilPct} theme={theme} />}
                     <Text style={styles.deckTotal}>{total}</Text>
-                    <Text style={[styles.chev, collapsed && styles.chevCollapsed]}>⌄</Text>
+                    <View style={collapsed && styles.chevCollapsed}>
+                        <IconChevronDown color={theme.muted} size={13} />
+                    </View>
                 </View>
             </TouchableOpacity>
             {!collapsed && (
@@ -492,7 +484,7 @@ export default function CardsScreen() {
                 {!hasAnyCards ? (
                     <View style={styles.emptyState}>
                         <View style={styles.emptyIconWrap}>
-                            <CardIcon color={theme.muted} />
+                            <IconCard color={theme.muted} size={20} />
                         </View>
                         <Text style={styles.emptyTitle}>Sin tarjetas</Text>
                         <Text style={styles.emptySub}>

@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrencyShort } from '../utils';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
+import { IconRepeat, IconArrowDown } from './Icons';
 
 export default function PendingFundCard({ fund, status, onPress, theme }) {
     const isOverdue = status === 'overdue';
@@ -24,6 +25,10 @@ export default function PendingFundCard({ fund, status, onPress, theme }) {
         ? accentColor
         : (isMSI ? theme.moneyOutSoft : theme.moneyInSoft);
     const iconColor = isOverdue ? theme.brandOn : accentColor;
+    // Same repeat/arrow-down mapping used for these once they're
+    // actually paid (see HomeScreen's getTxnVisual) — so a due MSI
+    // and a paid MSI always read as the same icon.
+    const Icon = isMSI ? IconRepeat : IconArrowDown;
 
     return (
         <TouchableOpacity
@@ -33,9 +38,7 @@ export default function PendingFundCard({ fund, status, onPress, theme }) {
         >
             {/* Colored icon box */}
             <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
-                <Text style={[styles.iconGlyph, { color: iconColor }]}>
-                    {isMSI ? 'M' : '↓'}
-                </Text>
+                <Icon color={iconColor} size={16} />
             </View>
 
             {/* Info */}
@@ -84,10 +87,6 @@ function createStyles(theme) {
             justifyContent: 'center',
             alignItems: 'center',
             flexShrink: 0,
-        },
-        iconGlyph: {
-            fontSize: 15,
-            fontWeight: '900',
         },
         info: { flex: 1 },
         titleRow: {

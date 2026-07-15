@@ -37,7 +37,6 @@ export default function createTransactionStyles(theme) {
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center',
         },
-        backText: { fontSize: FontSize.lg, color: theme.ink, fontWeight: '600' },
         heroTitle: {
             fontSize: FontSize.md, fontWeight: '700',
             color: theme.muted,
@@ -189,7 +188,6 @@ export default function createTransactionStyles(theme) {
             justifyContent: 'center', alignItems: 'center',
         },
         checkboxOn: { backgroundColor: theme.ink, borderColor: theme.ink },
-        checkmark: { color: theme.bg, fontSize: 13, fontWeight: '700' },
 
         // Confirm button
         confirmBtn: {

@@ -225,11 +225,10 @@ export function useSavings(accounts = []) {
     };
 
     // ── Goals ──
-    const addSavingsGoal = async ({ name, targetAmount, emoji, deadline = null }) => {
+    const addSavingsGoal = async ({ name, targetAmount, deadline = null }) => {
         const newGoal = {
             id: Date.now().toString(),
             name,
-            emoji: emoji || '🎯',
             targetAmount: round2(targetAmount),
             savedAmount: 0,
             deadline,

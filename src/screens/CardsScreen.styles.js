@@ -77,7 +77,6 @@ export default function createCardsStyles(theme) {
         },
         deckHeadRight: { flexDirection: 'row', alignItems: 'center', gap: 9 },
         deckTotal: { fontSize: FontSize.sm, fontWeight: '800', color: theme.ink },
-        chev: { color: theme.muted, fontSize: 13 },
         chevCollapsed: { transform: [{ rotate: '-90deg' }] },
         deckStackWrap: { paddingBottom: Spacing.sm },
 
@@ -97,7 +96,6 @@ export default function createCardsStyles(theme) {
             backgroundColor: theme.border,
             justifyContent: 'center', alignItems: 'center', marginBottom: 4,
         },
-        popoverIcon: { fontSize: 14 },
         popoverLabel: { fontSize: 10, fontWeight: '700', color: theme.ink },
 
         // Type picker (Débito / Crédito), shown before AddCardScreen

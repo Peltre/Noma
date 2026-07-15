@@ -196,11 +196,6 @@ export default function createOnboardingStyles(theme) {
             justifyContent: 'center',
             alignItems: 'center',
         },
-        backBtnText: {
-            fontSize: FontSize.lg,
-            color: theme.ink,
-            fontWeight: '600',
-        },
         nextBtn: {
             flex: 1,
             height: 52,

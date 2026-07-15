@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import Svg, { Defs, Pattern, Path, Circle, Rect } from 'react-native-svg';
 import { FontSize, Spacing, Radius } from '../constants';
+import { IconLock } from './Icons';
 
 // Shared with FocusStack.jsx so the stack's slot math always matches
 // whatever height the "large" card face actually renders at.
@@ -118,14 +119,14 @@ export default function CardFace({
     // a peeking (non-focused) card, where there's only ~44px of the
     // card actually visible. Omit it and you get the normal position.
     headerOffsetY,
-    // String, optional (e.g. "🔒 $400"). Shows a small pill in the
-    // card's bottom-right corner — the one spot its layout leaves
-    // empty (name+badge own the top row, value+progress sit at the
-    // bottom-LEFT). Used on débito/efectivo cards that have at least
-    // one apartado linked to them, so "part of this balance is
-    // already spoken for" is visible without opening the card's
-    // detail sheet. Omit it and nothing renders — every other caller
-    // is unaffected.
+    // String, optional (e.g. "$400" or "$400 ·2"). Shows a small pill
+    // in the card's bottom-right corner — the one spot its layout
+    // leaves empty (name+badge own the top row, value+progress sit at
+    // the bottom-LEFT) — with a lock icon in front of it. Used on
+    // débito/efectivo cards that have at least one apartado linked to
+    // them, so "part of this balance is already spoken for" is
+    // visible without opening the card's detail sheet. Omit it and
+    // nothing renders — every other caller is unaffected.
     savingsBadge,
 }) {
     const isCompact = variant === 'grid';
@@ -178,6 +179,7 @@ export default function CardFace({
 
             {savingsBadge && (
                 <View style={styles.savingsBadge}>
+                    <IconLock color="#FFFFFF" size={9} />
                     <Text style={styles.savingsBadgeText} numberOfLines={1}>{savingsBadge}</Text>
                 </View>
             )}
@@ -200,6 +202,9 @@ const styles = StyleSheet.create({
         borderRadius: Radius.full,
         maxWidth: '48%',
         zIndex: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     savingsBadgeText: {
         fontSize: 10, fontWeight: '700', color: '#FFFFFF',

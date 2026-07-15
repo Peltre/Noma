@@ -117,7 +117,7 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
                 const linkedApartados = isCredit ? [] : savingsAccounts.filter(sa => sa.linkedAccountId === card.id);
                 const earmarkedTotal = linkedApartados.reduce((s, sa) => s + sa.earmarkedAmount, 0);
                 const savingsBadge = earmarkedTotal > 0
-                    ? `🔒 ${formatCurrencyShort(earmarkedTotal)}${linkedApartados.length > 1 ? ` ·${linkedApartados.length}` : ''}`
+                    ? `${formatCurrencyShort(earmarkedTotal)}${linkedApartados.length > 1 ? ` ·${linkedApartados.length}` : ''}`
                     : undefined;
 
                 return (

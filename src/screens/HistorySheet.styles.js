@@ -30,10 +30,6 @@ export default function createSheetStyles(theme) {
             alignItems: 'center',
             marginBottom: Spacing.sm,
         },
-        txnGlyph: {
-            fontSize: 22,
-            fontWeight: '800',
-        },
         typeLabel: {
             fontSize: FontSize.xs,
             fontWeight: '800',

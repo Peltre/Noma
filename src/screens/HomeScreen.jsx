@@ -13,6 +13,7 @@ import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
 import NightSkyArt from '../components/NightSkyArt';
+import { IconArrowDown, IconArrowUp, IconSwap, IconArrowRight, IconRepeat, IconCash } from '../components/Icons';
 
 // Which color token each account type gets in the allocation bar.
 // A debit account can carry its own `color` (set from the Tarjetas
@@ -47,15 +48,15 @@ function getAccountColor(theme, account) {
 // money leaves a real account), but neither one is a plain retiro
 // the way pulling cash from a cajero is. Both get the same moneyOut
 // accent PendingFundCard already uses for an MSI due before it's
-// paid, and their own glyph each so they don't blend into the
+// paid, and their own icon each so they don't blend into the
 // generic withdrawal icon or into each other.
 function getTxnVisual(theme, type, category) {
-    if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: 'M' };
-    if (category === 'card_payment') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: '$' };
-    if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, glyph: '↓' };
-    if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, glyph: '↑' };
-    if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, glyph: '⇄' };
-    return { bg: theme.border, color: theme.muted, glyph: '→' };
+    if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconRepeat };
+    if (category === 'card_payment') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCash };
+    if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconArrowDown };
+    if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconArrowUp };
+    if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, Icon: IconSwap };
+    return { bg: theme.border, color: theme.muted, Icon: IconArrowRight };
 }
 
 // Confirm-and-pay sheet for one MSI installment.
@@ -405,9 +406,7 @@ export default function HomeScreen() {
                                         ]}
                                     >
                                         <View style={[styles.txnIconWrap, { backgroundColor: visual.bg }]}>
-                                            <Text style={[styles.txnIconGlyph, { color: visual.color }]}>
-                                                {visual.glyph}
-                                            </Text>
+                                            <visual.Icon color={visual.color} size={16} />
                                         </View>
                                         <View style={styles.txnInfo}>
                                             <Text style={styles.txnName} numberOfLines={1}>

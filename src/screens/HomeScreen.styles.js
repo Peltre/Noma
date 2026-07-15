@@ -251,10 +251,6 @@ export default function createHomeStyles(theme) {
             alignItems: 'center',
             flexShrink: 0,
         },
-        txnIconGlyph: {
-            fontSize: 15,
-            fontWeight: '800',
-        },
 
         txnInfo: { flex: 1 },
         txnName: {

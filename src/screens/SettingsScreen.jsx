@@ -10,57 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import Svg, { Circle, Path } from 'react-native-svg';
 import createSettingsStyles from './SettingsScreen.styles';
 
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
-
-// Small line icons, same visual language as the tab bar (stroke-only,
-// rounded caps) — no emojis.
-function IconUser({ color }) {
-    return (
-        <Svg width={17} height={17} viewBox="0 0 22 22" fill="none">
-            <Circle cx="11" cy="8" r="3.4" stroke={color} strokeWidth={1.6} />
-            <Path
-                d="M4.5 19c0.9-4.2 3.9-6.4 6.5-6.4s5.6 2.2 6.5 6.4"
-                stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"
-            />
-        </Svg>
-    );
-}
-
-function IconCurrency({ color }) {
-    return (
-        <Svg width={17} height={17} viewBox="0 0 22 22" fill="none">
-            <Circle cx="11" cy="11" r="7.5" stroke={color} strokeWidth={1.6} />
-            <Path
-                d="M11 6.5v9M8.4 8.7c0-1.1 1.2-1.9 2.6-1.9s2.6.8 2.6 1.7-1.1 1.4-2.6 1.6-2.6.6-2.6 1.7 1.2 1.8 2.6 1.8 2.6-.7 2.6-1.8"
-                stroke={color} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"
-            />
-        </Svg>
-    );
-}
-
-function IconTrash({ color }) {
-    return (
-        <Svg width={17} height={17} viewBox="0 0 22 22" fill="none">
-            <Path
-                d="M4 6h14M8.3 6V4.3a1 1 0 011-1h3.4a1 1 0 011 1V6M6.2 6l.8 12.2a1.6 1.6 0 001.6 1.5h4.8a1.6 1.6 0 001.6-1.5L16 6"
-                stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"
-            />
-            <Path d="M9.4 9.6v6M12.6 9.6v6" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
-function IconCheck({ color, size = 12 }) {
-    return (
-        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <Path d="M5 13l4.5 4.5L19 7" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-    );
-}
+import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft } from '../components/Icons';
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
@@ -113,7 +67,7 @@ export default function SettingsScreen() {
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>
                         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                            <Text style={styles.backText}>←</Text>
+                            <IconChevronLeft color={theme.ink} size={16} />
                         </TouchableOpacity>
                         <Text style={styles.title}>Configuración</Text>
                     </View>

@@ -36,6 +36,7 @@ import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
+import { IconChevronLeft, IconCheck } from '../components/Icons';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
@@ -178,7 +179,7 @@ export default function TransactionScreen() {
                 {/* Back + title */}
                 <View style={styles.heroTop}>
                     <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                        <Text style={styles.backText}>←</Text>
+                        <IconChevronLeft color={theme.ink} size={16} />
                     </TouchableOpacity>
                     <Text style={styles.heroTitle}>Nuevo movimiento</Text>
                     <View style={{ width: 36 }} />
@@ -332,7 +333,7 @@ export default function TransactionScreen() {
                                 onPress={() => { setUseCredit(!useCredit); setIsMSI(false); }}
                             >
                                 <View style={[styles.checkbox, useCredit && styles.checkboxOn]}>
-                                    {useCredit && <Text style={styles.checkmark}>✓</Text>}
+                                    {useCredit && <IconCheck color={theme.bg} size={11} />}
                                 </View>
                                 <Text style={styles.toggleText}>Pagar con tarjeta de crédito</Text>
                             </TouchableOpacity>
@@ -396,7 +397,7 @@ export default function TransactionScreen() {
                             onPress={() => setIsMSI(!isMSI)}
                         >
                             <View style={[styles.checkbox, isMSI && { backgroundColor: theme.brand, borderColor: theme.brand }]}>
-                                {isMSI && <Text style={styles.checkmark}>✓</Text>}
+                                {isMSI && <IconCheck color={theme.bg} size={11} />}
                             </View>
                             <Text style={styles.toggleText}>Meses sin intereses (MSI)</Text>
                         </TouchableOpacity>

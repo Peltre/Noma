@@ -5,106 +5,13 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../store/useTheme';
 import { Shadow } from '../constants';
+import { IconHome, IconHistory, IconSavings, IconCards, IconPlus } from '../components/Icons';
 
 const BASE_HEIGHT = 48;
 const PEAK_EXTRA = 8;
-const TAB_ICON_SIZE = 21;
-
-// ── Icons ───────────────────────────────────────────────────────
-// Each icon is a single component that switches between an outline
-// (stroke) rendering and a filled (solid) one. Filled versions reuse
-// the exact same silhouettes so notches (like the home door) fall
-// out "for free". Icons that have separate detail strokes (the lines
-// on the history/card icons) draw those details in `bgColor` — the
-// tab bar's own background — so they read as light cutouts on the
-// solid shape instead of just disappearing.
-
-function IconHome({ focused, color, bgColor }) {
-    const d = "M2 9.5L11 2l9 7.5V20a1 1 0 01-1 1h-5v-5H9v5H3a1 1 0 01-1-1V9.5z";
-    return (
-        <Svg width={TAB_ICON_SIZE} height={TAB_ICON_SIZE} viewBox="0 0 22 22" fill="none">
-            {focused
-                ? <Path d={d} fill={color} />
-                : <Path d={d} stroke={color} strokeWidth={1.6} strokeLinejoin="round" />}
-        </Svg>
-    );
-}
-
-function IconHistory({ focused, color, bgColor }) {
-    return (
-        <Svg width={TAB_ICON_SIZE} height={TAB_ICON_SIZE} viewBox="0 0 22 22" fill="none">
-            {focused ? (
-                <>
-                    <Rect x="3" y="3" width="16" height="16" rx="4" fill={color} />
-                    <Path d="M7 8h8M7 11.5h8M7 15h5" stroke={bgColor} strokeWidth={1.6} strokeLinecap="round" />
-                </>
-            ) : (
-                <>
-                    <Rect x="3" y="3" width="16" height="16" rx="2.5" stroke={color} strokeWidth={1.6} />
-                    <Path d="M7 8h8M7 11.5h8M7 15h5" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-                </>
-            )}
-        </Svg>
-    );
-}
-
-function IconSavings({ focused, color, bgColor }) {
-    return (
-        <Svg width={TAB_ICON_SIZE} height={TAB_ICON_SIZE} viewBox="0 0 22 22" fill="none">
-            {focused
-                ? <Circle cx="11" cy="11" r="5" fill={color} />
-                : <Path d="M6 11a5 5 0 1010 0A5 5 0 006 11z" stroke={color} strokeWidth={1.6} />}
-            <Path d="M6 11C6 7 3.5 4 1 4" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-            <Path d="M11 4V2" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-            <Path d="M16 19l1.5 1.5" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
-function IconCards({ focused, color, bgColor }) {
-    return (
-        <Svg width={TAB_ICON_SIZE} height={TAB_ICON_SIZE} viewBox="0 0 22 22" fill="none">
-            {focused ? (
-                <>
-                    <Rect x="1" y="5" width="20" height="14" rx="3" fill={color} />
-                    <Rect x="1" y="8" width="20" height="2.4" fill={bgColor} />
-                    <Path d="M5 14h3" stroke={bgColor} strokeWidth={1.6} strokeLinecap="round" />
-                </>
-            ) : (
-                <>
-                    <Rect x="1" y="5" width="20" height="14" rx="2" stroke={color} strokeWidth={1.6} />
-                    <Path d="M1 9h20" stroke={color} strokeWidth={1.6} />
-                    <Path d="M5 14h3" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
-                </>
-            )}
-        </Svg>
-    );
-}
-
-export function IconSettings({ focused, color, bgColor }) {
-    return (
-        <Svg width={19} height={19} viewBox="0 0 22 22" fill="none">
-            {focused
-                ? <Circle cx="11" cy="11" r="3.6" fill={color} />
-                : <Circle cx="11" cy="11" r="3" stroke={color} strokeWidth={1.6} />}
-            <Path
-                d="M11 2v2M11 18v2M2 11h2M18 11h2M4.22 4.22l1.42 1.42M16.36 16.36l1.42 1.42M4.22 17.78l1.42-1.42M16.36 5.64l1.42-1.42"
-                stroke={color} strokeWidth={1.6} strokeLinecap="round"
-            />
-        </Svg>
-    );
-}
-
-function IconPlus({ color, size = 26 }) {
-    return (
-        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth={2.4} strokeLinecap="round" />
-        </Svg>
-    );
-}
 
 // Fixed regardless of theme — same reasoning CardFace.jsx already
 // uses for its own colors: this is a signature action, not a themed
@@ -212,7 +119,7 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
                         activeOpacity={0.85}
                         onPress={() => navigation.navigate('HomeTab', { screen: 'AddTransaction' })}
                     >
-                        <IconPlus color={FAB_ON} />
+                        <IconPlus color={FAB_ON} size={26} />
                     </TouchableOpacity>
                 </View>
 
