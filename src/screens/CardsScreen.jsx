@@ -19,7 +19,7 @@ import DecimalInput from '../components/DecimalInput';
 import CardFace from '../components/CardFace';
 import FocusStack from '../components/FocusStack';
 import Svg, { Circle } from 'react-native-svg';
-import { IconCard, IconPencil, IconCash, IconTrash, IconChevronDown } from '../components/Icons';
+import { IconCard, IconPencil, IconCash, IconTrash, IconChevronDown, IconCardAdd } from '../components/Icons';
 
 // Tiny utilization ring for the Crédito deck's header — how much of
 // the combined limit across all credit cards is currently used up.
@@ -476,9 +476,15 @@ export default function CardsScreen() {
                 {/* ── Header ── */}
                 <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                     <Text style={styles.title}>Tarjetas</Text>
-                    <TouchableOpacity style={styles.addBtn} onPress={() => setShowTypePicker(true)}>
-                        <Text style={styles.addBtnText}>+ Nueva</Text>
-                    </TouchableOpacity>
+                    {/* Hidden when there's nothing yet — the empty state
+                        below already has its own big centered "+ Agregar
+                        tarjeta" button, so this one would just be a
+                        second entry point to the exact same action. */}
+                    {hasAnyCards && (
+                        <TouchableOpacity style={styles.addBtn} onPress={() => setShowTypePicker(true)}>
+                            <IconCardAdd color={theme.brandOn} bgColor={theme.brand} size={20} />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {!hasAnyCards ? (

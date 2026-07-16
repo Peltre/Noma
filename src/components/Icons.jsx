@@ -299,6 +299,25 @@ export function IconCard({ color, size = 20 }) {
     );
 }
 
+// One piece, not "IconPlus next to IconCard" — a plus badge only ever
+// lines up perfectly against the card behind it if they're drawn as a
+// single shape instead of two components someone has to position
+// with gap/margin by eye. `bgColor` (the button's own fill) punches a
+// clean hole behind the badge so the card's stripe line doesn't cut
+// through it.
+export function IconCardAdd({ color, bgColor, size = 20 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Rect x="1" y="7" width="18" height="13" rx="2.4" stroke={color} strokeWidth={SW} />
+            <Path d="M1 11.3h18" stroke={color} strokeWidth={SW} />
+            <Path d="M4.5 16.2h4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+            <Circle cx="18" cy="7" r="5.4" fill={bgColor} />
+            <Circle cx="18" cy="7" r="5.4" stroke={color} strokeWidth={SW} fill="none" />
+            <Path d="M18 4.5v5M15.5 7h5" stroke={color} strokeWidth={SW + 0.3} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
 export function IconDocument({ color, size = 20 }) {
     return (
         <Svg {...vb(size)}>

@@ -19,11 +19,11 @@ export default function createCardsStyles(theme) {
         },
         title: { fontSize: FontSize.xxl, fontWeight: '900', color: theme.ink, letterSpacing: -1 },
         addBtn: {
-            paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+            width: 40, height: 40,
             borderRadius: Radius.full,
-            backgroundColor: theme.ink,
+            backgroundColor: theme.brand,
+            justifyContent: 'center', alignItems: 'center',
         },
-        addBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.bg },
 
         // Empty state (no cards at all)
         emptyState: {
