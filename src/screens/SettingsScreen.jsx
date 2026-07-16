@@ -131,8 +131,15 @@ export default function SettingsScreen() {
                                     onPress={() => setTheme(name)}
                                     activeOpacity={0.7}
                                 >
-                                    <View style={[styles.themeSwatch, { backgroundColor: t.bg, borderColor: t.border }]}>
-                                        <View style={[styles.themeSwatchDot, { backgroundColor: t.brand }]} />
+                                    <View style={[styles.themeSwatch, { borderColor: t.border }]}>
+                                        <View style={styles.themeSwatchGrid}>
+                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.bg }]} />
+                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.surface }]} />
+                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.brand }]} />
+                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.bg }]}>
+                                                <View style={[styles.themeSwatchTileFill, { backgroundColor: t.brandSoft }]} />
+                                            </View>
+                                        </View>
                                     </View>
                                     <View style={styles.fieldInfo}>
                                         <Text style={styles.themeName}>{t.label}</Text>

@@ -109,18 +109,31 @@ export default function createSettingsStyles(theme) {
             borderBottomColor: theme.border,
             gap: Spacing.md,
         },
+        // 2x2 mosaic: bg, surface, brand, and a soft/lighter repeat of
+        // brand — savings' blue used to sit in that last spot, but it
+        // isn't one of the theme's main colors, it just clashed. The
+        // soft tile needs its own solid backing (`bg`) underneath the
+        // translucent `brandSoft` fill, or the rgba would composite
+        // against whatever's rendered behind the swatch instead of
+        // that theme's own background.
         themeSwatch: {
             width: 40,
             height: 40,
             borderRadius: Radius.sm,
             borderWidth: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
+            overflow: 'hidden',
         },
-        themeSwatchDot: {
-            width: 16,
-            height: 16,
-            borderRadius: 8,
+        themeSwatchGrid: {
+            flex: 1,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+        },
+        themeSwatchTile: {
+            width: '50%',
+            height: '50%',
+        },
+        themeSwatchTileFill: {
+            ...StyleSheet.absoluteFillObject,
         },
         themeName: {
             fontSize: FontSize.md,
