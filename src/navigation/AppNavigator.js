@@ -9,6 +9,7 @@ import CardsScreen from "../screens/CardsScreen";
 import AddCardScreen from "../screens/AddCardScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import ScheduledFundsScreen from "../screens/ScheduledFundsScreen";
+import AddScheduledFundScreen from "../screens/AddScheduledFundScreen";
 import SavingsScreen from "../screens/SavingsScreen";
 import CurvedTabBar from './CurvedTabBar';
 
@@ -23,6 +24,7 @@ function HomeStack() {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="AddTransaction" component={TransactionScreen} />
       <Stack.Screen name="ScheduledFunds" component={ScheduledFundsScreen} />
+      <Stack.Screen name="AddScheduledFund" component={AddScheduledFundScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
@@ -46,7 +48,7 @@ function CardsStack() {
 // stack-inside-a-tab works), floating its own "+" on top of screens
 // that don't expect it — AddTransaction most confusingly of all,
 // since it's already the screen you'd reach by tapping that same "+".
-const FULLSCREEN_ROUTES = ['AddTransaction', 'ScheduledFunds', 'Settings', 'AddCard'];
+const FULLSCREEN_ROUTES = ['AddTransaction', 'ScheduledFunds', 'AddScheduledFund', 'Settings', 'AddCard'];
 
 // Reads which screen is actually focused *inside* a tab's nested
 // stack (not just which tab is active) and returns the tabBarStyle

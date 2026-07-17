@@ -293,52 +293,56 @@ export default function HomeScreen() {
                     </View>
                 )}
 
-                {/* MSI pending */}
-                {pendingMSI.length > 0 && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Cargos MSI</Text>
-                        </View>
-                        {pendingMSI.map(fund => (
-                            <PendingFundCard
-                                key={fund.id}
-                                fund={fund}
-                                status={getFundStatus(fund)}
-                                theme={theme}
-                                onPress={() => setPayingMSI(fund)}
-                            />
-                        ))}
+                {/* Fondos programados / mensualidades — this section
+                    always renders, even with nothing due soon right
+                    now, so there's a direct way into the full list.
+                    Before this, the only path in was a shortcut
+                    buried inside Nuevo Movimiento's "Otro tipo" sheet
+                    — fine as a secondary way to get there, not as
+                    the only one. */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Fondos programados</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('ScheduledFunds')}>
+                            <Text style={styles.sectionLink}>Ver todos</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
-
-                {/* Income pending */}
-                {pendingIncome.length > 0 && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Por cobrar</Text>
-                        </View>
-                        {pendingIncome.map(fund => (
-                            <PendingFundCard
-                                key={fund.id}
-                                fund={fund}
-                                status={getFundStatus(fund)}
-                                theme={theme}
-                                onPress={() => {
-                                    navigation.navigate('AddTransaction', {
-                                        prefill: {
-                                            type: 'income',
-                                            amount: fund.amount.toString(),
-                                            reason: fund.name,
-                                            category: 'salary',
-                                            accountId: fund.accountId,
-                                            fundId: fund.id,
-                                        },
-                                    });
-                                }}
-                            />
-                        ))}
-                    </View>
-                )}
+                    {pendingMSI.length === 0 && pendingIncome.length === 0 ? (
+                        <Text style={styles.metaText}>Sin pendientes por ahora</Text>
+                    ) : (
+                        <>
+                            {pendingMSI.map(fund => (
+                                <PendingFundCard
+                                    key={fund.id}
+                                    fund={fund}
+                                    status={getFundStatus(fund)}
+                                    theme={theme}
+                                    onPress={() => setPayingMSI(fund)}
+                                />
+                            ))}
+                            {pendingIncome.map(fund => (
+                                <PendingFundCard
+                                    key={fund.id}
+                                    fund={fund}
+                                    status={getFundStatus(fund)}
+                                    theme={theme}
+                                    onPress={() => {
+                                        navigation.navigate('AddTransaction', {
+                                            prefill: {
+                                                type: 'income',
+                                                amount: fund.amount.toString(),
+                                                reason: fund.name,
+                                                category: 'salary',
+                                                accountId: fund.accountId,
+                                                fundId: fund.id,
+                                            },
+                                        });
+                                    }}
+                                />
+                            ))}
+                        </>
+                    )}
+                </View>
 
                 {/* Credit cards */}
                 {creditCards.length > 0 && (

@@ -1,6 +1,16 @@
-// Screen to view and create scheduled funds
-// Funds are not automatic **yet at least, they show as prefilled reminders on homescreen
-// User confirms payment amount
+// Screen to view, edit, and delete scheduled funds — both recurring
+// income reminders (quincena, renta) AND MSI installments. Purely a
+// list now: creating or editing an income fund happens on its own
+// screen (AddScheduledFundScreen), the same split CardsScreen already
+// has with AddCardScreen. This one used to have the create/edit form
+// built right into the bottom of the list — convenient at first, but
+// it meant there was never a clean "just look at what I've got"
+// view, and every new fund landed on the exact same screen you'd
+// already be looking at, which is the opposite of a dedicated place
+// to check in on things.
+//
+// Neither fund type moves money automatically; the person confirms
+// each payment from Home, which is what actually advances the date.
 import { useMemo, useState } from "react";
 import {
     View,
@@ -9,6 +19,7 @@ import {
     TouchableOpacity,
     TextInput,
     Alert,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -18,73 +29,92 @@ import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
 import { formatCurrencyShort } from "../utils";
 import { FREQUENCY_LABELS } from '../constants';
-import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
-import { IconCalendar, IconWarningTriangle, IconChevronLeft } from '../components/Icons';
+import { IconCalendar, IconWarningTriangle, IconChevronLeft, IconRepeat, IconPencil, IconPlus } from '../components/Icons';
 import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
 
-const FREQUENCIES = [
-    { key: 'weekly', label: 'Semanal' },
-    { key: 'biweekly', label: 'Quincenal' },
-    { key: 'monthly', label: 'Mensual' },
+const FILTERS = [
+    { key: 'all', label: 'Todos' },
+    { key: 'income', label: 'Ingresos' },
+    { key: 'msi', label: 'Mensualidades' },
 ];
 
 export default function ScheduledFundsScreen() {
     const navigation = useNavigation();
     const {
         accounts,
+        creditCards,
         scheduledFunds,
-        addScheduledFund,
+        updateScheduledFund,
         removeScheduledFund,
-        getFundStatus
+        getFundStatus,
     } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createScheduledFundsStyles(theme), [theme]);
 
-    // form state
-    const [name, setName] = useState('');
-    const [amount, setAmount] = useState('');
-    const [frequency, setFrequency] = useState('biweekly');
-    const [accountId, setAccountId] = useState(accounts[0]?.id || null);
-    const [nextDate, setNextDate] = useState(null);
+    // Both fund types live in the same array (see useScheduleFunds.js),
+    // split here purely for how differently they need to be shown —
+    // an MSI has no `frequency`/`amount`, it has `months`/
+    // `monthlyAmount`/`paidMonths` instead.
+    const incomeFunds = scheduledFunds.filter(f => f.type !== 'msi');
+    const msiFunds = scheduledFunds.filter(f => f.type === 'msi');
 
-    const handleAdd = async () => {
-        if (!name.trim()) {
-            Alert.alert('Falta el nombre', 'Ej. Quincena, Renta, etc.');
-            return;
-        }
-        if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert('Monto inválido', 'Ingresa un monto mayor a cero.');
-            return;
-        }
-        if (!nextDate) {
-            Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.');
-            return;
-        }
-        if (!accountId) {
-            Alert.alert('Falta la cuenta', 'Selecciona una cuenta destino.');
-            return;
-        }
-
-        await addScheduledFund({
-            name: name.trim(),
-            amount: parseFloat(amount),
-            frequency,
-            accountId,
-            nextDate: nextDate.toISOString(),
-        });
-
-        // Reset form
-        setName('');
-        setAmount('');
-        setNextDate(null);
-        Alert.alert('Fondo creado', `"${name.trim()}" aparecerá como recordatorio cuando se acerque la fecha.`);
-    };
+    const [activeFilter, setActiveFilter] = useState('all');
+    const showIncome = activeFilter !== 'msi';
+    const showMSI = activeFilter !== 'income';
+    const visibleIncome = showIncome ? incomeFunds : [];
+    const visibleMSI = showMSI ? msiFunds : [];
+    const nothingVisible = visibleIncome.length === 0 && visibleMSI.length === 0;
 
     const handleDelete = (fund) => {
         Alert.alert(
             'Eliminar fondo',
             `¿Eliminar "${fund.name}"?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: () => removeScheduledFund(fund.id),
+                },
+            ]
+        );
+    };
+
+    // ── MSI edit modal — name + date only. See updateScheduledFund's
+    // comment in useScheduleFunds.js for why the rest is locked, and
+    // why this stays a small modal here instead of its own screen
+    // the way income funds get. ──
+    const [editingMSI, setEditingMSI] = useState(null);
+    const [msiName, setMsiName] = useState('');
+    const [msiDate, setMsiDate] = useState(null);
+
+    const openEditMSI = (fund) => {
+        setMsiName(fund.name);
+        setMsiDate(parseISO(fund.nextDate));
+        setEditingMSI(fund);
+    };
+
+    const handleSaveMSI = async () => {
+        if (!msiName.trim()) {
+            Alert.alert('Falta el nombre', 'Ingresa un nombre.');
+            return;
+        }
+        if (!msiDate) {
+            Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.');
+            return;
+        }
+        await updateScheduledFund(editingMSI.id, {
+            name: msiName.trim(),
+            nextDate: msiDate.toISOString(),
+        });
+        setEditingMSI(null);
+    };
+
+    const handleDeleteMSI = (fund) => {
+        Alert.alert(
+            'Eliminar mensualidad',
+            `Se dejará de mostrar "${fund.name}" como recordatorio. Esto no modifica la deuda que ya está registrada en tu tarjeta — si aún debes esos pagos, la tarjeta lo va a seguir reflejando; solo perderías el conteo de "pago ${fund.paidMonths} de ${fund.months}".`,
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
@@ -120,20 +150,87 @@ export default function ScheduledFundsScreen() {
                         </TouchableOpacity>
                         <Text style={styles.title}>Fondos programados</Text>
                     </View>
+                    <TouchableOpacity
+                        style={styles.addBtn}
+                        onPress={() => navigation.navigate('AddScheduledFund')}
+                    >
+                        <IconPlus color={theme.brandOn} size={18} />
+                    </TouchableOpacity>
                 </View>
 
-                {/* Active funds list */}
-                {scheduledFunds.length === 0 ? (
+                {/* Filter — only worth showing once there's a mix to
+                    actually filter between */}
+                {scheduledFunds.length > 0 && (
+                    <View style={styles.filterWrap}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            <View style={styles.filterRow}>
+                                {FILTERS.map(f => (
+                                    <TouchableOpacity
+                                        key={f.key}
+                                        style={[styles.chip, activeFilter === f.key && styles.chipActive]}
+                                        onPress={() => setActiveFilter(f.key)}
+                                    >
+                                        <Text style={[styles.chipText, activeFilter === f.key && styles.chipTextActive]}>
+                                            {f.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* Nothing at all yet, of either type */}
+                {scheduledFunds.length === 0 && (
                     <View style={styles.emptyState}>
                         <IconCalendar color={theme.muted} size={40} />
                         <Text style={styles.emptyText}>Sin fondos programados</Text>
                         <Text style={styles.emptySubtext}>
-                            Crea uno abajo y aparecerá como recordatorio en tu Dashboard cuando se acerque la fecha
+                            Crea uno y aparecerá como recordatorio en tu Dashboard cuando se acerque la fecha
                         </Text>
+                        <TouchableOpacity
+                            style={styles.emptyBtn}
+                            onPress={() => navigation.navigate('AddScheduledFund')}
+                        >
+                            <IconPlus color={theme.brandOn} size={14} />
+                            <Text style={styles.emptyBtnText}>Nuevo fondo</Text>
+                        </TouchableOpacity>
                     </View>
-                ) : (
+                )}
+
+                {/* There's data, but this specific filter has nothing
+                    to show for it (e.g. "Mensualidades" with zero MSI
+                    active right now) — different message than the
+                    true-empty one above, and no "+" here when it's
+                    the MSI filter, since those can't be created from
+                    this screen at all. */}
+                {scheduledFunds.length > 0 && nothingVisible && (
+                    <View style={styles.emptyState}>
+                        <IconCalendar color={theme.muted} size={40} />
+                        <Text style={styles.emptyText}>
+                            {activeFilter === 'msi' ? 'Sin mensualidades activas' : 'Sin fondos de ingreso'}
+                        </Text>
+                        {activeFilter === 'msi' ? (
+                            <Text style={styles.emptySubtext}>
+                                Una mensualidad aparece aquí sola cuando pagas algo con MSI desde Nuevo movimiento
+                            </Text>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.emptyBtn}
+                                onPress={() => navigation.navigate('AddScheduledFund')}
+                            >
+                                <IconPlus color={theme.brandOn} size={14} />
+                                <Text style={styles.emptyBtnText}>Nuevo fondo</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+
+                {/* Income funds */}
+                {visibleIncome.length > 0 && (
                     <View style={styles.listContainer}>
-                        {scheduledFunds.map(fund => {
+                        <Text style={styles.sectionLabel}>Fondos programados</Text>
+                        {visibleIncome.map(fund => {
                             const status = getFundStatus(fund);
                             const account = accounts.find(a => a.id === fund.accountId);
                             const statusColor = status === 'overdue' ? theme.moneyOut
@@ -142,10 +239,7 @@ export default function ScheduledFundsScreen() {
                             return (
                                 <View
                                     key={fund.id}
-                                    style={[
-                                        styles.fundCard,
-                                        { backgroundColor: getStatusColor(status) }
-                                    ]}
+                                    style={[styles.fundCard, { backgroundColor: getStatusColor(status) }]}
                                 >
                                     <View style={styles.fundTop}>
                                         <View style={styles.fundNameRow}>
@@ -172,118 +266,139 @@ export default function ScheduledFundsScreen() {
                                             </Text>
                                         )}
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.deleteBtn}
-                                        onPress={() => handleDelete(fund)}
-                                    >
-                                        <Text style={styles.deleteBtnText}>Eliminar</Text>
-                                    </TouchableOpacity>
+                                    <View style={styles.fundActions}>
+                                        <TouchableOpacity
+                                            style={styles.editBtnRow}
+                                            onPress={() => navigation.navigate('AddScheduledFund', { editFund: fund })}
+                                        >
+                                            <IconPencil color={theme.ink} size={12} />
+                                            <Text style={styles.editBtnText}>Editar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleDelete(fund)}>
+                                            <Text style={styles.deleteBtnText}>Eliminar</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             );
                         })}
                     </View>
                 )}
 
-                <View style={styles.divider} />
-
-                {/* Form to create new fund */}
-                <View style={styles.formSection}>
-                    <Text style={styles.formTitle}>Nuevo fondo</Text>
-
-                    {/* Name */}
-                    <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Nombre</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={name}
-                            onChangeText={setName}
-                            placeholder="Ej. Quincena, Renta, Freelance..."
-                            placeholderTextColor={theme.muted}
-                        />
-                    </View>
-
-                    {/* Amount */}
-                    <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Monto esperado</Text>
-                        <DecimalInput
-                            style={styles.input}
-                            value={amount}
-                            onChangeText={setAmount}
-                            placeholder="$0.00"
-                            placeholderTextColor={theme.muted}
-                        />
-                    </View>
-
-                    {/* Next date */}
-                    <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Próxima fecha</Text>
-                        <DatePickerField
-                            value={nextDate}
-                            onChange={setNextDate}
-                            placeholder="Selecciona una fecha"
-                            minimumDate={new Date()}
-                        />
-                    </View>
-
-                    {/* Frequency */}
-                    <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Frecuencia</Text>
-                        <View style={styles.frequencyRow}>
-                            {FREQUENCIES.map(f => (
-                                <TouchableOpacity
-                                    key={f.key}
-                                    style={[
-                                        styles.frequencyBtn,
-                                        frequency === f.key && styles.frequencyBtnActive,
-                                    ]}
-                                    onPress={() => setFrequency(f.key)}
+                {/* MSI installments — a purchase already made, being
+                    paid off in pieces. No "add" flow lives here (that
+                    only happens from Nuevo Movimiento) — the "Sin
+                    mensualidades activas" empty state above reflects
+                    that by never offering a "+" for this one. */}
+                {visibleMSI.length > 0 && (
+                    <View style={styles.listContainer}>
+                        <Text style={styles.sectionLabel}>Mensualidades (MSI)</Text>
+                        {visibleMSI.map(fund => {
+                            const status = getFundStatus(fund);
+                            const card = creditCards.find(c => c.id === fund.creditCardId);
+                            const statusColor = status === 'overdue' ? theme.moneyOut
+                                : status === 'upcoming' ? theme.moneyIn
+                                    : null;
+                            return (
+                                <View
+                                    key={fund.id}
+                                    style={[styles.fundCard, { backgroundColor: getStatusColor(status) }]}
                                 >
-                                    <Text style={[
-                                        styles.frequencyBtnText,
-                                        frequency === f.key && styles.frequencyBtnTextActive,
-                                    ]}>
-                                        {f.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                                    <View style={styles.fundTop}>
+                                        <View style={styles.fundNameRow}>
+                                            {status === 'overdue'
+                                                ? <IconWarningTriangle color={statusColor} size={15} />
+                                                : <IconRepeat color={theme.moneyOut} size={15} />}
+                                            <Text style={styles.fundName}>{fund.name}</Text>
+                                        </View>
+                                        <Text style={[styles.fundAmount, { color: theme.moneyOut }]}>
+                                            −{formatCurrencyShort(fund.monthlyAmount)}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.fundMeta}>
+                                        <View style={[styles.fundMetaBadge, { backgroundColor: theme.moneyOutSoft }]}>
+                                            <Text style={[styles.fundMetaBadgeText, { color: theme.moneyOut }]}>
+                                                Pago {fund.paidMonths + 1} de {fund.months}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.fundMetaText}>
+                                            Próximo: {format(parseISO(fund.nextDate), 'd MMM yyyy', { locale: es })}
+                                        </Text>
+                                        {card && (
+                                            <Text style={styles.fundMetaText}>
+                                                {card.name}
+                                            </Text>
+                                        )}
+                                    </View>
+                                    <View style={styles.fundActions}>
+                                        <TouchableOpacity
+                                            style={styles.editBtnRow}
+                                            onPress={() => openEditMSI(fund)}
+                                        >
+                                            <IconPencil color={theme.ink} size={12} />
+                                            <Text style={styles.editBtnText}>Editar</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleDeleteMSI(fund)}>
+                                            <Text style={styles.deleteBtnText}>Eliminar</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            );
+                        })}
                     </View>
-
-                    {/* Account */}
-                    <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>Cuenta destino</Text>
-                        <View style={styles.accountList}>
-                            {accounts.map(acc => (
-                                <TouchableOpacity
-                                    key={acc.id}
-                                    style={[
-                                        styles.accountOption,
-                                        accountId === acc.id && styles.accountOptionSelected,
-                                    ]}
-                                    onPress={() => setAccountId(acc.id)}
-                                >
-                                    <Text style={[
-                                        styles.accountOptionText,
-                                        accountId === acc.id && { color: theme.bg },
-                                    ]}>
-                                        {acc.name}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* Confirm */}
-                    <TouchableOpacity
-                        style={styles.confirmBtn}
-                        onPress={handleAdd}
-                    >
-                        <Text style={styles.confirmBtnText}>Crear fondo</Text>
-                    </TouchableOpacity>
-                </View>
+                )}
 
                 <View style={styles.bottomPadding} />
             </ScrollView>
+
+            {/* MSI edit modal — name + date only, on purpose (see
+                updateScheduledFund's comment in useScheduleFunds.js) */}
+            <Modal
+                visible={!!editingMSI}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setEditingMSI(null)}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalSheet}>
+                        <Text style={styles.modalTitle}>Editar mensualidad</Text>
+
+                        <View style={styles.fieldGroup}>
+                            <Text style={styles.fieldLabel}>Nombre</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={msiName}
+                                onChangeText={setMsiName}
+                                placeholder="Ej. Laptop, Refrigerador..."
+                                placeholderTextColor={theme.muted}
+                            />
+                        </View>
+
+                        <View style={styles.fieldGroup}>
+                            <Text style={styles.fieldLabel}>Próxima fecha de pago</Text>
+                            <DatePickerField
+                                value={msiDate}
+                                onChange={setMsiDate}
+                                placeholder="Selecciona una fecha"
+                            />
+                        </View>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setEditingMSI(null)}
+                            >
+                                <Text style={styles.modalCancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.modalSaveBtn}
+                                onPress={handleSaveMSI}
+                            >
+                                <Text style={styles.modalSaveText}>Guardar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }

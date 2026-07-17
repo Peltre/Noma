@@ -6,13 +6,13 @@
 // behind a single "Otro tipo" control instead of competing for space
 // in the same row: a traspaso's form shape (two accounts) is
 // different enough that showing it as an equal peer up front was
-// promising a simplicity the rest of the screen couldn't keep. That
-// same "Otro tipo" sheet also has a shortcut to Fondos programados,
-// but that one is just navigation — a recurring reminder isn't a
-// real transaction type, and this screen doesn't keep its own copy
-// of that form anymore (see ScheduledFundsScreen — the only place
-// that creates one now, so there's a single source instead of two
-// forms that could quietly drift apart).
+// promising a simplicity the rest of the screen couldn't keep.
+//
+// Fondos programados/mensualidades have no presence here anymore —
+// not even a navigation shortcut. A recurring reminder isn't a
+// transaction (it doesn't move money the moment it's created), so it
+// never really belonged in this flow; it now lives entirely behind
+// Home's own "Fondos programados" section instead.
 //
 // No category picker anymore — it was a required field with no
 // payoff (nothing in the app filters or charts by it), so it was
@@ -444,9 +444,11 @@ export default function TransactionScreen() {
                 <View style={{ height: Spacing.xl + insets.bottom }} />
             </ScrollView>
 
-            {/* "Otro tipo" — Traspaso, explained, plus a shortcut to
-                Fondos programados, one tap away without ever
-                crowding the hero */}
+            {/* "Otro tipo" — just Traspaso now. Used to also have a
+                shortcut to Fondos programados here, but that logic
+                (and any trace of it) moved out entirely — it has its
+                own home now, reachable from Home's "Fondos
+                programados" section, not from inside this flow. */}
             <Modal visible={showTypeSheet} transparent animationType="slide" onRequestClose={() => setShowTypeSheet(false)}>
                 <View style={styles.modalBg}>
                     <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowTypeSheet(false)} />
@@ -466,25 +468,6 @@ export default function TransactionScreen() {
                                 </View>
                             </TouchableOpacity>
                         ))}
-                        {/* Not a transaction type — a recurring reminder
-                            doesn't move money the way everything else
-                            in this sheet does. This is just a shortcut
-                            so it's still discoverable from here; the
-                            actual form only lives in ScheduledFunds
-                            now (see the file header comment). */}
-                        <TouchableOpacity
-                            style={styles.typeOption}
-                            onPress={() => {
-                                setShowTypeSheet(false);
-                                navigation.navigate('ScheduledFunds');
-                            }}
-                        >
-                            <View style={[styles.typeOptionDot, { backgroundColor: theme.savings }]} />
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.typeOptionLabel}>Fondo programado</Text>
-                                <Text style={styles.typeOptionDesc}>Algo que se repite — quincena, renta, etc.</Text>
-                            </View>
-                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
