@@ -8,6 +8,10 @@ export default function createSettingsStyles(theme) {
             flex: 1,
             backgroundColor: theme.bg,
         },
+        scroll: {
+            flex: 1,
+            backgroundColor: theme.bg,
+        },
         header: {
             padding: Spacing.lg,
             paddingBottom: Spacing.md,
@@ -85,6 +89,9 @@ export default function createSettingsStyles(theme) {
             fontSize: FontSize.md,
             fontWeight: '500',
             color: theme.muted,
+        },
+        editNameBtn: {
+            padding: Spacing.xs,
         },
         saveBtn: {
             backgroundColor: theme.brand,

@@ -1,5 +1,5 @@
 // General app config: userName, themes, and other app functionalities
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import createSettingsStyles from './SettingsScreen.styles';
 
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
-import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft } from '../components/Icons';
+import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconPencil } from '../components/Icons';
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
@@ -22,6 +22,19 @@ export default function SettingsScreen() {
     const { theme, themeName, setTheme, themes, themeNames } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
     const [userName, setUserName] = useState('');
+
+    // The name starts read-only — tapping the pencil is what turns it
+    // into an editable field (and is the only thing that reveals the
+    // save button below). Before this, the field was always an open
+    // TextInput with no indication that typing in it didn't actually
+    // save anything until a separate, easy-to-miss button further
+    // down got tapped too.
+    const [isEditingName, setIsEditingName] = useState(false);
+    const nameInputRef = useRef(null);
+
+    useEffect(() => {
+        if (isEditingName) nameInputRef.current?.focus();
+    }, [isEditingName]);
 
     // Sync input with saved value
     useEffect(() => {
@@ -34,6 +47,7 @@ export default function SettingsScreen() {
             return;
         }
         await updateSettings({ userName: userName.trim() });
+        setIsEditingName(false);
         Alert.alert('Guardado', 'Tu nombre ha sido actualizado');
     };
 
@@ -61,7 +75,7 @@ export default function SettingsScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
                 {/* Header */}
                 <View style={styles.header}>
@@ -83,16 +97,28 @@ export default function SettingsScreen() {
                             </View>
                             <View style={styles.fieldInfo}>
                                 <Text style={styles.fieldLabel}>Tu nombre</Text>
-                                <TextInput
-                                    style={styles.fieldInput}
-                                    value={userName}
-                                    onChangeText={setUserName}
-                                    placeholder="Como te llamas?"
-                                    placeholderTextColor={theme.muted}
-                                    returnKeyType="done"
-                                    onSubmitEditing={handleSave}
-                                />
+                                {isEditingName ? (
+                                    <TextInput
+                                        ref={nameInputRef}
+                                        style={styles.fieldInput}
+                                        value={userName}
+                                        onChangeText={setUserName}
+                                        placeholder="Como te llamas?"
+                                        placeholderTextColor={theme.muted}
+                                        returnKeyType="done"
+                                        onSubmitEditing={handleSave}
+                                    />
+                                ) : (
+                                    <Text style={styles.fieldValue}>{userName}</Text>
+                                )}
                             </View>
+                            <TouchableOpacity
+                                style={styles.editNameBtn}
+                                onPress={() => setIsEditingName(true)}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <IconPencil color={theme.brand} size={16} />
+                            </TouchableOpacity>
                         </View>
                         <View style={[styles.fieldRow, styles.fieldRowLast]}>
                             <View style={styles.fieldIcon}>
@@ -104,12 +130,14 @@ export default function SettingsScreen() {
                             </View>
                         </View>
                     </View>
-                    <TouchableOpacity
-                        style={styles.saveBtn}
-                        onPress={handleSave}
-                    >
-                        <Text style={styles.saveBtnText}>Guardar cambios</Text>
-                    </TouchableOpacity>
+                    {isEditingName && (
+                        <TouchableOpacity
+                            style={styles.saveBtn}
+                            onPress={handleSave}
+                        >
+                            <Text style={styles.saveBtnText}>Guardar cambios</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Appearance — the 3 themes already fully defined in

@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { useTheme } from '../store/useTheme';
 
 import HomeScreen from "../screens/HomeScreen";
 import TransactionScreen from '../screens/TransactionScreen';
@@ -17,10 +18,19 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Stacks
+//
+// `contentStyle` on each one matters more than it looks like it
+// should: react-navigation doesn't paint a themed background behind
+// a stack's screens on its own, so without this, the sliver of
+// native-stack transition animation (and any brief instant before a
+// screen's own View has painted) falls back to the library's default
+// white — most visible right where CurvedTabBar just vacated, since
+// that's the exact moment/place the layout is also reflowing.
 
 function HomeStack() {
+  const { theme } = useTheme();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="AddTransaction" component={TransactionScreen} />
       <Stack.Screen name="ScheduledFunds" component={ScheduledFundsScreen} />
@@ -31,8 +41,9 @@ function HomeStack() {
 }
 
 function CardsStack() {
+  const { theme } = useTheme();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
       <Stack.Screen name="Cards" component={CardsScreen} />
       <Stack.Screen name="AddCard" component={AddCardScreen} />
     </Stack.Navigator>
@@ -62,9 +73,11 @@ function getTabBarStyle(route) {
 // Navigator
 
 export default function AppNavigator() {
+  const { theme } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
+      sceneContainerStyle={{ backgroundColor: theme.bg }}
       tabBar={props => <CurvedTabBar {...props} />}
     >
       <Tab.Screen
