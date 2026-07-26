@@ -96,6 +96,24 @@ export default function createHomeStyles(theme) {
             color: theme.ink,
             letterSpacing: -1.5,
         },
+        balanceRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: Spacing.sm,
+        },
+        trendPill: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingHorizontal: Spacing.sm + 2,
+            paddingVertical: 5,
+            borderRadius: Radius.full,
+        },
+        trendPillText: {
+            fontSize: FontSize.xs,
+            fontWeight: '700',
+        },
 
         // Allocation bar (replaces the old pills)
         alloc: {
@@ -263,10 +281,19 @@ export default function createHomeStyles(theme) {
             color: theme.muted,
             marginTop: 1,
         },
+        txnRight: {
+            alignItems: 'flex-end',
+            gap: 3,
+        },
         txnAmount: {
             fontSize: FontSize.sm,
             fontWeight: '800',
             letterSpacing: -0.4,
+        },
+        txnDate: {
+            fontSize: FontSize.xs - 1,
+            color: theme.muted,
+            fontWeight: '500',
         },
         amountPos: { color: theme.moneyIn },
         amountExpense: { color: theme.moneyOut },

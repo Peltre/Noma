@@ -7,13 +7,27 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { formatCurrency, formatCurrencyShort } from '../utils';
+import { format, parseISO, isSameMonth, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { formatCurrency, formatCurrencyShort, round2 } from '../utils';
 import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
 import NightSkyArt from '../components/NightSkyArt';
-import { IconArrowDown, IconArrowUp, IconSwap, IconArrowRight, IconRepeat, IconCash } from '../components/Icons';
+import {
+    IconArrowDown, IconArrowUp, IconSwap, IconArrowRight, IconRepeat, IconCash,
+    IconTrendUp, IconTrendDown,
+} from '../components/Icons';
+
+// Same "d MMM · HH:mm" shape History already uses, just swapping in
+// "Hoy" for same-day movements — Recientes is meant to be skimmed at
+// a glance, and "Hoy" reads faster than today's actual date would.
+function formatTxnDate(dateStr, now) {
+    const d = parseISO(dateStr);
+    const day = isSameDay(d, now) ? 'Hoy' : format(d, 'd MMM', { locale: es });
+    return `${day} · ${format(d, 'HH:mm')}`;
+}
 
 // Which color token each account type gets in the allocation bar.
 // A debit account can carry its own `color` (set from the Tarjetas
@@ -171,6 +185,7 @@ export default function HomeScreen() {
         pendingFunds,
         getFundStatus,
         confirmFund,
+        tags,
     } = useFinance();
 
     const insets = useSafeAreaInsets();
@@ -193,6 +208,31 @@ export default function HomeScreen() {
     // owe is part of the full picture, not just what you have.
     const positiveTotal = accounts.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
     const allocTotal = positiveTotal + totalDebt;
+
+    // Balance trend — compares the current total against what it was
+    // at the start of THIS calendar month (current total minus this
+    // month's net effect), since the app has no separate historical
+    // balance snapshots to compare against. A transfer moves money
+    // between the user's own accounts, so it never changes the total
+    // and is excluded; income/expense/withdrawal all do.
+    const now = new Date();
+    const thisMonthTxns = transactions.filter(t => isSameMonth(parseISO(t.date), now));
+    const netChangeThisMonth = round2(thisMonthTxns.reduce((sum, t) => {
+        if (t.type === 'income') return sum + t.amount;
+        if (t.type === 'expense' || t.type === 'withdrawal') return sum - t.amount;
+        return sum;
+    }, 0));
+    const balanceAtMonthStart = round2(totalBalance - netChangeThisMonth);
+    // Nothing to compare against yet this month — don't show a
+    // trend rather than a misleading "0.0%".
+    const hasTrend = thisMonthTxns.length > 0;
+    const trendUp = netChangeThisMonth >= 0;
+    // Percent only makes sense against a positive starting point;
+    // otherwise fall back to a plain amount (e.g. account started
+    // this month at $0).
+    const trendPct = balanceAtMonthStart > 0
+        ? Math.abs(netChangeThisMonth / balanceAtMonthStart) * 100
+        : null;
 
     return (
         <View style={styles.safeArea}>
@@ -234,7 +274,24 @@ export default function HomeScreen() {
 
                     <View style={styles.heroBalance}>
                         <Text style={styles.balanceLabel}>Balance total</Text>
-                        <Text style={styles.balanceAmount}>{formatCurrency(totalBalance)}</Text>
+                        <View style={styles.balanceRow}>
+                            <Text style={styles.balanceAmount}>{formatCurrency(totalBalance)}</Text>
+                            {hasTrend && (
+                                <View style={[
+                                    styles.trendPill,
+                                    { backgroundColor: trendUp ? theme.moneyInSoft : theme.moneyOutSoft },
+                                ]}>
+                                    {trendUp
+                                        ? <IconTrendUp color={theme.moneyIn} size={12} />
+                                        : <IconTrendDown color={theme.moneyOut} size={12} />}
+                                    <Text style={[styles.trendPillText, { color: trendUp ? theme.moneyIn : theme.moneyOut }]}>
+                                        {trendPct !== null
+                                            ? `${trendUp ? '+' : '−'}${trendPct.toFixed(1)}%`
+                                            : `${trendUp ? '+' : '−'}${formatCurrencyShort(Math.abs(netChangeThisMonth))}`}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
                 </View>
 
@@ -401,6 +458,19 @@ export default function HomeScreen() {
                         <View style={styles.txnCard}>
                             {recentTransactions.map((txn, i) => {
                                 const visual = getTxnVisual(theme, txn.type, txn.category);
+                                const accountLabel = txn.type === 'transfer'
+                                    ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
+                                    : txn.creditCardId
+                                        ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? '—')
+                                        : (accounts.find(a => a.id === txn.accountId)?.name ?? '—');
+                                // Tags are optional — most transactions
+                                // will have none, so the "· etiqueta"
+                                // part only appears when there's
+                                // something to show.
+                                const txnTagLabel = (txn.tagIds || [])
+                                    .map(id => tags.find(t => t.id === id)?.label)
+                                    .filter(Boolean)
+                                    .join(', ');
                                 return (
                                     <View
                                         key={txn.id}
@@ -416,23 +486,22 @@ export default function HomeScreen() {
                                             <Text style={styles.txnName} numberOfLines={1}>
                                                 {txn.reason}
                                             </Text>
-                                            <Text style={styles.txnSub}>
-                                                {txn.type === 'transfer'
-                                                    ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
-                                                    : txn.creditCardId
-                                                        ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? '—')
-                                                        : (accounts.find(a => a.id === txn.accountId)?.name ?? '—')}
+                                            <Text style={styles.txnSub} numberOfLines={1}>
+                                                {accountLabel}{txnTagLabel ? ` · ${txnTagLabel}` : ''}
                                             </Text>
                                         </View>
-                                        <Text style={[
-                                            styles.txnAmount,
-                                            txn.type === 'income' ? styles.amountPos
-                                                : txn.category === 'goal' ? { color: theme.savings }
-                                                    : txn.type === 'expense' ? styles.amountExpense
-                                                        : styles.amountNeg,
-                                        ]}>
-                                            {txn.type === 'income' ? '+' : txn.type === 'transfer' ? '' : '−'}{formatCurrencyShort(txn.amount)}
-                                        </Text>
+                                        <View style={styles.txnRight}>
+                                            <Text style={[
+                                                styles.txnAmount,
+                                                txn.type === 'income' ? styles.amountPos
+                                                    : txn.category === 'goal' ? { color: theme.savings }
+                                                        : txn.type === 'expense' ? styles.amountExpense
+                                                            : styles.amountNeg,
+                                            ]}>
+                                                {txn.type === 'income' ? '+' : txn.type === 'transfer' ? '' : '−'}{formatCurrencyShort(txn.amount)}
+                                            </Text>
+                                            <Text style={styles.txnDate}>{formatTxnDate(txn.date, now)}</Text>
+                                        </View>
                                     </View>
                                 );
                             })}
