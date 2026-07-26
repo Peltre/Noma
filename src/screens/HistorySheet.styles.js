@@ -122,22 +122,28 @@ export default function createSheetStyles(theme) {
             justifyContent: 'center', alignItems: 'center',
         },
         btnDangerText: { fontSize: FontSize.md, fontWeight: '700', color: theme.moneyOut },
-        badge: {
+        // Read-only tag pills in the detail sheet — same pill shape
+        // TransactionScreen's tag picker uses, just non-pressable here.
+        tagsWrap: {
+            width: '100%',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: Spacing.sm,
+            marginBottom: Spacing.lg,
+        },
+        tagPill: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 4,
-            backgroundColor: theme.border,
-            paddingHorizontal: 7,
-            paddingVertical: 3,
+            gap: 5,
+            backgroundColor: theme.brandSoft,
+            paddingHorizontal: Spacing.sm + 2,
+            paddingVertical: 6,
             borderRadius: Radius.full,
         },
-        badgeDot: { width: 5, height: 5, borderRadius: 3 },
-        badgeText: {
-            fontSize: FontSize.xs - 1,
+        tagPillText: {
+            fontSize: FontSize.xs,
             fontWeight: '700',
-            color: theme.muted,
-            letterSpacing: 0.3,
-            textTransform: 'uppercase',
+            color: theme.brand,
         },
     });
 }

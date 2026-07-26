@@ -91,36 +91,17 @@ export default function createHistoryStyles(theme) {
             color: theme.muted,
         },
 
-        // Filters
+        // Filters — two dropdowns (SelectField) side by side, not a
+        // scrolling pill row anymore
         filterWrap: {
             paddingVertical: Spacing.md,
-            paddingLeft: Spacing.lg,
+            paddingHorizontal: Spacing.lg,
             backgroundColor: theme.bg,
         },
         filterRow: {
             flexDirection: 'row',
             gap: Spacing.sm,
-            paddingRight: Spacing.lg,
         },
-        chip: {
-            paddingVertical: 6,
-            paddingHorizontal: Spacing.md,
-            borderRadius: Radius.full,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-        },
-        chipActive: {
-            backgroundColor: theme.ink,
-            borderColor: theme.ink,
-        },
-        chipText: {
-            fontSize: FontSize.xs,
-            fontWeight: '800',
-            color: theme.muted,
-            letterSpacing: 0.3,
-        },
-        chipTextActive: { color: theme.bg },
 
         // Month label
         monthLabel: {
@@ -150,7 +131,8 @@ export default function createHistoryStyles(theme) {
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.sm,
-            padding: Spacing.md,
+            paddingVertical: Spacing.sm + 2,
+            paddingHorizontal: Spacing.md,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
         },
@@ -163,6 +145,15 @@ export default function createHistoryStyles(theme) {
             marginBottom: 2,
         },
         txnDate: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+            fontWeight: '500',
+        },
+        // Subtitle line in the list row — "Cuenta · Etiqueta". Same
+        // look as txnDate (which now lives on the right, next to the
+        // amount), just a second style so each keeps its own name for
+        // what it actually shows.
+        txnMeta: {
             fontSize: FontSize.xs,
             color: theme.muted,
             fontWeight: '500',

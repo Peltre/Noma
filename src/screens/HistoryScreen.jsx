@@ -5,22 +5,39 @@ import {
     Modal, TextInput, Alert, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { format, parseISO, isSameMonth } from 'date-fns';
+import { format, parseISO, isSameMonth, isSameWeek, isSameYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
-import { Spacing, getCategoryLabel } from '../constants';
+import { Spacing, getCategoryLabel, getTagIcon } from '../constants';
 import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
+import SelectField from '../components/SelectField';
 import { IconArrowDown, IconArrowUp, IconSwap, IconArrowRight, IconRepeat, IconCash } from '../components/Icons';
 
-const FILTERS = [
+// Type filter — same 4 movement types the rest of the app shows,
+// plus 'withdrawal' (Retiros): the data model already has it as a
+// real transaction type (cajero, pago de tarjeta, mensualidad), it
+// was just never reachable as its own filter before.
+const TYPE_FILTERS = [
     { key: 'all', label: 'Todos' },
     { key: 'expense', label: 'Gastos' },
     { key: 'income', label: 'Ingresos' },
     { key: 'transfer', label: 'Traspasos' },
+    { key: 'withdrawal', label: 'Retiros' },
+];
+
+// Period filter — independent of type, both apply together. 'all' is
+// the default so History keeps showing full history like before this
+// change; the other three narrow to the current week/month/year
+// relative to "now".
+const PERIOD_FILTERS = [
+    { key: 'all', label: 'Todo el tiempo' },
+    { key: 'week', label: 'Esta semana' },
+    { key: 'month', label: 'Este mes' },
+    { key: 'year', label: 'Este año' },
 ];
 
 // Only two accents with fixed meaning across the app: moneyIn/moneyOut.
@@ -58,19 +75,8 @@ function TxnIcon({ type, category, theme, sheet, size = 36 }) {
     );
 }
 
-// Dot + text badge
-function TxnBadge({ type, category, theme, sheet }) {
-    const cfg = getTypeConfig(theme, type, category);
-    return (
-        <View style={sheet.badge}>
-            <View style={[sheet.badgeDot, { backgroundColor: cfg.fg }]} />
-            <Text style={sheet.badgeText}>{cfg.label}</Text>
-        </View>
-    );
-}
-
 // ── Detail / edit bottom sheet ────────────────────────────────────
-function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet }) {
+function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, sheet }) {
     const { deleteTransaction, updateTransaction } = useFinance();
     const [editing, setEditing] = useState(false);
     const [editReason, setReason] = useState(txn.reason);
@@ -85,6 +91,13 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
         : txn.creditCardId
             ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta')
             : (accounts.find(a => a.id === txn.accountId)?.name ?? '—');
+
+    // Full tag objects (icon + label), not just the ids the
+    // transaction stores — resolved against the live tags list so a
+    // renamed/re-iconed tag always shows current, not stale, info.
+    const txnTags = (txn.tagIds || [])
+        .map(id => tags.find(t => t.id === id))
+        .filter(Boolean);
 
     const handleDelete = () => {
         Alert.alert(
@@ -189,6 +202,23 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
                                 )}
                             </View>
 
+                            {txnTags.length > 0 && (
+                                <>
+                                    <Text style={sheet.fieldLabel}>ETIQUETAS</Text>
+                                    <View style={sheet.tagsWrap}>
+                                        {txnTags.map(tag => {
+                                            const TagIcon = getTagIcon(tag.icon);
+                                            return (
+                                                <View key={tag.id} style={sheet.tagPill}>
+                                                    <TagIcon color={theme.brand} size={13} />
+                                                    <Text style={sheet.tagPillText}>{tag.label}</Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </>
+                            )}
+
                             <View style={sheet.btnRow}>
                                 <TouchableOpacity style={sheet.btnDanger} onPress={handleDelete}>
                                     <Text style={sheet.btnDangerText}>Eliminar</Text>
@@ -207,17 +237,32 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, theme, sheet })
 
 // Main screen
 export default function HistoryScreen() {
-    const { transactions, accounts, creditCards } = useFinance();
+    const { transactions, accounts, creditCards, tags } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createHistoryStyles(theme), [theme]);
     const sheet = useMemo(() => createSheetStyles(theme), [theme]);
-    const [activeFilter, setFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [periodFilter, setPeriodFilter] = useState('all');
     const [selectedTxn, setSelectedTxn] = useState(null);
     const insets = useSafeAreaInsets();
+    const now = new Date();
 
-    const filtered = activeFilter === 'all'
+    // Type and period apply together (AND, not OR) — e.g. "Gastos" +
+    // "Esta semana" shows only this week's expenses, not every
+    // expense plus everything from this week.
+    const byType = typeFilter === 'all'
         ? transactions
-        : transactions.filter(t => t.type === activeFilter);
+        : transactions.filter(t => t.type === typeFilter);
+
+    const filtered = periodFilter === 'all'
+        ? byType
+        : byType.filter(t => {
+            const d = parseISO(t.date);
+            if (periodFilter === 'week') return isSameWeek(d, now, { locale: es });
+            if (periodFilter === 'month') return isSameMonth(d, now);
+            if (periodFilter === 'year') return isSameYear(d, now);
+            return true;
+        });
 
     const grouped = filtered.reduce((acc, txn) => {
         const key = format(parseISO(txn.date), 'MMMM yyyy', { locale: es });
@@ -226,7 +271,9 @@ export default function HistoryScreen() {
         return acc;
     }, {});
 
-    const now = new Date();
+    // Hero stats stay pinned to "this calendar month" on purpose,
+    // regardless of the filters below — it's a fixed summary card,
+    // not a live total of whatever's currently filtered.
     const thisMonth = transactions.filter(t => isSameMonth(parseISO(t.date), now));
     const totalExp = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     // Neither an MSI installment nor a manual card payment counts
@@ -274,23 +321,26 @@ export default function HistoryScreen() {
                     </View>
                 </View>
 
-                {/* Filters */}
+                {/* Filters — two independent dropdowns instead of one
+                    pill row, so type and period can narrow the list
+                    together */}
                 <View style={styles.filterWrap}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <View style={styles.filterRow}>
-                            {FILTERS.map(f => (
-                                <TouchableOpacity
-                                    key={f.key}
-                                    style={[styles.chip, activeFilter === f.key && styles.chipActive]}
-                                    onPress={() => setFilter(f.key)}
-                                >
-                                    <Text style={[styles.chipText, activeFilter === f.key && styles.chipTextActive]}>
-                                        {f.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </ScrollView>
+                    <View style={styles.filterRow}>
+                        <SelectField
+                            label="Tipo"
+                            value={typeFilter}
+                            options={TYPE_FILTERS}
+                            onChange={setTypeFilter}
+                            style={{ flex: 1 }}
+                        />
+                        <SelectField
+                            label="Periodo"
+                            value={periodFilter}
+                            options={PERIOD_FILTERS}
+                            onChange={setPeriodFilter}
+                            style={{ flex: 1 }}
+                        />
+                    </View>
                 </View>
 
                 {/* Grouped transactions */}
@@ -308,6 +358,15 @@ export default function HistoryScreen() {
                                     const isIncome = txn.type === 'income';
                                     const isTransfer = txn.type === 'transfer';
                                     const isLast = i === txns.length - 1;
+                                    const accountLabel = isTransfer
+                                        ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
+                                        : txn.creditCardId
+                                            ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? 'Tarjeta')
+                                            : (accounts.find(a => a.id === txn.accountId)?.name ?? '—');
+                                    const txnTagLabel = (txn.tagIds || [])
+                                        .map(id => tags.find(t => t.id === id)?.label)
+                                        .filter(Boolean)
+                                        .join(', ');
                                     return (
                                         <TouchableOpacity
                                             key={txn.id}
@@ -315,13 +374,13 @@ export default function HistoryScreen() {
                                             onPress={() => setSelectedTxn(txn)}
                                             activeOpacity={0.7}
                                         >
-                                            <TxnIcon type={txn.type} category={txn.category} theme={theme} sheet={sheet} />
+                                            <TxnIcon type={txn.type} category={txn.category} theme={theme} sheet={sheet} size={32} />
                                             <View style={styles.txnInfo}>
                                                 <Text style={styles.txnName} numberOfLines={1}>
                                                     {txn.reason}
                                                 </Text>
-                                                <Text style={styles.txnDate}>
-                                                    {format(parseISO(txn.date), 'd MMM · HH:mm', { locale: es })}
+                                                <Text style={styles.txnMeta} numberOfLines={1}>
+                                                    {accountLabel}{txnTagLabel ? ` · ${txnTagLabel}` : ''}
                                                 </Text>
                                             </View>
                                             <View style={styles.txnRight}>
@@ -334,7 +393,9 @@ export default function HistoryScreen() {
                                                 ]}>
                                                     {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
-                                                <TxnBadge type={txn.type} category={txn.category} theme={theme} sheet={sheet} />
+                                                <Text style={styles.txnDate}>
+                                                    {format(parseISO(txn.date), 'd MMM · HH:mm', { locale: es })}
+                                                </Text>
                                             </View>
                                         </TouchableOpacity>
                                     );
@@ -353,6 +414,7 @@ export default function HistoryScreen() {
                     onClose={() => setSelectedTxn(null)}
                     accounts={accounts}
                     creditCards={creditCards}
+                    tags={tags}
                     theme={theme}
                     sheet={sheet}
                 />
