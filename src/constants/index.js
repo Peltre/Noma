@@ -2,6 +2,7 @@
 
 export * from './theme';
 export * from './categories';
+export * from './tagIcons';
 
 // Shared label maps used across multiple screens
 export const ACCOUNT_LABELS = {

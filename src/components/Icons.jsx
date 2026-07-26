@@ -350,3 +350,133 @@ export function IconSparkle({ color, size = 20 }) {
         </Svg>
     );
 }
+
+// ── Trend (Home's balance indicator) ───────────────────────────────
+// Diagonal on purpose — distinct from IconArrowUp/IconArrowDown
+// above, which already mean "expense"/"income" everywhere else in
+// the app. This pair means something different (balance up/down vs.
+// last month), so it needed its own shape, not a reused one that'd
+// carry the wrong association.
+export function IconTrendUp({ color, size = 14 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M5 16L16 5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+            <Path d="M8 5h8v8" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+export function IconTrendDown({ color, size = 14 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M5 5l11 11" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+            <Path d="M16 8v8H8" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+// ── Tags (constants/tagIcons.js) ───────────────────────────────────
+// One glyph per default tag, plus IconTagOther as the generic
+// fallback/"other" choice — same set doubles as the icon palette
+// offered when a person creates their own tag.
+export function IconTagFood({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M6 2.5v8a2 2 0 002 2 2 2 0 002-2v-8M8 12.5V21.5" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M16.5 2.5c-1.4 0-2.5 1.8-2.5 4.5s1.1 4.5 2.5 4.5M16.5 2.5v19" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+export function IconTagTransport({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M4 16V10.5a2 2 0 011.4-1.9l1.4-.4 1.6-3.2A2 2 0 0110.2 4h3.6a2 2 0 011.8 1L17.2 8.2l1.4.4A2 2 0 0120 10.5V16" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M4 16h16M4 16v2.5a1 1 0 001 1h1.5a1 1 0 001-1V16M15.5 16v2.5a1 1 0 001 1H18a1 1 0 001-1V16" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+            <Circle cx="8" cy="13" r="1" fill={color} stroke="none" />
+            <Circle cx="16" cy="13" r="1" fill={color} stroke="none" />
+        </Svg>
+    );
+}
+
+export function IconTagCart({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M3 4h2l2.2 11.2a1.8 1.8 0 001.8 1.4h7.6a1.8 1.8 0 001.8-1.5L20 8H6" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+            <Circle cx="10" cy="20" r="1.3" fill={color} stroke="none" />
+            <Circle cx="17" cy="20" r="1.3" fill={color} stroke="none" />
+        </Svg>
+    );
+}
+
+export function IconTagHealth({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={SW} />
+            <Path d="M12 8v8M8 12h8" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
+export function IconTagEntertainment({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M3 8.5l2-4.5h14l2 4.5v10a1.3 1.3 0 01-1.3 1.3H4.3A1.3 1.3 0 013 18.5v-10z" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
+            <Path d="M3 8.5h18M8.5 4v4.5M15.5 4v4.5" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+export function IconTagClothing({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path
+                d="M8.5 3.5L4 6.5l1.8 3 2.2-1.3V20a1 1 0 001 1h6a1 1 0 001-1V8.2l2.2 1.3 1.8-3-4.5-3a3 3 0 01-6 0z"
+                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
+            />
+        </Svg>
+    );
+}
+
+export function IconTagHome({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M4 11l8-7.5L20 11" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M6 9.5V20a1 1 0 001 1h10a1 1 0 001-1V9.5" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
+            <Path d="M10 21v-6h4v6" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+export function IconTagServices({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path
+                d="M14.5 3.5a4.5 4.5 0 00-5.9 5.9L3 15v3.5a2.5 2.5 0 002.5 2.5H9v-3h3v-3l4.6-4.6a4.5 4.5 0 005.9-5.9L18 9 15 6l3.5-3.5z"
+                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
+            />
+        </Svg>
+    );
+}
+
+export function IconTagEducation({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M2 8l10-4.5L22 8l-10 4.5L2 8z" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
+            <Path d="M6.5 10.2V15c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-4.8" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
+            <Path d="M22 8v6.5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
+export function IconTagOther({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path
+                d="M11.5 3H5a2 2 0 00-2 2v6.5a2 2 0 00.6 1.4l9 9a2 2 0 002.8 0l6.5-6.5a2 2 0 000-2.8l-9-9A2 2 0 0011.5 3z"
+                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
+            />
+            <Circle cx="8" cy="8" r="1.4" fill={color} stroke="none" />
+        </Svg>
+    );
+}

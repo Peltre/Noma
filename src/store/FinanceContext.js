@@ -4,6 +4,7 @@ import { useFinanceStore } from "./useFinanceStore";
 import { useSettings } from "./useSettings";
 import { useScheduledFunds } from "./useScheduleFunds";
 import { useSavings } from "./useSavings";
+import { useTags } from "./useTags";
 import { round2 } from "../utils/formatCurrency";
 
 const FinanceContext = createContext(null);
@@ -17,11 +18,14 @@ export function FinanceProvider({ children }) {
     // account's real balance — apartados link straight to it instead
     // of a separate Ahorros pot (see useSavings.js).
     const savingsStore = useSavings(financeStore.accounts);
+    const tagsStore = useTags();
 
     // financeStore and settingsStore each expose their own isLoading —
     // spreading both below would let whichever comes last silently win,
-    // so the app isn't really "ready" until BOTH are done loading.
-    const isLoading = financeStore.isLoading || settingsStore.isLoading;
+    // so the app isn't really "ready" until ALL of them are done
+    // loading (tagsStore included, since TransactionScreen renders
+    // the tag picker from it right away).
+    const isLoading = financeStore.isLoading || settingsStore.isLoading || tagsStore.tagsLoading;
 
     // Wraps financeStore's addTransaction so every screen (they all
     // go through useFinance(), never useFinanceStore directly) gets a
@@ -62,6 +66,7 @@ export function FinanceProvider({ children }) {
             ...settingsStore,
             ...scheduledFundsStore,
             ...savingsStore,
+            ...tagsStore,
             addTransaction,
             isLoading,
         }}>

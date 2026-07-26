@@ -24,19 +24,20 @@
 import { useMemo, useState } from 'react';
 import {
     View, Text, TouchableOpacity, TextInput,
-    ScrollView, Alert, Modal,
+    ScrollView, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Spacing } from '../constants';
+import { Spacing, getTagIcon, TAG_ICON_OPTIONS } from '../constants';
 import { formatCurrency } from '../utils';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
-import { IconChevronLeft, IconCheck } from '../components/Icons';
+import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
@@ -72,7 +73,7 @@ export default function TransactionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const insets = useSafeAreaInsets();
-    const { accounts, creditCards, addTransaction, confirmFund, addMSI } = useFinance();
+    const { accounts, creditCards, addTransaction, confirmFund, addMSI, tags, addTag } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createTransactionStyles(theme), [theme]);
     const TYPES = useMemo(() => getTypes(theme), [theme]);
@@ -89,6 +90,30 @@ export default function TransactionScreen() {
     const [isMSI, setIsMSI] = useState(false);
     const [msiMonths, setMsiMonths] = useState(12);
     const [showTypeSheet, setShowTypeSheet] = useState(false);
+
+    // Tags — always optional, unlike everything else on this screen.
+    // selectedTagIds is just a plain array of tag ids; the "+ Nueva"
+    // sheet below creates a tag in useTags and immediately selects it.
+    const [selectedTagIds, setSelectedTagIds] = useState([]);
+    const [showNewTag, setShowNewTag] = useState(false);
+    const [newTagName, setNewTagName] = useState('');
+    const [newTagIcon, setNewTagIcon] = useState('other');
+
+    const toggleTag = (id) => {
+        setSelectedTagIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
+    };
+
+    const handleCreateTag = async () => {
+        const result = await addTag({ label: newTagName, icon: newTagIcon });
+        if (result?.error) {
+            Alert.alert('No se pudo crear', result.error);
+            return;
+        }
+        setSelectedTagIds(prev => [...prev, result.id]);
+        setNewTagName('');
+        setNewTagIcon('other');
+        setShowNewTag(false);
+    };
 
     const cur = TYPES[type];
     const canUseMSI = type === 'expense' && useCredit && selectedCard;
@@ -124,6 +149,7 @@ export default function TransactionScreen() {
                 reason: `${reason.trim()} (MSI ${msiMonths}m)`,
                 category: null,
                 accountId: null, creditCardId: selectedCard,
+                tagIds: selectedTagIds,
             });
             if (result?.error) {
                 Alert.alert('No se pudo registrar', result.error);
@@ -143,6 +169,7 @@ export default function TransactionScreen() {
             accountId: useCredit ? null : selectedAccount,
             toAccountId: type === 'transfer' ? toAccount : null,
             creditCardId: useCredit ? selectedCard : null,
+            tagIds: selectedTagIds,
         });
         if (result?.error) {
             Alert.alert('No se pudo registrar', result.error);
@@ -252,7 +279,7 @@ export default function TransactionScreen() {
             >
                 {/* Reason / name — the only descriptive field now, and
                     what History/Home actually show for this movement */}
-                <Text style={styles.fieldLabel}>¿EN QUÉ?</Text>
+                <Text style={styles.fieldLabel}>¿EN QUÉ? <Text style={styles.requiredMark}>*</Text></Text>
                 <TextInput
                     style={styles.input}
                     value={reason}
@@ -261,10 +288,43 @@ export default function TransactionScreen() {
                     placeholderTextColor={theme.muted}
                 />
 
+                {/* Tags — fully optional, purely for a future
+                    breakdown by tag. Same pillsWrap pattern as
+                    accounts/MSI months below, plus a trailing "+
+                    Nueva" pill that opens the inline creator sheet. */}
+                <Text style={styles.fieldLabel}>ETIQUETAS <Text style={styles.optionalHint}>(opcional)</Text></Text>
+                <View style={styles.pillsWrap}>
+                    {tags.map(tag => {
+                        const TagIcon = getTagIcon(tag.icon);
+                        const isSelected = selectedTagIds.includes(tag.id);
+                        return (
+                            <TouchableOpacity
+                                key={tag.id}
+                                style={[
+                                    styles.tagPill,
+                                    isSelected
+                                        ? { backgroundColor: theme.brandSoft, borderColor: theme.brand }
+                                        : { borderColor: theme.border },
+                                ]}
+                                onPress={() => toggleTag(tag.id)}
+                            >
+                                <TagIcon color={isSelected ? theme.brand : theme.muted} size={14} />
+                                <Text style={[styles.tagPillText, { color: isSelected ? theme.brand : theme.muted }]}>
+                                    {tag.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                    <TouchableOpacity style={styles.tagAddPill} onPress={() => setShowNewTag(true)}>
+                        <IconPlus color={theme.muted} size={12} />
+                        <Text style={styles.tagPillText}>Nueva</Text>
+                    </TouchableOpacity>
+                </View>
+
                 {/* Account(s) */}
                 {type === 'transfer' ? (
                     <>
-                        <Text style={styles.fieldLabel}>CUENTA ORIGEN</Text>
+                        <Text style={styles.fieldLabel}>CUENTA ORIGEN <Text style={styles.requiredMark}>*</Text></Text>
                         <View style={styles.pillsWrap}>
                             {accounts.map(item => {
                                 const isSelected = selectedAccount === item.id;
@@ -298,7 +358,7 @@ export default function TransactionScreen() {
                             })}
                         </View>
 
-                        <Text style={styles.fieldLabel}>CUENTA DESTINO</Text>
+                        <Text style={styles.fieldLabel}>CUENTA DESTINO <Text style={styles.requiredMark}>*</Text></Text>
                         <View style={styles.pillsWrap}>
                             {accounts.filter(item => item.id !== selectedAccount).map(item => {
                                 const isSelected = toAccount === item.id;
@@ -326,7 +386,7 @@ export default function TransactionScreen() {
                     </>
                 ) : (
                     <>
-                        <Text style={styles.fieldLabel}>CUENTA</Text>
+                        <Text style={styles.fieldLabel}>CUENTA <Text style={styles.requiredMark}>*</Text></Text>
                         {type === 'expense' && creditCards.length > 0 && (
                             <TouchableOpacity
                                 style={styles.toggle}
@@ -470,6 +530,60 @@ export default function TransactionScreen() {
                         ))}
                     </View>
                 </View>
+            </Modal>
+
+            {/* "+ Nueva" tag — centered card over a blurred backdrop,
+                not a bottom sheet (see tagModalOverlay in the
+                stylesheet for why). Icon picker built from the same
+                TAG_ICON_OPTIONS list every default tag draws from, so
+                there's no separate icon set to maintain. */}
+            <Modal visible={showNewTag} transparent animationType="fade" onRequestClose={() => setShowNewTag(false)}>
+                <BlurView intensity={40} tint="dark" style={styles.tagModalOverlay}>
+                    <TouchableOpacity style={styles.tagModalBackdrop} activeOpacity={1} onPress={() => setShowNewTag(false)} />
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.tagModalKav}
+                    >
+                        <View style={styles.tagModalCard}>
+                            <Text style={styles.typeSheetTitle}>Nueva etiqueta</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={newTagName}
+                                onChangeText={setNewTagName}
+                                placeholder="Nombre de la etiqueta"
+                                placeholderTextColor={theme.muted}
+                                autoFocus
+                            />
+                            <Text style={[styles.fieldLabel, { marginTop: Spacing.md }]}>ÍCONO</Text>
+                            <View style={styles.pillsWrap}>
+                                {TAG_ICON_OPTIONS.map(key => {
+                                    const OptIcon = getTagIcon(key);
+                                    const isSelected = newTagIcon === key;
+                                    return (
+                                        <TouchableOpacity
+                                            key={key}
+                                            style={[
+                                                styles.iconOption,
+                                                isSelected
+                                                    ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                    : { borderColor: theme.border },
+                                            ]}
+                                            onPress={() => setNewTagIcon(key)}
+                                        >
+                                            <OptIcon color={isSelected ? theme.brandOn : theme.muted} size={16} />
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, { backgroundColor: theme.brand, marginTop: Spacing.lg }]}
+                                onPress={handleCreateTag}
+                            >
+                                <Text style={[styles.confirmText, { color: theme.brandOn }]}>Crear etiqueta</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </KeyboardAvoidingView>
+                </BlurView>
             </Modal>
         </View>
     );

@@ -4,7 +4,7 @@
 // and only the glow/pills/amount carry the type accent, same rule as
 // everywhere else in the app.
 import { StyleSheet } from 'react-native';
-import { FontSize, Spacing, Radius } from '../constants';
+import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
 export default function createTransactionStyles(theme) {
     return StyleSheet.create({
@@ -141,6 +141,100 @@ export default function createTransactionStyles(theme) {
             fontSize: FontSize.xs,
             color: theme.muted,
             marginTop: Spacing.xs,
+        },
+
+        // Required/optional field markers — the asterisk sits inline
+        // inside a fieldLabel (see TransactionScreen.jsx), the legend
+        // explains it once near the top of the sheet.
+        requiredMark: {
+            color: theme.moneyOut,
+            fontWeight: '800',
+        },
+        requiredLegend: {
+            fontSize: FontSize.xs,
+            color: theme.muted,
+            marginBottom: Spacing.xs,
+        },
+        optionalHint: {
+            fontSize: FontSize.xs,
+            fontWeight: '600',
+            color: theme.muted,
+            textTransform: 'none',
+            letterSpacing: 0,
+        },
+
+        // Tags — same pill sizing as catPill, plus room for a leading
+        // icon. tagAddPill is the trailing "+ Nueva" pill, dashed so
+        // it visually reads as "add" rather than another choice.
+        tagPill: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm - 1,
+            borderRadius: Radius.full,
+            borderWidth: 1.5,
+            backgroundColor: theme.bg,
+        },
+        tagPillText: {
+            fontSize: FontSize.sm,
+            fontWeight: '700',
+            color: theme.muted,
+        },
+        tagAddPill: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm - 1,
+            borderRadius: Radius.full,
+            borderWidth: 1.5,
+            borderStyle: 'dashed',
+            borderColor: theme.border,
+            backgroundColor: theme.bg,
+        },
+
+        // Icon picker inside the "Nueva etiqueta" sheet
+        iconOption: {
+            width: 40, height: 40,
+            borderRadius: Radius.sm,
+            borderWidth: 1.5,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: theme.bg,
+        },
+
+        // "Nueva etiqueta" modal — a centered card with a blurred
+        // backdrop (BlurView, same pattern OnboardingOverlayScreen
+        // already uses) instead of a bottom sheet. A bottom sheet has
+        // no room to move once the keyboard opens (the TextInput here
+        // autofocuses), so it either sits half-hidden behind the
+        // keyboard or has to fight it — centering the card and
+        // wrapping it in KeyboardAvoidingView sidesteps that
+        // entirely: there's always room above the keyboard to shift
+        // into.
+        tagModalOverlay: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: Spacing.lg,
+        },
+        tagModalBackdrop: {
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+        },
+        tagModalKav: {
+            width: '100%',
+            justifyContent: 'center',
+        },
+        tagModalCard: {
+            backgroundColor: theme.surface,
+            borderRadius: Radius.lg,
+            padding: Spacing.lg,
+            width: '100%',
+            borderWidth: 1,
+            borderColor: theme.border,
+            ...Shadow.float,
         },
 
         // Text input
