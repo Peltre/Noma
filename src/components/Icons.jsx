@@ -133,6 +133,14 @@ export function IconChevronDown({ color, size = 15 }) {
     );
 }
 
+export function IconChevronRight({ color, size = 15 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path d="M9 5l7 7-7 7" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
 export function IconCheck({ color, size = 13 }) {
     return (
         <Svg {...vb(size)}>
@@ -263,6 +271,69 @@ export function IconCalendar({ color, size = 18 }) {
             <Rect x="3" y="5" width="18" height="16" rx="2" stroke={color} strokeWidth={SW} />
             <Path d="M3 9.5h18" stroke={color} strokeWidth={SW} />
             <Path d="M8 3v4M16 3v4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
+// Calendar + clock — "Programado" (a scheduled/recurring MSI
+// payment). The plain calendar above is DatePickerField's "pick a
+// date" glyph; this is a different meaning ("this happens on a
+// schedule"), so it gets the clock badge to read as recurring, not
+// just "has a date". The calendar body+tabs are sized and placed so
+// their own bounding box sits dead-center at (12,12) — the clock is
+// a small corner badge on top, same as any other icon+badge pairing
+// in this file, not something the calendar shifts over to make room
+// for.
+export function IconCalendarClock({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Rect x="5" y="7" width="14" height="12" rx="2" stroke={color} strokeWidth={SW} />
+            <Path d="M5 10.5h14" stroke={color} strokeWidth={SW} />
+            <Path d="M9 5v4M15 5v4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+            <Circle cx="19" cy="19" r="3.8" stroke={color} strokeWidth={SW} fill="none" />
+            <Path d="M19 16.8v2.2l1.5,0.9" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+    );
+}
+
+// Banknote + plus — "Ingreso". The badge is a solid filled circle
+// (same `color` as the banknote) sitting right on the banknote's
+// corner, same overlapping placement as IconCalendarClock's clock —
+// the "+" on top is painted in `bgColor` (the icon's own container
+// background, e.g. theme.moneyInSoft) rather than cut out as a real
+// transparent hole. A transparent cutout let whatever was underneath
+// (the banknote's own lines) show through wherever they crossed it;
+// painting the plus in the container's actual background color always
+// reads clean regardless of what the badge happens to overlap. The
+// badge circle also gets a `bgColor` border — a thin halo of the same
+// color as the plus, same trick PendingFundCard's badges use to
+// separate a circle cleanly from whatever sits behind it.
+// bgColor must be an OPAQUE color (theme.surface, not visual.bg/cfg.bg
+// — those are low-alpha tints, and painted over the solid badge
+// circle they barely show up at all). It doesn't need to match the
+// icon's own soft-tinted box exactly, just needs to be solid enough
+// to read clearly.
+export function IconBanknotePlus({ color, bgColor = '#FFFFFF', size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Rect x="2" y="6" width="20" height="12" rx="2" stroke={color} strokeWidth={SW} />
+            <Circle cx="12" cy="12" r="2.8" stroke={color} strokeWidth={SW} />
+            <Circle cx="20.5" cy="18.5" r="4.7" fill={color} stroke={bgColor} strokeWidth={1.4} />
+            <Path d="M20.5 15.2v6.6M17.2 18.5h6.6" stroke={bgColor} strokeWidth={1.3} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
+// Receipt — "Gasto". A torn-edge slip reads more specifically as
+// "money spent on something" than a bare arrow did.
+export function IconReceipt({ color, size = 18 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Path
+                d="M5 3h14v14.5l-1.75,3 -1.75,-3 -1.75,3 -1.75,-3 -1.75,3 -1.75,-3 -1.75,3 -1.75,-3V3z"
+                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
+            />
+            <Path d="M8 7.5h8M8 11h8M8 14h5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
         </Svg>
     );
 }
