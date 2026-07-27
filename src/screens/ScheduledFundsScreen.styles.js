@@ -1,6 +1,9 @@
-// ScheduledFundsScreen styles — theme-driven. Scheduled funds are
-// money coming in, so they use moneyIn as their accent (same fixed
-// meaning as everywhere else in the app), delete uses moneyOut.
+// ScheduledFundsScreen styles — theme-driven. Cards are neutral now
+// (theme.surface, no moneyIn/moneyOut tint), matching Home's
+// PendingFundCard: nothing here has actually moved yet, so nothing
+// should look as settled as a real transaction. Delete still uses
+// moneyOut — that action itself is a clear negative, unlike the fund
+// sitting there waiting.
 //
 // This screen is view-only now (create/edit for income funds lives
 // on AddScheduledFundScreen instead), so the form-field styles that
@@ -102,27 +105,41 @@ export default function createScheduledFundsStyles(theme) {
             borderColor: theme.border,
             ...Shadow.card,
         },
+        // Same "pending, nothing's moved yet" signal PendingFundCard
+        // uses on Home — dashed instead of solid, no color change.
+        fundCardPending: {
+            borderStyle: 'dashed',
+        },
         fundTop: {
             flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
+            alignItems: 'center',
+            gap: Spacing.sm,
             marginBottom: Spacing.sm,
         },
-        fundNameRow: {
-            flexDirection: 'row',
+        // Neutral icon box — same treatment Home's PendingFundCard
+        // gives its type icon (muted on theme.border), not a colored
+        // accent tied to income vs. MSI.
+        fundIconBox: {
+            width: 32, height: 32,
+            borderRadius: Radius.sm,
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: 6,
-            flexShrink: 1,
+            flexShrink: 0,
+            backgroundColor: theme.border,
         },
         fundName: {
             fontSize: FontSize.md,
             fontWeight: '700',
             color: theme.ink,
+            flex: 1,
         },
+        // Neutral, not moneyIn/moneyOut — matches PendingFundCard: an
+        // amount here hasn't actually moved yet, so it shouldn't read
+        // like a settled transaction.
         fundAmount: {
             fontSize: FontSize.md,
             fontWeight: '700',
-            color: theme.moneyIn,
+            color: theme.ink,
         },
         fundMeta: {
             flexDirection: 'row',
@@ -131,19 +148,25 @@ export default function createScheduledFundsStyles(theme) {
             alignItems: 'center',
         },
         fundMetaBadge: {
-            backgroundColor: theme.moneyInSoft,
+            backgroundColor: theme.border,
             borderRadius: Radius.full,
             paddingVertical: 2,
             paddingHorizontal: Spacing.sm,
         },
         fundMetaBadgeText: {
             fontSize: FontSize.xs,
-            color: theme.moneyIn,
+            color: theme.muted,
             fontWeight: '600',
         },
         fundMetaText: {
             fontSize: FontSize.xs,
             color: theme.muted,
+        },
+        // Same weight-not-color urgency cue as PendingFundCard's
+        // subtitleOverdue — only the "Venció · ..." line gets it.
+        fundMetaTextOverdue: {
+            color: theme.ink,
+            fontWeight: '700',
         },
         fundActions: {
             flexDirection: 'row',

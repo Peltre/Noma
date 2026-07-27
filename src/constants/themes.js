@@ -16,6 +16,15 @@
 //            plain neutral, without competing with brand.
 //   savingsOn  same idea as brandOn, for a `savings`-colored surface
 //            (e.g. the "Marcar como comprado" button)
+//   alert    "this is scheduled/pending, nothing has moved yet, you
+//            need to act" — used sparingly now (a small warning badge
+//            + dashed border on PendingFundCard), not as a card-wide
+//            fill. A cool, muted gray on purpose, close to `muted`
+//            but with a colder undertone — distinct enough to notice,
+//            nowhere near loud enough to compete with this palette's
+//            calm, desert-toned accents.
+//   alertOn  same idea as brandOn/savingsOn, for an `alert`-colored
+//            surface
 // An expense amount in text always uses `ink` (neutral), never
 // moneyOut. A single expense should not read as an alert.
 
@@ -51,6 +60,12 @@ export const Themes = {
         // dark. Same role brandOn already plays for `brand`.
         savingsOn: '#FFFFFF',
 
+        // Cool slate-gray, a hair colder than `muted` — reads as
+        // "quietly different", not colored, on this warm cream bg.
+        alert: '#7E8580',
+        alertSoft: 'rgba(126,133,128,0.08)',
+        alertOn: '#FFFFFF',
+
         cashTone: '#D9C7A3',
     },
 
@@ -80,6 +95,12 @@ export const Themes = {
         savingsSoft: 'rgba(91,158,240,0.18)',
         savingsOn: '#FFFFFF',
 
+        // Cool blue-gray, close to `muted` but colder — reads as
+        // quietly distinct against the dark bg, not as a new accent.
+        alert: '#9AA3B0',
+        alertSoft: 'rgba(154,163,176,0.10)',
+        alertOn: '#11151D',
+
         cashTone: '#4A4C52',
     },
 
@@ -108,6 +129,12 @@ export const Themes = {
         savings: '#5A93C4',
         savingsSoft: 'rgba(90,147,196,0.18)',
         savingsOn: '#FFFFFF',
+
+        // Same reasoning as medianoche's: a cool, muted gray instead
+        // of adding a second warm hue to an already-warm palette.
+        alert: '#9BA0A6',
+        alertSoft: 'rgba(155,160,166,0.10)',
+        alertOn: '#1E160F',
 
         cashTone: '#4A3C2C',
     },

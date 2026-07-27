@@ -30,7 +30,7 @@ import { useTheme } from "../store/useTheme";
 import { formatCurrencyShort } from "../utils";
 import { FREQUENCY_LABELS } from '../constants';
 import DatePickerField from '../components/DatePickerField';
-import { IconCalendar, IconWarningTriangle, IconChevronLeft, IconRepeat, IconPencil, IconPlus } from '../components/Icons';
+import { IconCalendar, IconCalendarClock, IconChevronLeft, IconPencil, IconPlus } from '../components/Icons';
 import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
 
 const FILTERS = [
@@ -126,13 +126,15 @@ export default function ScheduledFundsScreen() {
         );
     };
 
-    // Status color for each fund card — overdue leans on moneyOut
-    // (needs attention), upcoming leans on moneyIn (money coming
-    // soon), same fixed accents as everywhere else in the app.
-    const getStatusColor = (status) => {
-        if (status === 'overdue') return theme.moneyOutSoft;
-        if (status === 'upcoming') return theme.moneyInSoft;
-        return theme.surface;
+    // Same "Venció/Próximo" wording PendingFundCard uses on Home —
+    // urgency comes through in the words and (below) the card's
+    // border, not a colored background. A fund that isn't due soon
+    // just gets a plain date, no urgency framing.
+    const getDateLabel = (status, nextDate) => {
+        const formatted = format(parseISO(nextDate), 'd MMM yyyy', { locale: es });
+        if (status === 'overdue') return `Venció · ${formatted}`;
+        if (status === 'upcoming') return `Próximo · ${formatted}`;
+        return `Próximo: ${formatted}`;
     };
 
     return (
@@ -233,20 +235,17 @@ export default function ScheduledFundsScreen() {
                         {visibleIncome.map(fund => {
                             const status = getFundStatus(fund);
                             const account = accounts.find(a => a.id === fund.accountId);
-                            const statusColor = status === 'overdue' ? theme.moneyOut
-                                : status === 'upcoming' ? theme.moneyIn
-                                    : null;
+                            const isPending = status !== 'ok';
                             return (
                                 <View
                                     key={fund.id}
-                                    style={[styles.fundCard, { backgroundColor: getStatusColor(status) }]}
+                                    style={[styles.fundCard, isPending && styles.fundCardPending]}
                                 >
                                     <View style={styles.fundTop}>
-                                        <View style={styles.fundNameRow}>
-                                            {status === 'overdue' && <IconWarningTriangle color={statusColor} size={15} />}
-                                            {status === 'upcoming' && <IconCalendar color={statusColor} size={15} />}
-                                            <Text style={styles.fundName}>{fund.name}</Text>
+                                        <View style={styles.fundIconBox}>
+                                            <IconCalendarClock color={theme.muted} size={15} />
                                         </View>
+                                        <Text style={styles.fundName} numberOfLines={1}>{fund.name}</Text>
                                         <Text style={styles.fundAmount}>
                                             +{formatCurrencyShort(fund.amount)}
                                         </Text>
@@ -257,8 +256,8 @@ export default function ScheduledFundsScreen() {
                                                 {FREQUENCY_LABELS[fund.frequency]}
                                             </Text>
                                         </View>
-                                        <Text style={styles.fundMetaText}>
-                                            Próximo: {format(parseISO(fund.nextDate), 'd MMM yyyy', { locale: es })}
+                                        <Text style={[styles.fundMetaText, status === 'overdue' && styles.fundMetaTextOverdue]}>
+                                            {getDateLabel(status, fund.nextDate)}
                                         </Text>
                                         {account && (
                                             <Text style={styles.fundMetaText}>
@@ -295,33 +294,29 @@ export default function ScheduledFundsScreen() {
                         {visibleMSI.map(fund => {
                             const status = getFundStatus(fund);
                             const card = creditCards.find(c => c.id === fund.creditCardId);
-                            const statusColor = status === 'overdue' ? theme.moneyOut
-                                : status === 'upcoming' ? theme.moneyIn
-                                    : null;
+                            const isPending = status !== 'ok';
                             return (
                                 <View
                                     key={fund.id}
-                                    style={[styles.fundCard, { backgroundColor: getStatusColor(status) }]}
+                                    style={[styles.fundCard, isPending && styles.fundCardPending]}
                                 >
                                     <View style={styles.fundTop}>
-                                        <View style={styles.fundNameRow}>
-                                            {status === 'overdue'
-                                                ? <IconWarningTriangle color={statusColor} size={15} />
-                                                : <IconRepeat color={theme.moneyOut} size={15} />}
-                                            <Text style={styles.fundName}>{fund.name}</Text>
+                                        <View style={styles.fundIconBox}>
+                                            <IconCalendarClock color={theme.muted} size={15} />
                                         </View>
-                                        <Text style={[styles.fundAmount, { color: theme.moneyOut }]}>
+                                        <Text style={styles.fundName} numberOfLines={1}>{fund.name}</Text>
+                                        <Text style={styles.fundAmount}>
                                             −{formatCurrencyShort(fund.monthlyAmount)}
                                         </Text>
                                     </View>
                                     <View style={styles.fundMeta}>
-                                        <View style={[styles.fundMetaBadge, { backgroundColor: theme.moneyOutSoft }]}>
-                                            <Text style={[styles.fundMetaBadgeText, { color: theme.moneyOut }]}>
+                                        <View style={styles.fundMetaBadge}>
+                                            <Text style={styles.fundMetaBadgeText}>
                                                 Pago {fund.paidMonths + 1} de {fund.months}
                                             </Text>
                                         </View>
-                                        <Text style={styles.fundMetaText}>
-                                            Próximo: {format(parseISO(fund.nextDate), 'd MMM yyyy', { locale: es })}
+                                        <Text style={[styles.fundMetaText, status === 'overdue' && styles.fundMetaTextOverdue]}>
+                                            {getDateLabel(status, fund.nextDate)}
                                         </Text>
                                         {card && (
                                             <Text style={styles.fundMetaText}>
