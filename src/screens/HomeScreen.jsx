@@ -16,8 +16,8 @@ import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
 import NightSkyArt from '../components/NightSkyArt';
 import {
-    IconArrowDown, IconArrowUp, IconSwap, IconArrowRight, IconRepeat, IconCash,
-    IconTrendUp, IconTrendDown,
+    IconSwap, IconCash,
+    IconTrendUp, IconTrendDown, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus,
 } from '../components/Icons';
 
 // Same "d MMM · HH:mm" shape History already uses, just swapping in
@@ -65,12 +65,12 @@ function getAccountColor(theme, account) {
 // paid, and their own icon each so they don't blend into the
 // generic withdrawal icon or into each other.
 function getTxnVisual(theme, type, category) {
-    if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconRepeat };
+    if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCalendarClock };
     if (category === 'card_payment') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCash };
-    if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconArrowDown };
-    if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconArrowUp };
+    if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
+    if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
     if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, Icon: IconSwap };
-    return { bg: theme.border, color: theme.muted, Icon: IconArrowRight };
+    return { bg: theme.border, color: theme.muted, Icon: IconWallet };
 }
 
 // Confirm-and-pay sheet for one MSI installment.
@@ -480,7 +480,7 @@ export default function HomeScreen() {
                                         ]}
                                     >
                                         <View style={[styles.txnIconWrap, { backgroundColor: visual.bg }]}>
-                                            <visual.Icon color={visual.color} size={16} />
+                                            <visual.Icon color={visual.color} bgColor={theme.surface} size={16} />
                                         </View>
                                         <View style={styles.txnInfo}>
                                             <Text style={styles.txnName} numberOfLines={1}>
