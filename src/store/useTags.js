@@ -6,7 +6,7 @@
 // pick — tags are the opposite: always optional, always person-
 // picked, and never block registering a transaction.
 import { useState, useEffect } from 'react';
-import { saveData, loadData } from './storage';
+import { saveData, loadData, removeData } from './storage';
 
 const TAGS_KEY = 'tags';
 
@@ -59,5 +59,15 @@ export function useTags() {
         return newTag;
     };
 
-    return { tags, tagsLoading, addTag };
+    // Same shape as resetSettings: a reset user is a new user, and a
+    // new user starts with the seeded defaultTags, not an empty list.
+    // Without this, "Borrar todos los datos" in Settings left custom
+    // tags sitting in storage even though every other piece of data
+    // was wiped.
+    const resetTags = async () => {
+        await removeData(TAGS_KEY);
+        setTags(defaultTags);
+    };
+
+    return { tags, tagsLoading, addTag, resetTags };
 }

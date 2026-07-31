@@ -18,7 +18,7 @@ import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconPenc
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
-    const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings } = useFinance();
+    const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings, resetTags } = useFinance();
     const { theme, themeName, setTheme, themes, themeNames } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
     const [userName, setUserName] = useState('');
@@ -66,6 +66,7 @@ export default function SettingsScreen() {
                         await resetSavings();
                         await resetScheduledFunds();
                         await resetSettings();
+                        await resetTags();
                         Alert.alert('Datos borrados', 'Empecemos de nuevo.');
                     },
                 },
