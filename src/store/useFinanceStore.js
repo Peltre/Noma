@@ -277,7 +277,16 @@ export function useFinanceStore() {
             }
         }
         if (txn.type === 'expense' && txn.creditCardId) {
+            // Reverse a purchase: debt goes back down by what it went up.
             await updateCreditCardDebt(txn.creditCardId, -txn.amount);
+        } else if (txn.type === 'withdrawal' && txn.linkedCardId) {
+            // Reverse a card payment / MSI installment (see linkedCardId's
+            // comment in CardsScreen.jsx / HomeScreen.jsx): debt goes back
+            // UP by what this payment had paid down. Without this, deleting
+            // one of these gave the money back to the account while
+            // silently leaving the card's debt wiped out — free debt
+            // forgiveness.
+            await updateCreditCardDebt(txn.linkedCardId, txn.amount);
         }
         const updated = transactions.filter(t => t.id !== txnId);
         setTransactions(updated);
@@ -339,6 +348,15 @@ export function useFinanceStore() {
                     }
                 }
                 await updateCreditCardDebt(txn.creditCardId, delta);
+            } else if (txn.type === 'withdrawal' && txn.linkedCardId) {
+                // A card payment / MSI installment moves debt the OPPOSITE
+                // direction of a purchase: a bigger payment pays MORE debt
+                // down (-delta), a smaller one restores some of what was
+                // already paid (delta is negative, so -delta is positive).
+                // No limit check needed — the most this can push debt back
+                // up to is what it already was right before this payment,
+                // which was already within the limit back then.
+                await updateCreditCardDebt(txn.linkedCardId, -delta);
             }
         }
 

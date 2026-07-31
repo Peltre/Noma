@@ -103,6 +103,12 @@ function MSIPaySheet({ fund, accounts, onClose }) {
             category: 'msi',
             accountId,
             creditCardId: null,
+            // See linkedCardId's comment in CardsScreen.jsx's PayCardSheet —
+            // same idea: remembers which card this installment paid down
+            // without tripping the "expense + creditCardId = new purchase"
+            // logic elsewhere, so editing/deleting it later can still
+            // restore the right amount of debt.
+            linkedCardId: fund.creditCardId,
         });
         if (result?.error) {
             setLoading(false);

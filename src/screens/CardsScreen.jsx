@@ -111,6 +111,14 @@ function PayCardSheet({ card, accounts, onClose }) {
             category: 'card_payment',
             accountId,
             creditCardId: null,
+            // NOT the same thing as creditCardId above (that one stays null
+            // on purpose — see the comment before this function — because
+            // `expense` + creditCardId means "new purchase" everywhere
+            // else). linkedCardId just remembers which card this payment
+            // paid down, so useFinanceStore's deleteTransaction/
+            // updateTransaction can restore the right amount of debt if
+            // this payment is later edited or removed from Historial.
+            linkedCardId: card.id,
         });
         setLoading(false);
         if (result?.error) {
