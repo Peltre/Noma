@@ -71,6 +71,22 @@ export function useScheduledFunds() {
         await saveData(KEY, updated);
     };
 
+    // Generic partial update, used by both AddScheduledFundScreen (name,
+    // amount, frequency, accountId, nextDate for income funds) and the
+    // MSI edit modal on ScheduledFundsScreen (name, nextDate only). Only
+    // name/date are ever safe to change on an MSI after the purchase
+    // already happened — totalAmount/months/monthlyAmount/paidMonths are
+    // load-bearing for the debt math in useFinanceStore and confirmMSI
+    // above, so callers simply never send those fields rather than this
+    // function needing to filter them out.
+    const updateScheduledFund = async (fundId, changes) => {
+        const updated = scheduledFunds.map(f =>
+            f.id === fundId ? { ...f, ...changes } : f
+        );
+        setScheduledFunds(updated);
+        await saveData(KEY, updated);
+    };
+
     // MSI Installments
 
     const addMSI = async ({ name, totalAmount, months, firstDate, accountId, creditCardId }) => {
@@ -132,6 +148,7 @@ export function useScheduledFunds() {
         scheduledFunds,
         pendingFunds,
         addScheduledFund,
+        updateScheduledFund,
         confirmFund,
         removeScheduledFund,
         addMSI,
