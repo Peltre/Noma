@@ -82,13 +82,27 @@ export default function createHomeStyles(theme) {
             marginTop: Spacing.lg,
             zIndex: 1,
         },
+        balanceLabelRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.xs,
+            marginBottom: Spacing.xs,
+        },
         balanceLabel: {
             fontSize: FontSize.sm,
             fontWeight: '700',
             letterSpacing: 2,
             textTransform: 'uppercase',
             color: theme.muted,
-            marginBottom: Spacing.xs,
+        },
+        // Small and "un poco llamativo" (a little eye-catching) per
+        // spec — brand-colored so it stands out from the muted label
+        // next to it without competing with the balance amount below.
+        currencyTag: {
+            fontSize: FontSize.xs,
+            fontWeight: '800',
+            letterSpacing: 1,
+            color: theme.brand,
         },
         balanceAmount: {
             fontSize: FontSize.hero,

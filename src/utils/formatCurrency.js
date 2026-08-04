@@ -13,21 +13,38 @@ export const round2 = (amount) => {
     return Math.round((amount + Number.EPSILON) * 100) / 100;
 };
 
-export const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount)
+// formatCurrency/formatCurrencyShort deliberately do NOT read
+// settings.currency and never switch to Intl's `style: 'currency'`
+// with a `currency` code. Two reasons:
+//
+//   1. Every currency Settings lets someone pick (see
+//      constants/index.js's CURRENCIES) uses the "$" glyph, so the
+//      display should stay pixel-identical no matter which one is
+//      active — that's the whole point of SettingsScreen's currency
+//      switcher: the NUMBER changes (a real conversion happened),
+//      not the look of the app.
+//   2. Intl disagrees: under the 'es-MX' locale,
+//      `style:'currency', currency:'USD'` renders as "USD 1,234.50"
+//      (no $ at all), not "$1,234.50" — a different shape per
+//      currency, which is exactly what switching currencies should
+//      NOT do here. Building the string by hand from a plain
+//      'decimal' format sidesteps that entirely.
+//
+// Where the currency actually needs to be visible (HomeScreen's
+// small "MXN"/"USD" tag), that's rendered as its own separate label
+// right next to these — see HomeScreen.jsx.
+const formatDecimal = (amount, fractionDigits) => {
+    const value = Number(amount) || 0;
+    const sign = value < 0 ? '−' : '';
+    const formatted = new Intl.NumberFormat('es-MX', {
+        style: 'decimal',
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    }).format(Math.abs(value));
+    return `${sign}$${formatted}`;
 };
 
+export const formatCurrency = (amount) => formatDecimal(amount, 2);
+
 // aux function to show w/o decimals for smaller spaces, dont know if will use
-export const formatCurrencyShort = (amount) => {
-    return new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(amount)
-}
+export const formatCurrencyShort = (amount) => formatDecimal(amount, 0);

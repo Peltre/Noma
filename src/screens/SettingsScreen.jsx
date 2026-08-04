@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     TextInput,
     Alert,
+    Modal,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -14,7 +16,99 @@ import createSettingsStyles from './SettingsScreen.styles';
 
 import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
-import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconPencil } from '../components/Icons';
+import { CURRENCIES } from "../constants";
+import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconChevronRight, IconPencil } from '../components/Icons';
+
+// Moneda picker — a real conversion, not just a display preference:
+// picking a different currency here rescales every stored amount in
+// the app (see FinanceContext's changeCurrency) using a live exchange
+// rate, which is the one thing in this fully-offline app that
+// actually needs internet. Modeled after the Apariencia section
+// right below it (radio rows, tap to apply) but gated behind a
+// confirmation — unlike a theme, this can't be undone with a second
+// tap once the amounts have already been rescaled.
+function CurrencyPickerModal({ visible, onClose }) {
+    const { settings, changeCurrency } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSettingsStyles(theme), [theme]);
+    const [converting, setConverting] = useState(false);
+
+    const handlePick = (code) => {
+        if (code === settings.currency || converting) return;
+        const currency = CURRENCIES.find(c => c.code === code);
+        Alert.alert(
+            `Cambiar a ${code}`,
+            `Todos tus montos se convertirán de ${settings.currency} a ${code} usando el tipo de cambio actual. Esto requiere conexión a internet y no se puede deshacer con un solo toque. ¿Continuar?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Continuar',
+                    onPress: async () => {
+                        setConverting(true);
+                        const result = await changeCurrency(code);
+                        setConverting(false);
+                        if (result?.error) {
+                            Alert.alert('Sin conexión', result.error);
+                            return;
+                        }
+                        onClose();
+                        Alert.alert(
+                            'Moneda actualizada',
+                            `Tu app ahora usa ${currency?.label ?? code}. Tipo de cambio usado: 1 ${settings.currency} = ${result.rate.toFixed(4)} ${code}.`
+                        );
+                    },
+                },
+            ]
+        );
+    };
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <View style={styles.modalBg}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={converting ? undefined : onClose} />
+                <View style={styles.sheet}>
+                    <View style={styles.sheetHandle} />
+                    <Text style={styles.sheetTitle}>Moneda</Text>
+                    <Text style={styles.sheetSubtitle}>
+                        Cambiar de moneda convierte automáticamente todo tu dinero — cuentas, tarjetas, ahorros y movimientos — al tipo de cambio del momento.
+                    </Text>
+
+                    <View style={styles.card}>
+                        {CURRENCIES.map((c, i) => {
+                            const isActive = settings.currency === c.code;
+                            return (
+                                <TouchableOpacity
+                                    key={c.code}
+                                    style={[styles.themeRow, i === CURRENCIES.length - 1 && styles.fieldRowLast]}
+                                    onPress={() => handlePick(c.code)}
+                                    activeOpacity={0.7}
+                                    disabled={converting}
+                                >
+                                    <View style={styles.fieldInfo}>
+                                        <Text style={styles.themeName}>{c.code}</Text>
+                                        <Text style={styles.themeDesc}>{c.label}</Text>
+                                    </View>
+                                    {converting && !isActive ? null : (
+                                        <View style={[styles.radio, isActive && styles.radioActive]}>
+                                            {isActive && <IconCheck color={theme.brandOn} />}
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {converting && (
+                        <View style={styles.convertingRow}>
+                            <ActivityIndicator color={theme.brand} />
+                            <Text style={styles.convertingText}>Convirtiendo tus montos…</Text>
+                        </View>
+                    )}
+                </View>
+            </View>
+        </Modal>
+    );
+}
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
@@ -31,6 +125,7 @@ export default function SettingsScreen() {
     // down got tapped too.
     const [isEditingName, setIsEditingName] = useState(false);
     const nameInputRef = useRef(null);
+    const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
     useEffect(() => {
         if (isEditingName) nameInputRef.current?.focus();
@@ -121,15 +216,22 @@ export default function SettingsScreen() {
                                 <IconPencil color={theme.brand} size={16} />
                             </TouchableOpacity>
                         </View>
-                        <View style={[styles.fieldRow, styles.fieldRowLast]}>
+                        <TouchableOpacity
+                            style={[styles.fieldRow, styles.fieldRowLast]}
+                            onPress={() => setShowCurrencyPicker(true)}
+                            activeOpacity={0.7}
+                        >
                             <View style={styles.fieldIcon}>
                                 <IconCurrency color={theme.ink} />
                             </View>
                             <View style={styles.fieldInfo}>
                                 <Text style={styles.fieldLabel}>Moneda</Text>
-                                <Text style={styles.fieldValue}>MXN - Peso mexicano</Text>
+                                <Text style={styles.fieldValue}>
+                                    {settings.currency} - {CURRENCIES.find(c => c.code === settings.currency)?.label ?? settings.currency}
+                                </Text>
                             </View>
-                        </View>
+                            <IconChevronRight color={theme.muted} size={14} />
+                        </TouchableOpacity>
                     </View>
                     {isEditingName && (
                         <TouchableOpacity
@@ -202,6 +304,11 @@ export default function SettingsScreen() {
                 <Text style={styles.versionText}>Noma v1.0.0</Text>
                 <View style={styles.bottomPadding} />
             </ScrollView>
+
+            <CurrencyPickerModal
+                visible={showCurrencyPicker}
+                onClose={() => setShowCurrencyPicker(false)}
+            />
         </SafeAreaView>
     )
 }

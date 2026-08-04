@@ -141,6 +141,22 @@ export function useScheduledFunds() {
         setScheduledFunds([]);
     };
 
+    // Currency switch (Settings → Moneda): rescales every real amount
+    // by `rate`. `amount` belongs to income funds, `totalAmount`/
+    // `monthlyAmount` to MSI — each only checked/converted when
+    // present so this works for both shapes without branching on
+    // `type`.
+    const convertAllAmounts = async (rate) => {
+        const updated = scheduledFunds.map(f => ({
+            ...f,
+            amount: f.amount != null ? round2(f.amount * rate) : f.amount,
+            totalAmount: f.totalAmount != null ? round2(f.totalAmount * rate) : f.totalAmount,
+            monthlyAmount: f.monthlyAmount != null ? round2(f.monthlyAmount * rate) : f.monthlyAmount,
+        }));
+        setScheduledFunds(updated);
+        await saveData(KEY, updated);
+    };
+
     // Funds that need attention (overdue or within 3 days) — both types
     const pendingFunds = scheduledFunds.filter(f => getFundStatus(f) !== 'ok');
 
@@ -155,5 +171,6 @@ export function useScheduledFunds() {
         confirmMSI,
         getFundStatus,
         resetScheduledFunds,
+        convertAllAmounts,
     };
 }

@@ -201,5 +201,55 @@ export default function createSettingsStyles(theme) {
             color: theme.moneyOut,
         },
         bottomPadding: { height: Spacing.xl },
+
+        // Currency picker sheet — same bottom-sheet shape SavingsScreen's
+        // modals use, kept local here since this is the only sheet in
+        // Settings so far.
+        modalBg: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'flex-end',
+        },
+        sheet: {
+            backgroundColor: theme.surface,
+            borderTopLeftRadius: Radius.lg,
+            borderTopRightRadius: Radius.lg,
+            padding: Spacing.lg,
+            paddingBottom: 44,
+            ...Shadow.float,
+        },
+        sheetHandle: {
+            width: 36, height: 4,
+            backgroundColor: theme.border,
+            borderRadius: 2,
+            alignSelf: 'center',
+            marginBottom: Spacing.lg,
+        },
+        sheetTitle: {
+            fontSize: FontSize.xl,
+            fontWeight: '800',
+            color: theme.ink,
+            letterSpacing: -0.3,
+            marginBottom: Spacing.xs,
+        },
+        sheetSubtitle: {
+            fontSize: FontSize.sm,
+            color: theme.muted,
+            marginBottom: Spacing.lg,
+            fontWeight: '500',
+            lineHeight: 18,
+        },
+        convertingRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: Spacing.sm,
+            marginTop: Spacing.lg,
+        },
+        convertingText: {
+            fontSize: FontSize.sm,
+            fontWeight: '600',
+            color: theme.muted,
+        },
     });
 }
