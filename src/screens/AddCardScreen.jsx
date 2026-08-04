@@ -23,7 +23,7 @@ export default function AddCardScreen() {
     const {
         addCreditCard, updateCreditCard, deleteCreditCard,
         addAccount, updateAccountDetails, deleteAccount,
-        accounts, creditCards,
+        accounts, creditCards, savingsAccounts,
     } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createAddCardStyles(theme), [theme]);
@@ -48,7 +48,14 @@ export default function AddCardScreen() {
     const [loading, setLoading] = useState(false);
 
     const typeIsCredit = cardType === 'credit';
-    const canDeleteNow = isEdit && (typeIsCredit ? editCard.currentDebt === 0 : editCard.balance === 0);
+    // A débito account with linked apartados can't be deleted either
+    // (see FinanceContext's wrapped deleteAccount) — checked here too
+    // so the button already shows as disabled instead of only
+    // failing with an Alert after it's tapped.
+    const hasLinkedApartados = isEdit && !typeIsCredit
+        && savingsAccounts.some(sa => sa.linkedAccountId === editCard.id);
+    const canDeleteNow = isEdit
+        && (typeIsCredit ? editCard.currentDebt === 0 : editCard.balance === 0 && !hasLinkedApartados);
 
     // Live validity for the two day fields — same "show it before
     // Guardar, not just after" idea as the credit-available hint.
@@ -312,7 +319,11 @@ export default function AddCardScreen() {
                             <Text style={[styles.deleteBtnText, !canDeleteNow && styles.deleteBtnTextDisabled]}>
                                 {canDeleteNow
                                     ? 'Eliminar tarjeta'
-                                    : (typeIsCredit ? 'Paga la deuda antes de eliminar' : 'Vacía la cuenta antes de eliminar')}
+                                    : (typeIsCredit
+                                        ? 'Paga la deuda antes de eliminar'
+                                        : hasLinkedApartados
+                                            ? 'Quita los apartados ligados antes de eliminar'
+                                            : 'Vacía la cuenta antes de eliminar')}
                             </Text>
                         </TouchableOpacity>
                     )}
