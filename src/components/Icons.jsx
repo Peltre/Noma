@@ -428,6 +428,16 @@ export function IconSparkle({ color, size = 20 }) {
 // the app. This pair means something different (balance up/down vs.
 // last month), so it needed its own shape, not a reused one that'd
 // carry the wrong association.
+export function IconPercent({ color, size = 16 }) {
+    return (
+        <Svg {...vb(size)}>
+            <Circle cx="6.5" cy="6.5" r="3" stroke={color} strokeWidth={SW} />
+            <Circle cx="17.5" cy="17.5" r="3" stroke={color} strokeWidth={SW} />
+            <Path d="M18 6L6 18" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        </Svg>
+    );
+}
+
 export function IconTrendUp({ color, size = 14 }) {
     return (
         <Svg {...vb(size)}>

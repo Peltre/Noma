@@ -187,6 +187,24 @@ export default function createSavingsStyles(theme) {
             justifyContent: 'center',
             alignItems: 'center',
         },
+        // Interest toggle button on an apartado row — swaps to the
+        // `savings` accent (same blue used for the badge/rate text
+        // below) once interest is actually on, so the row itself
+        // hints at it before you even read the badge.
+        actionBtnActive: {
+            backgroundColor: theme.savingsSoft,
+        },
+        interestBadgeRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            marginTop: 2,
+        },
+        interestBadgeText: {
+            fontSize: FontSize.xs,
+            color: theme.savings,
+            fontWeight: '700',
+        },
 
         // Goal card
         goalCard: {
@@ -505,6 +523,28 @@ export default function createSavingsStyles(theme) {
         },
         toggleText: { fontSize: FontSize.md, color: theme.ink, fontWeight: '500' },
         dateRow: { flexDirection: 'row', gap: Spacing.sm },
+
+        // Interest fields (InterestFields, shared by AddApartadoModal
+        // and EditInterestModal) — a soft-bounded box so the optional
+        // block reads as one clearly-contained unit once expanded,
+        // same idea as suggestionRow/riskRow elsewhere on this screen.
+        interestBox: {
+            backgroundColor: theme.savingsSoft,
+            borderRadius: Radius.sm,
+            padding: Spacing.md,
+            marginTop: Spacing.xs,
+        },
+        percentInputWrap: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.sm,
+        },
+        percentInput: { flex: 1 },
+        percentSign: {
+            fontSize: FontSize.sm,
+            fontWeight: '700',
+            color: theme.muted,
+        },
 
         // Sheet buttons
         sheetBtns: {

@@ -3,7 +3,7 @@
 // the full model: nothing here ever moves real money except the
 // "Marcar como comprado" redeem flow, which is the one place a goal
 // actually spends for real.
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
     View, Text, ScrollView, TouchableOpacity,
     TextInput, Alert, Modal, Platform, KeyboardAvoidingView,
@@ -20,7 +20,7 @@ import { Spacing } from "../constants";
 import createSavingsStyles from './SavingsScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
-import { IconCheck, IconClose, IconWarningTriangle, IconPlus, IconMinus } from '../components/Icons';
+import { IconCheck, IconClose, IconWarningTriangle, IconPlus, IconMinus, IconPercent } from '../components/Icons';
 
 // Only débito/efectivo can back an apartado — same rule useSavings.js
 // enforces server-side, mirrored here so the picker never even shows
@@ -106,6 +106,89 @@ function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
     );
 }
 
+// Empty/default shape for the interest form state shared by
+// AddApartadoModal (creation) and EditInterestModal (edit any time
+// after) below. Values are kept as strings the whole time — same
+// reasoning as every other money field in this app (DecimalInput
+// wants strings) — and only parsed to numbers right at submit time.
+const EMPTY_INTEREST = { enabled: false, rate: '', cap: '', rateAboveCap: '' };
+
+// Rate/cap fields for "this apartado grows on its own" — same toggle
+// pattern as the deadline toggle in AddGoalModal below. Shared between
+// creation and editing so both stay in sync automatically instead of
+// two copies of the same form drifting apart over time.
+function InterestFields({ value, onChange }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const hasCap = parseFloat(value.cap) > 0;
+
+    return (
+        <>
+            <TouchableOpacity
+                style={styles.toggle}
+                onPress={() => onChange({ ...value, enabled: !value.enabled })}
+                activeOpacity={0.7}
+            >
+                <View style={[styles.checkbox, value.enabled && styles.checkboxActive]}>
+                    {value.enabled && <IconCheck color={theme.brandOn} size={12} />}
+                </View>
+                <Text style={styles.toggleText}>Generar interés (opcional)</Text>
+            </TouchableOpacity>
+
+            {value.enabled && (
+                <View style={styles.interestBox}>
+                    <Text style={styles.sheetHintSmall}>
+                        Este apartado crecerá solo, como una cuenta de ahorro real: el interés se deposita de verdad en tu cuenta ligada y se suma aquí.
+                    </Text>
+
+                    <Text style={styles.sheetLabel}>TASA ANUAL</Text>
+                    <View style={styles.percentInputWrap}>
+                        <DecimalInput
+                            style={[styles.sheetInput, styles.percentInput]}
+                            value={value.rate}
+                            onChangeText={(rate) => onChange({ ...value, rate })}
+                            placeholder="13.00"
+                            placeholderTextColor={theme.muted}
+                        />
+                        <Text style={styles.percentSign}>% anual</Text>
+                    </View>
+
+                    <Text style={styles.sheetLabel}>TOPE (OPCIONAL)</Text>
+                    <DecimalInput
+                        style={styles.sheetInput}
+                        value={value.cap}
+                        onChangeText={(cap) => onChange({ ...value, cap })}
+                        placeholder="Sin tope — aplica a todo"
+                        placeholderTextColor={theme.muted}
+                    />
+                    <Text style={styles.sheetHintSmall}>
+                        Ej. como en Nu: 13% anual hasta $25,000 pesos — arriba de eso, baja la tasa. Déjalo vacío para que la tasa aplique a cualquier cantidad.
+                    </Text>
+
+                    {hasCap && (
+                        <>
+                            <Text style={styles.sheetLabel}>TASA ARRIBA DEL TOPE</Text>
+                            <View style={styles.percentInputWrap}>
+                                <DecimalInput
+                                    style={[styles.sheetInput, styles.percentInput]}
+                                    value={value.rateAboveCap}
+                                    onChangeText={(rateAboveCap) => onChange({ ...value, rateAboveCap })}
+                                    placeholder="0.00"
+                                    placeholderTextColor={theme.muted}
+                                />
+                                <Text style={styles.percentSign}>% anual</Text>
+                            </View>
+                            <Text style={styles.sheetHintSmall}>
+                                Lo que exceda el tope gana esta tasa reducida en vez de la normal. Déjalo vacío si arriba del tope no quieres que gane nada.
+                            </Text>
+                        </>
+                    )}
+                </View>
+            )}
+        </>
+    );
+}
+
 // New apartado modal
 function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
     const { addSavingsAccount } = useFinance();
@@ -115,23 +198,31 @@ function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
     const [color, setColor] = useState(SAVINGS_COLORS[0]);
     const [linkedAccountId, setLinkedAccountId] = useState(null);
     const [initialAmount, setInitialAmount] = useState('');
+    const [interest, setInterest] = useState(EMPTY_INTEREST);
     const [loading, setLoading] = useState(false);
 
     const reset = () => {
         setName(''); setColor(SAVINGS_COLORS[0]);
-        setLinkedAccountId(null); setInitialAmount('');
+        setLinkedAccountId(null); setInitialAmount(''); setInterest(EMPTY_INTEREST);
     };
 
     const free = linkedAccountId ? getFreeRoom(linkedAccountId) : 0;
     const requested = parseFloat(initialAmount) || 0;
     const exceedsAvailable = linkedAccountId && requested > free;
-    const canSave = name.trim() && linkedAccountId && !loading;
+    const interestRateMissing = interest.enabled && !(parseFloat(interest.rate) > 0);
+    const canSave = name.trim() && linkedAccountId && !interestRateMissing && !loading;
 
     const handleAdd = async () => {
         if (!canSave) return;
         setLoading(true);
         const result = await addSavingsAccount({
             name: name.trim(), color, linkedAccountId, initialAmount: requested,
+            interest: interest.enabled ? {
+                enabled: true,
+                rate: parseFloat(interest.rate) || 0,
+                cap: parseFloat(interest.cap) || 0,
+                rateAboveCap: parseFloat(interest.rateAboveCap) || 0,
+            } : null,
         });
         setLoading(false);
         if (result?.error) { Alert.alert('No se pudo crear', result.error); return; }
@@ -194,6 +285,8 @@ function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
                         </>
                     )}
 
+                    <InterestFields value={interest} onChange={setInterest} />
+
                     <View style={styles.sheetBtns}>
                         <TouchableOpacity style={styles.btnCancel} onPress={() => { reset(); onClose(); }}>
                             <Text style={styles.btnCancelText}>Cancelar</Text>
@@ -204,6 +297,79 @@ function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
                             disabled={!canSave}
                         >
                             <Text style={styles.btnPrimaryText}>{loading ? 'Creando...' : 'Crear apartado'}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Sheet>
+            </KeyboardAvoidingView>
+        </Modal>
+    );
+}
+
+// Edit an existing apartado's interest settings — same fields as
+// creation, reachable any time afterward (the % button on each
+// apartado row), since interest here is meant to be something the
+// person can turn on, tune, or turn back off whenever they want.
+function EditInterestModal({ visible, onClose, savingsAccount }) {
+    const { updateSavingsAccountInterest } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [interest, setInterest] = useState(EMPTY_INTEREST);
+    const [loading, setLoading] = useState(false);
+
+    // Re-sync every time a different (or the same, freshly reopened)
+    // apartado's sheet opens — mirrors the userName sync pattern in
+    // SettingsScreen (a plain useEffect keyed off the prop that can
+    // change out from under this component).
+    useEffect(() => {
+        if (!savingsAccount) return;
+        const i = savingsAccount.interest;
+        setInterest({
+            enabled: !!i?.enabled,
+            rate: i?.rate ? String(i.rate) : '',
+            cap: i?.cap ? String(i.cap) : '',
+            rateAboveCap: i?.rateAboveCap ? String(i.rateAboveCap) : '',
+        });
+    }, [savingsAccount?.id, visible]);
+
+    if (!savingsAccount) return null;
+
+    const interestRateMissing = interest.enabled && !(parseFloat(interest.rate) > 0);
+
+    const handleSave = async () => {
+        if (interestRateMissing || loading) return;
+        setLoading(true);
+        const result = await updateSavingsAccountInterest(savingsAccount.id, {
+            enabled: interest.enabled,
+            rate: parseFloat(interest.rate) || 0,
+            cap: parseFloat(interest.cap) || 0,
+            rateAboveCap: parseFloat(interest.rateAboveCap) || 0,
+        });
+        setLoading(false);
+        if (result?.error) { Alert.alert('No se pudo guardar', result.error); return; }
+        onClose();
+    };
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <Sheet scroll>
+                    <View style={styles.sheetTitleRow}>
+                        <AccountDot color={savingsAccount.color} size={28} />
+                        <Text style={styles.sheetTitle}>Interés de {savingsAccount.name}</Text>
+                    </View>
+
+                    <InterestFields value={interest} onChange={setInterest} />
+
+                    <View style={styles.sheetBtns}>
+                        <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
+                            <Text style={styles.btnCancelText}>Cancelar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.btnPrimary, (interestRateMissing || loading) && styles.btnDisabled]}
+                            onPress={handleSave}
+                            disabled={interestRateMissing || loading}
+                        >
+                            <Text style={styles.btnPrimaryText}>{loading ? 'Guardando...' : 'Guardar'}</Text>
                         </TouchableOpacity>
                     </View>
                 </Sheet>
@@ -600,6 +766,7 @@ export default function SavingsScreen() {
     const [showAddAccount, setShowAddAccount] = useState(false);
     const [showAddGoal, setShowAddGoal] = useState(false);
     const [moveMoneyTarget, setMoveMoneyTarget] = useState(null);
+    const [editInterestTarget, setEditInterestTarget] = useState(null);
 
     // Total ahorros = everything currently earmarked in an apartado +
     // everything currently sitting inside a goal. Never double-counted:
@@ -755,6 +922,15 @@ export default function SavingsScreen() {
                                                 {linkedAccount ? `· ${linkedAccount.name}` : '· cuenta eliminada'}
                                             </Text>
                                             <Text style={styles.accountBalance}>{formatCurrency(acc.earmarkedAmount)}</Text>
+                                            {acc.interest?.enabled && (
+                                                <View style={styles.interestBadgeRow}>
+                                                    <IconPercent color={theme.savings} size={11} />
+                                                    <Text style={styles.interestBadgeText}>
+                                                        {acc.interest.rate}% anual
+                                                        {acc.totalInterestEarned > 0 ? ` · +${formatCurrencyShort(acc.totalInterestEarned)} ganados` : ''}
+                                                    </Text>
+                                                </View>
+                                            )}
                                             {atRisk > 0 && (
                                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
                                                     <IconWarningTriangle color={theme.moneyOut} size={11} />
@@ -765,6 +941,12 @@ export default function SavingsScreen() {
                                             )}
                                         </View>
                                         <View style={styles.accountActions}>
+                                            <TouchableOpacity
+                                                style={[styles.actionBtn, acc.interest?.enabled && styles.actionBtnActive]}
+                                                onPress={() => setEditInterestTarget(acc)}
+                                            >
+                                                <IconPercent color={acc.interest?.enabled ? theme.savings : theme.brand} size={14} />
+                                            </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={styles.actionBtn}
                                                 onPress={() => setMoveMoneyTarget({ account: acc, mode: 'deposit' })}
@@ -840,6 +1022,13 @@ export default function SavingsScreen() {
                     savingsAccount={moveMoneyTarget.account}
                     getFreeRoom={getFreeRoom}
                     mode={moveMoneyTarget.mode}
+                />
+            )}
+            {editInterestTarget && (
+                <EditInterestModal
+                    visible={true}
+                    onClose={() => setEditInterestTarget(null)}
+                    savingsAccount={editInterestTarget}
                 />
             )}
         </View>

@@ -478,6 +478,70 @@ export function useFinanceStore() {
         await saveData(KEYS.accounts, updated);
     }
 
+    // Records interest for potentially SEVERAL apartados as real
+    // income transactions in one atomic update — called by
+    // FinanceContext's accrual effect. This can't be a loop of
+    // individual addTransaction calls: each call in a loop would
+    // compute its new balance off the SAME pre-effect `accounts`
+    // closure (a setState call doesn't change what an
+    // already-created closure sees — see the "chaining" comment on
+    // addTransaction's transfer handling above for the same class of
+    // issue), so a second credit landing on an account already
+    // touched earlier in the same run would silently overwrite it
+    // instead of adding to it. Batching applies every credit to one
+    // freshly-derived accounts array before a single setAccounts.
+    const creditInterestBatch = async (credits) => {
+        // credits: [{ accountId, amount, reason }] — every amount is
+        // assumed > 0 (the caller already filters out $0 accruals),
+        // this never subtracts.
+        if (!credits.length) return [];
+        let updatedAccounts = accounts;
+        const newTransactions = credits.map((credit, i) => {
+            updatedAccounts = updatedAccounts.map(acc =>
+                acc.id === credit.accountId
+                    ? { ...acc, balance: round2(acc.balance + credit.amount) }
+                    : acc
+            );
+            return {
+                id: `${Date.now()}_int_${i}`,
+                date: new Date().toISOString(),
+                type: 'income',
+                amount: round2(credit.amount),
+                accountId: credit.accountId,
+                category: 'interest',
+                reason: credit.reason,
+            };
+        });
+        const updatedTransactions = [...newTransactions, ...transactions];
+        setAccounts(updatedAccounts);
+        setTransactions(updatedTransactions);
+        await saveData(KEYS.accounts, updatedAccounts);
+        await saveData(KEYS.transactions, updatedTransactions);
+        return newTransactions;
+    };
+
+    // Currency switch (Settings → Moneda): rescales every stored money
+    // value by `rate` (already resolved from the live exchange rate —
+    // see utils/exchangeRate.js) and re-saves. Every field here is a
+    // real amount, never a rate/percentage, so every one of them gets
+    // multiplied — unlike useSavings.js's version of this, which has
+    // to leave interest rate fields alone.
+    const convertAllAmounts = async (rate) => {
+        const updatedAccounts = accounts.map(acc => ({ ...acc, balance: round2(acc.balance * rate) }));
+        const updatedTransactions = transactions.map(t => ({ ...t, amount: round2(t.amount * rate) }));
+        const updatedCreditCards = creditCards.map(c => ({
+            ...c,
+            limit: round2(c.limit * rate),
+            currentDebt: round2(c.currentDebt * rate),
+        }));
+        setAccounts(updatedAccounts);
+        setTransactions(updatedTransactions);
+        setCreditCards(updatedCreditCards);
+        await saveData(KEYS.accounts, updatedAccounts);
+        await saveData(KEYS.transactions, updatedTransactions);
+        await saveData(KEYS.creditCards, updatedCreditCards);
+    };
+
     const resetAll = async () => {
         await removeData(KEYS.accounts);
         await removeData(KEYS.transactions);
@@ -514,5 +578,7 @@ export function useFinanceStore() {
         deleteAccount,
         resetAll,
         setInitialBalances,
+        convertAllAmounts,
+        creditInterestBatch,
     };
 }

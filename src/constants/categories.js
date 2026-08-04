@@ -28,6 +28,11 @@ export const CATEGORIES = {
         { id: 'salary', label: 'Quincena' },
         { id: 'freelance', label: 'Freelance' },
         { id: 'gift', label: 'Regalo' },
+        // App-generated only (see useSavings.js's interest accrual) —
+        // same "internal tag, never a picker option" status as msi/
+        // card_payment/goal below. Kept in this catalog purely so
+        // History/Home show "Interés" instead of the raw id.
+        { id: 'interest', label: 'Interés' },
         { id: 'other', label: 'Otro' },
     ],
     withdrawal: [

@@ -30,6 +30,7 @@
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
 import { round2 } from "../utils/formatCurrency";
+import { parseISO, addDays } from "date-fns";
 
 const KEYS = {
     savingsAccounts: 'savingsAccounts',
@@ -141,7 +142,12 @@ export function useSavings(accounts = []) {
     // and — optionally — immediately earmarks part of that account's
     // currently-free balance (capped, same "can't hand out more than
     // exists" rule as everywhere else in this app).
-    const addSavingsAccount = async ({ name, color, linkedAccountId, initialAmount = 0 }) => {
+    //
+    // `interest` is entirely optional (per-apartado, opt-in — see the
+    // "── Interest ──" section below for how it actually accrues):
+    // { enabled, rate, cap, rateAboveCap }. Left out or `enabled:
+    // false` and this apartado just behaves exactly as it always has.
+    const addSavingsAccount = async ({ name, color, linkedAccountId, initialAmount = 0, interest = null }) => {
         if (!name || !name.trim()) {
             return { error: 'Ponle un nombre al apartado.' };
         }
@@ -152,6 +158,9 @@ export function useSavings(accounts = []) {
         if (!LINKABLE_TYPES.includes(account.type)) {
             return { error: 'Solo puedes ligar un apartado a una cuenta de débito o efectivo.' };
         }
+        if (interest?.enabled && (!interest.rate || interest.rate <= 0)) {
+            return { error: 'Ponle una tasa de interés anual mayor a cero.' };
+        }
         const free = getFreeRoom(linkedAccountId);
         const assigned = round2(Math.min(Math.max(initialAmount, 0), free));
         const newAcc = {
@@ -161,6 +170,16 @@ export function useSavings(accounts = []) {
             linkedAccountId,
             earmarkedAmount: assigned,
             createdAt: new Date().toISOString(),
+            interest: interest?.enabled
+                ? {
+                    enabled: true,
+                    rate: round2(interest.rate),
+                    cap: interest.cap > 0 ? round2(interest.cap) : null,
+                    rateAboveCap: (interest.cap > 0 && interest.rateAboveCap > 0) ? round2(interest.rateAboveCap) : null,
+                }
+                : { enabled: false, rate: 0, cap: null, rateAboveCap: null },
+            lastInterestAccrualAt: new Date().toISOString(),
+            totalInterestEarned: 0,
         };
         const updated = [...savingsAccounts, newAcc];
         setSavingsAccounts(updated);
@@ -222,6 +241,136 @@ export function useSavings(accounts = []) {
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
         return { ok: true };
+    };
+
+    // ── Interest ──
+    // Optional, per-apartado, entirely opt-in — mirrors how a real
+    // Mexican savings account works (Nu, etc.): an annual rate on
+    // whatever's earmarked here, and — optionally — a second, lower
+    // rate for whatever sits above a cap (e.g. 13% up to $25,000,
+    // less above that). Interest compounds daily.
+    //
+    // This file only computes and books the numbers. The actual
+    // crediting is driven by FinanceContext.js's accrual effect,
+    // which owns the one thing this file deliberately doesn't have
+    // access to: financeStore.addTransaction. That matters because
+    // interest has to become REAL money in the linked account (a
+    // real 'income' transaction, visible in Historial) — not just a
+    // bigger number inside this apartado — since an apartado is only
+    // ever a claim on top of a real balance, never its own pot (see
+    // the file header). creditInterestBatch below runs right after that
+    // real transaction lands, and only grows the earmark by the same
+    // amount that already, for real, grew the account.
+
+    // Pure: one apartado's accrued interest over `days` whole days,
+    // given its current earmarkedAmount and interest config. No
+    // storage writes — used both by the accrual effect (to know how
+    // much to actually credit) and by getEstimatedMonthlyInterest
+    // (for a rough preview in the UI).
+    const computeAccruedInterest = (sa, days) => {
+        if (!sa?.interest?.enabled || days <= 0) return 0;
+        const { rate, cap, rateAboveCap } = sa.interest;
+        const principal = sa.earmarkedAmount;
+        if (principal <= 0 || !rate || rate <= 0) return 0;
+
+        const dailyRate = (rate / 100) / 365;
+        const belowCapAmount = cap != null ? Math.min(principal, cap) : principal;
+        let accrued = belowCapAmount * (Math.pow(1 + dailyRate, days) - 1);
+
+        // The slice above the cap earns the reduced rate — 0 if the
+        // person set a cap but left the reduced rate blank, same as
+        // most real accounts default to when you don't ask them for
+        // a second tier.
+        if (cap != null && principal > cap) {
+            const aboveCapAmount = principal - cap;
+            const dailyRateAbove = ((rateAboveCap || 0) / 100) / 365;
+            accrued += aboveCapAmount * (Math.pow(1 + dailyRateAbove, days) - 1);
+        }
+        return round2(accrued);
+    };
+
+    // Rough "about how much per month" preview for the apartado card —
+    // deliberately just computeAccruedInterest over a flat 30 days
+    // rather than trying to predict deposits/withdrawals that haven't
+    // happened yet. Good enough for "should I turn this on", not
+    // meant to be a promise.
+    const getEstimatedMonthlyInterest = (savingsAccountId) => {
+        const sa = savingsAccounts.find(a => a.id === savingsAccountId);
+        return computeAccruedInterest(sa, 30);
+    };
+
+    // Turns interest on/off (or edits rate/cap) for an apartado that
+    // already exists — same shape as addSavingsAccount's `interest`
+    // param, editable any time, exactly because the person asked for
+    // this to be "completamente opcional, y depende del usuario".
+    //
+    // (Re-)enabling resets lastInterestAccrualAt to right now. Without
+    // that, turning it on today would let the next accrual assume
+    // interest had already been running since createdAt (or whenever
+    // it was last touched) and credit a lump sum backdated to a
+    // period where it was actually off. Editing the rate/cap while
+    // ALREADY enabled does NOT reset the clock — that would let
+    // someone reset their own accrual window on demand for no reason.
+    const updateSavingsAccountInterest = async (savingsAccountId, { enabled, rate, cap, rateAboveCap }) => {
+        const sa = savingsAccounts.find(a => a.id === savingsAccountId);
+        if (!sa) return { error: 'No se encontró el apartado.' };
+        if (enabled && (!rate || rate <= 0)) {
+            return { error: 'Ponle una tasa de interés anual mayor a cero.' };
+        }
+        const wasEnabled = !!sa.interest?.enabled;
+        const updated = savingsAccounts.map(a => {
+            if (a.id !== savingsAccountId) return a;
+            return {
+                ...a,
+                interest: enabled
+                    ? {
+                        enabled: true,
+                        rate: round2(rate),
+                        cap: cap > 0 ? round2(cap) : null,
+                        rateAboveCap: (cap > 0 && rateAboveCap > 0) ? round2(rateAboveCap) : null,
+                    }
+                    : { ...a.interest, enabled: false },
+                lastInterestAccrualAt: (enabled && !wasEnabled) ? new Date().toISOString() : a.lastInterestAccrualAt,
+            };
+        });
+        setSavingsAccounts(updated);
+        await saveData(KEYS.savingsAccounts, updated);
+        return { ok: true };
+    };
+
+    // Books interest for potentially SEVERAL apartados in one atomic
+    // update — called once by FinanceContext's accrual effect after
+    // it's recorded the matching real income transaction(s) on each
+    // linked account (see that file's creditInterestBatch call on
+    // financeStore). This has to be a single batched write rather
+    // than a loop calling a per-apartado version: each call in a
+    // loop would build its update off the SAME pre-effect
+    // `savingsAccounts` closure (a setState call doesn't change what
+    // an already-created closure sees), so a second apartado credited
+    // in the same run would silently overwrite the first one's
+    // change instead of adding to it.
+    //
+    // `amount` can be 0 (e.g. a tiny rate/principal rounds to $0 for
+    // this stretch) — the clock still advances by `daysElapsed` so
+    // the same already-elapsed span isn't recomputed forever with
+    // nothing to show for it.
+    const creditInterestBatch = async (credits) => {
+        // credits: [{ savingsAccountId, amount, daysElapsed }]
+        if (!credits.length) return;
+        const byId = new Map(credits.map(c => [c.savingsAccountId, c]));
+        const updated = savingsAccounts.map(a => {
+            const credit = byId.get(a.id);
+            if (!credit) return a;
+            const prevAccrual = a.lastInterestAccrualAt ? parseISO(a.lastInterestAccrualAt) : parseISO(a.createdAt);
+            return {
+                ...a,
+                earmarkedAmount: credit.amount > 0 ? round2(a.earmarkedAmount + credit.amount) : a.earmarkedAmount,
+                totalInterestEarned: credit.amount > 0 ? round2((a.totalInterestEarned || 0) + credit.amount) : a.totalInterestEarned,
+                lastInterestAccrualAt: addDays(prevAccrual, credit.daysElapsed).toISOString(),
+            };
+        });
+        setSavingsAccounts(updated);
+        await saveData(KEYS.savingsAccounts, updated);
     };
 
     // ── Goals ──
@@ -383,6 +532,32 @@ export function useSavings(accounts = []) {
         setSavingsGoals([]);
     };
 
+    // Currency switch (Settings → Moneda): rescales every real amount
+    // by `rate` — earmarkedAmount, totalInterestEarned, goal amounts,
+    // and each goal contribution. `interest.rate`/`rateAboveCap` are
+    // percentages, NEVER converted; `interest.cap` IS a real amount
+    // threshold, so it converts along with everything else.
+    const convertAllAmounts = async (rate) => {
+        const updatedSavingsAccounts = savingsAccounts.map(a => ({
+            ...a,
+            earmarkedAmount: round2(a.earmarkedAmount * rate),
+            totalInterestEarned: round2((a.totalInterestEarned || 0) * rate),
+            interest: a.interest
+                ? { ...a.interest, cap: a.interest.cap != null ? round2(a.interest.cap * rate) : null }
+                : a.interest,
+        }));
+        const updatedGoals = savingsGoals.map(g => ({
+            ...g,
+            targetAmount: round2(g.targetAmount * rate),
+            savedAmount: round2(g.savedAmount * rate),
+            contributions: g.contributions.map(c => ({ ...c, amount: round2(c.amount * rate) })),
+        }));
+        setSavingsAccounts(updatedSavingsAccounts);
+        setSavingsGoals(updatedGoals);
+        await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
+        await saveData(KEYS.savingsGoals, updatedGoals);
+    };
+
     const getMonthlySuggestion = (goal) => {
         if (!goal.deadline) return null;
         const remaining = goal.targetAmount - goal.savedAmount;
@@ -404,6 +579,11 @@ export function useSavings(accounts = []) {
         deleteSavingsAccount,
         addToSavingsAccount,
         removeFromSavingsAccount,
+        // Interest
+        computeAccruedInterest,
+        getEstimatedMonthlyInterest,
+        updateSavingsAccountInterest,
+        creditInterestBatch,
         // Goals
         addSavingsGoal,
         deleteSavingsGoal,
@@ -416,5 +596,6 @@ export function useSavings(accounts = []) {
         getSavingsAccountRisk,
         getGoalRisk,
         resetSavings,
+        convertAllAmounts,
     };
 }

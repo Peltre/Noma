@@ -15,7 +15,7 @@ import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
 import SelectField from '../components/SelectField';
-import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus } from '../components/Icons';
+import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent } from '../components/Icons';
 
 // Type filter — same 4 movement types the rest of the app shows,
 // plus 'withdrawal' (Retiros): the data model already has it as a
@@ -56,6 +56,14 @@ const PERIOD_FILTERS = [
 function getTypeConfig(theme, type, category) {
     if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Mensualidad' };
     if (category === 'card_payment') return { Icon: IconCash, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Pago de tarjeta' };
+    // Interest credits are real income transactions (see
+    // FinanceContext's accrual effect), but they're app-generated,
+    // not something the person typed in — same "own icon/color"
+    // treatment as msi/card_payment above, using the same `savings`
+    // accent SavingsScreen's interest badge already uses, so it
+    // reads as "this grew on its own" rather than blending into a
+    // regular Ingreso.
+    if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
     if (type === 'transfer') return { Icon: IconSwap, bg: theme.brandSoft, fg: theme.brand, label: 'Traspaso' };

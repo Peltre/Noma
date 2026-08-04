@@ -17,7 +17,7 @@ import PendingFundCard from '../components/PendingFundCard';
 import NightSkyArt from '../components/NightSkyArt';
 import {
     IconSwap, IconCash,
-    IconTrendUp, IconTrendDown, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus,
+    IconTrendUp, IconTrendDown, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent,
 } from '../components/Icons';
 
 // Same "d MMM · HH:mm" shape History already uses, just swapping in
@@ -67,6 +67,12 @@ function getAccountColor(theme, account) {
 function getTxnVisual(theme, type, category) {
     if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCalendarClock };
     if (category === 'card_payment') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCash };
+    // Same reasoning as HistoryScreen's getTypeConfig: an interest
+    // credit is app-generated, not typed in by the person, so it
+    // gets the same `savings` accent as everywhere else interest
+    // shows up (SavingsScreen's badge, HistoryScreen's detail sheet)
+    // instead of blending into a regular Ingreso.
+    if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
     if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, Icon: IconSwap };
@@ -279,7 +285,17 @@ export default function HomeScreen() {
                     </View>
 
                     <View style={styles.heroBalance}>
-                        <Text style={styles.balanceLabel}>Balance total</Text>
+                        <View style={styles.balanceLabelRow}>
+                            <Text style={styles.balanceLabel}>Balance total</Text>
+                            {/* Small, deliberately quiet currency tag — the
+                                amount itself always renders identically
+                                (same "$", same grouping) no matter which
+                                currency is active, so this is the one place
+                                that actually says which one it is. Home only,
+                                on purpose (see SettingsScreen's Moneda picker
+                                for where it's changed). */}
+                            <Text style={styles.currencyTag}>{settings.currency}</Text>
+                        </View>
                         <View style={styles.balanceRow}>
                             <Text style={styles.balanceAmount}>{formatCurrency(totalBalance)}</Text>
                             {hasTrend && (
