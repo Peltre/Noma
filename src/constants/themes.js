@@ -67,6 +67,26 @@ export const Themes = {
         alertOn: '#FFFFFF',
 
         cashTone: '#D9C7A3',
+
+        // Liquid glass — used by GlassCard.jsx and the tab bar now that
+        // AppBackground paints a gradient behind every screen instead
+        // of each card carrying its own flat `surface` fill: every
+        // GlassCard surface needs to let some of that gradient bleed
+        // through rather than blocking it. (Home's hero is the one
+        // card that's NOT glass — see HeroArt.jsx — so these tokens
+        // don't apply there.) `glassTint` feeds BlurView's own `tint`
+        // prop directly ('light' picks BlurView's light-glass
+        // algorithm, not just a color choice, so it has to match
+        // whether the background behind it actually reads as bright or dark).
+        // `glassBorderTop` is deliberately brighter than `glassBorder`
+        // — that's the one detail that makes a translucent panel read
+        // as "glass catching light from above" instead of just "low
+        // opacity card".
+        glassFill: 'rgba(255,255,255,0.55)',
+        glassBorder: 'rgba(255,255,255,0.6)',
+        glassBorderTop: 'rgba(255,255,255,0.9)',
+        glassTint: 'light',
+        glassIntensity: 45,
     },
 
     medianoche: {
@@ -102,6 +122,15 @@ export const Themes = {
         alertOn: '#11151D',
 
         cashTone: '#4A4C52',
+
+        // See arena's glassFill comment for the full reasoning — same
+        // tokens, tuned for a dark surface + cool teal moonlight
+        // instead of a bright daytime sky.
+        glassFill: 'rgba(27,31,40,0.4)',
+        glassBorder: 'rgba(255,255,255,0.09)',
+        glassBorderTop: 'rgba(255,255,255,0.22)',
+        glassTint: 'dark',
+        glassIntensity: 55,
     },
 
     brasa: {
@@ -137,6 +166,14 @@ export const Themes = {
         alertOn: '#1E160F',
 
         cashTone: '#4A3C2C',
+
+        // Same reasoning as arena/medianoche — warmed to match Brasa's
+        // ember glow instead of teal moonlight or daylight.
+        glassFill: 'rgba(42,31,23,0.42)',
+        glassBorder: 'rgba(255,255,255,0.08)',
+        glassBorderTop: 'rgba(255,224,196,0.2)',
+        glassTint: 'dark',
+        glassIntensity: 55,
     },
 };
 

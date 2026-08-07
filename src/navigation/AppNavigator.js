@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { useTheme } from '../store/useTheme';
 
 import HomeScreen from "../screens/HomeScreen";
 import TransactionScreen from '../screens/TransactionScreen';
@@ -19,18 +18,21 @@ const Stack = createNativeStackNavigator();
 
 // Stacks
 //
-// `contentStyle` on each one matters more than it looks like it
-// should: react-navigation doesn't paint a themed background behind
-// a stack's screens on its own, so without this, the sliver of
+// `contentStyle` used to matter more than it looked like it should:
+// react-navigation doesn't paint a themed background behind a
+// stack's screens on its own, so without this, the sliver of
 // native-stack transition animation (and any brief instant before a
-// screen's own View has painted) falls back to the library's default
-// white — most visible right where CurvedTabBar just vacated, since
-// that's the exact moment/place the layout is also reflowing.
+// screen's own View has painted) used to fall back to the library's
+// default white. Now that AppBackground is a single, stable layer
+// mounted once in App.js behind the ENTIRE navigator, that
+// white-flash risk is gone a different way — every one of these
+// needs to be transparent instead, or it paints an opaque flat color
+// directly in front of AppBackground, on every screen in this stack,
+// defeating the whole point of it being there.
 
 function HomeStack() {
-  const { theme } = useTheme();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="AddTransaction" component={TransactionScreen} />
       <Stack.Screen name="ScheduledFunds" component={ScheduledFundsScreen} />
@@ -41,9 +43,8 @@ function HomeStack() {
 }
 
 function CardsStack() {
-  const { theme } = useTheme();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen name="Cards" component={CardsScreen} />
       <Stack.Screen name="AddCard" component={AddCardScreen} />
     </Stack.Navigator>
@@ -73,11 +74,10 @@ function getTabBarStyle(route) {
 // Navigator
 
 export default function AppNavigator() {
-  const { theme } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
-      sceneContainerStyle={{ backgroundColor: theme.bg }}
+      sceneContainerStyle={{ backgroundColor: 'transparent' }}
       tabBar={props => <CurvedTabBar {...props} />}
     >
       <Tab.Screen
