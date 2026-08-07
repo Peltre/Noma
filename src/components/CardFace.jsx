@@ -36,38 +36,44 @@ const TINT = 'rgba(255,255,255,0.12)';
 // native, so the pattern rendered smaller than the card and left part
 // of it uncovered. The card measures itself with onLayout and passes
 // its real size down instead.
+//
+// pointerEvents="none" lives on a plain View wrapper around the Svg,
+// not as a standalone prop on <Svg> itself — GlassCard.jsx hit a real
+// bug from that exact pattern (react-native-svg's root <Svg> not
+// reliably forwarding the prop), which silently swallowed taps on a
+// TouchableOpacity underneath instead of passing them through. Cards
+// here are tappable (to open their detail sheet), so this gets the
+// same safer treatment even though it hadn't been reported broken
+// yet.
 function PatternOverlay({ pattern, width, height }) {
     if (!pattern || pattern === 'none') return null;
     return (
-        <Svg
-            style={{ position: 'absolute', top: 0, left: 0 }}
-            width={width}
-            height={height}
-            pointerEvents="none"
-        >
-            <Defs>
-                <Pattern
-                    id="cardTexture"
-                    patternUnits="userSpaceOnUse"
-                    width={pattern === 'dots' ? 14 : 20}
-                    height={pattern === 'dots' ? 14 : 20}
-                >
-                    {pattern === 'diagonal' && (
-                        <Path d="M-5,5 l10,-10 M0,20 l20,-20 M15,25 l10,-10" stroke={TINT} strokeWidth={2} />
-                    )}
-                    {pattern === 'dots' && (
-                        <Circle cx={7} cy={7} r={1.5} fill={TINT} />
-                    )}
-                    {pattern === 'waves' && (
-                        <Path d="M0,10 Q5,3 10,10 T20,10" stroke={TINT} strokeWidth={1.6} fill="none" />
-                    )}
-                    {pattern === 'grid' && (
-                        <Path d="M20,0 L0,0 0,20" stroke={TINT} strokeWidth={1.2} fill="none" />
-                    )}
-                </Pattern>
-            </Defs>
-            <Rect width={width} height={height} fill="url(#cardTexture)" />
-        </Svg>
+        <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+            <Svg width={width} height={height}>
+                <Defs>
+                    <Pattern
+                        id="cardTexture"
+                        patternUnits="userSpaceOnUse"
+                        width={pattern === 'dots' ? 14 : 20}
+                        height={pattern === 'dots' ? 14 : 20}
+                    >
+                        {pattern === 'diagonal' && (
+                            <Path d="M-5,5 l10,-10 M0,20 l20,-20 M15,25 l10,-10" stroke={TINT} strokeWidth={2} />
+                        )}
+                        {pattern === 'dots' && (
+                            <Circle cx={7} cy={7} r={1.5} fill={TINT} />
+                        )}
+                        {pattern === 'waves' && (
+                            <Path d="M0,10 Q5,3 10,10 T20,10" stroke={TINT} strokeWidth={1.6} fill="none" />
+                        )}
+                        {pattern === 'grid' && (
+                            <Path d="M20,0 L0,0 0,20" stroke={TINT} strokeWidth={1.2} fill="none" />
+                        )}
+                    </Pattern>
+                </Defs>
+                <Rect width={width} height={height} fill="url(#cardTexture)" />
+            </Svg>
+        </View>
     );
 }
 

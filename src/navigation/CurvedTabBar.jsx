@@ -136,13 +136,18 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
                 doesn't reliably respect its container's border-radius
                 clip AT THE CORNERS, so a border on that same view gets
                 partly erased right where it curves. A plain View's own
-                border+radius doesn't have that problem. */}
+                border+radius doesn't have that problem.
+                `pointerEvents: 'none'` lives in `style` here, not as a
+                standalone prop — GlassCard.jsx hit a real bug from the
+                prop form not always being honored (it blocked taps on
+                a TouchableOpacity underneath), and this overlay sits
+                directly on top of the actual tab buttons, so it gets
+                the same safer treatment preventively. */}
             <View
-                pointerEvents="none"
                 style={[
                     StyleSheet.absoluteFillObject,
                     styles.borderOverlay,
-                    { height: totalHeight, borderTopColor: theme.glassBorderTop },
+                    { height: totalHeight, borderTopColor: theme.glassBorderTop, pointerEvents: 'none' },
                 ]}
             />
 

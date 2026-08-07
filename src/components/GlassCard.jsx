@@ -144,39 +144,48 @@ export default function GlassCard({ style, children, ...rest }) {
 
             {isDashed ? (
                 size.width > 0 && size.height > 0 && (
-                    <Svg
-                        width={size.width}
-                        height={size.height}
-                        style={StyleSheet.absoluteFillObject}
-                        pointerEvents="none"
-                    >
-                        <Rect
-                            x={borderWidth / 2}
-                            y={borderWidth / 2}
-                            width={Math.max(size.width - borderWidth, 0)}
-                            height={Math.max(size.height - borderWidth, 0)}
-                            rx={radius}
-                            ry={radius}
-                            fill="none"
-                            stroke={borderColor}
-                            strokeWidth={borderWidth}
-                            strokeDasharray="4,3"
-                        />
-                    </Svg>
+                    // pointerEvents="none" goes on a plain View wrapper,
+                    // not directly on <Svg> — that was the actual bug
+                    // report that prompted this fix: react-native-svg's
+                    // root <Svg> doesn't reliably forward that prop the
+                    // way a native View does, so touches meant for the
+                    // TouchableOpacity underneath (PendingFundCard on
+                    // Home, in particular) were getting swallowed by
+                    // this overlay instead of passing through to it. A
+                    // plain View's pointerEvents handling is core RN
+                    // behavior, not a third-party library's prop
+                    // forwarding, so it doesn't have that risk.
+                    <View style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
+                        <Svg width={size.width} height={size.height}>
+                            <Rect
+                                x={borderWidth / 2}
+                                y={borderWidth / 2}
+                                width={Math.max(size.width - borderWidth, 0)}
+                                height={Math.max(size.height - borderWidth, 0)}
+                                rx={radius}
+                                ry={radius}
+                                fill="none"
+                                stroke={borderColor}
+                                strokeWidth={borderWidth}
+                                strokeDasharray="4,3"
+                            />
+                        </Svg>
+                    </View>
                 )
             ) : (
                 // Border, on top of everything, on its own plain
                 // (non-blur) View — see reconciliation #2 above for why
-                // this can't just live on `inner`. pointerEvents="none"
-                // so it never blocks touches meant for the content
-                // underneath.
+                // this can't just live on `inner`. `pointerEvents:
+                // 'none'` (in style, not as a standalone prop — see the
+                // comment on the dashed branch above for why that
+                // distinction turned out to matter) so it never blocks
+                // touches meant for the content underneath.
                 <View
-                    pointerEvents="none"
                     style={[
                         StyleSheet.absoluteFillObject,
                         localStyles.borderOverlay,
                         radiusStyle,
-                        { borderColor: theme.glassBorder, borderTopColor: theme.glassBorderTop },
+                        { borderColor: theme.glassBorder, borderTopColor: theme.glassBorderTop, pointerEvents: 'none' },
                         borderOverride,
                     ]}
                 />
