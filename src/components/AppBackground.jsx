@@ -33,7 +33,7 @@ const VB_H = 870;
 // top of this — see the STARS/EMBERS/DUST arrays below, untouched by
 // this.
 const PALETTES = {
-    medianoche: { top: '#11121a', bottom: '##11121a', accent: '#ECEEE7', accent2: '#5FC9BD' },
+    medianoche: { top: '#11121a', bottom: '#11121a', accent: '#ECEEE7', accent2: '#5FC9BD' },
     brasa: { top: '#150E0A', bottom: '#150E0A', accent: '#D9763E', accent2: '#F2A65A' },
     arena: { top: '#F1E9D9', bottom: '#F1E9D9', accent: '#F0C87E', accent2: '#C17C3A' },
 };
