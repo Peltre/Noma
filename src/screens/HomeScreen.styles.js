@@ -9,11 +9,11 @@ export default function createHomeStyles(theme) {
 
         safeArea: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
         scroll: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
         loadingContainer: {
             flex: 1,
@@ -22,9 +22,11 @@ export default function createHomeStyles(theme) {
             backgroundColor: theme.bg,
         },
 
-        // Header and balance share one card so the night art has a
-        // single full box to live in (no clipping), with a tone slightly
-        // lighter than the page bg to separate the hero from the rest.
+        // Header and balance share one card. Not a GlassCard: HeroArt
+        // (measured via onLayout, see HomeScreen.jsx) fills it
+        // completely, so `overflow:'hidden'` + a fallback background
+        // (visible only for the one frame before that measurement
+        // lands) live here directly instead of coming from GlassCard.
         heroCard: {
             marginHorizontal: Spacing.lg,
             marginBottom: Spacing.md,
@@ -202,14 +204,11 @@ export default function createHomeStyles(theme) {
             color: theme.brand,
         },
 
-        // Credit card
+        // Credit card — GlassCard supplies background/border now.
         creditCard: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.sm,
             padding: Spacing.md,
             marginBottom: Spacing.sm,
-            borderWidth: 1,
-            borderColor: theme.border,
         },
         creditCardTop: {
             flexDirection: 'row',
@@ -256,13 +255,9 @@ export default function createHomeStyles(theme) {
             fontWeight: '500',
         },
 
-        // Recent transactions
+        // Recent transactions — GlassCard supplies background/border now.
         txnCard: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.sm,
-            overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: theme.border,
         },
         txnRow: {
             flexDirection: 'row',

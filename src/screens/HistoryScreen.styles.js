@@ -8,18 +8,17 @@ export default function createHistoryStyles(theme) {
 
         safeArea: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
 
         // Hero card — same surface/ink language as Home's heroCard,
         // just without the night art (History doesn't need it).
+        // GlassCard supplies background/border now.
         hero: {
-            backgroundColor: theme.surface,
             padding: Spacing.lg,
             paddingTop: Spacing.md,
             paddingBottom: Spacing.lg,
             position: 'relative',
-            overflow: 'hidden',
         },
         // Diagonal accent bars, now theme-tinted instead of fixed white/violet
         heroBar1: {
@@ -117,14 +116,11 @@ export default function createHistoryStyles(theme) {
         },
 
         // Transaction card
+        // GlassCard supplies background/border now.
         txnCard: {
-            backgroundColor: theme.surface,
             marginHorizontal: Spacing.lg,
             marginBottom: Spacing.sm,
             borderRadius: Radius.sm,
-            overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: theme.border,
             ...Shadow.card,
         },
         txnRow: {

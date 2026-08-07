@@ -17,7 +17,7 @@ export default function createScheduledFundsStyles(theme) {
     return StyleSheet.create({
         safeArea: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
         header: {
             flexDirection: 'row',
@@ -97,12 +97,12 @@ export default function createScheduledFundsStyles(theme) {
             color: theme.muted,
             marginBottom: Spacing.xs,
         },
+        // GlassCard supplies background/border now; fundCardPending
+        // (applied alongside, for a fund that hasn't happened yet)
+        // still layers its dashed borderStyle on top same as before.
         fundCard: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.md,
             padding: Spacing.md,
-            borderWidth: 1,
-            borderColor: theme.border,
             ...Shadow.card,
         },
         // Same "pending, nothing's moved yet" signal PendingFundCard

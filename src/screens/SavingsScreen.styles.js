@@ -13,16 +13,14 @@ export default function createSavingsStyles(theme) {
 
         safeArea: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
 
-        // Hero
+        // Hero — GlassCard supplies background/border now.
         hero: {
-            backgroundColor: theme.surface,
             paddingHorizontal: Spacing.lg,
             paddingBottom: Spacing.lg + Spacing.sm,
             position: 'relative',
-            overflow: 'hidden',
         },
         // Large arc peeking from bottom-right — like a coin
         heroArc: {
@@ -133,14 +131,10 @@ export default function createSavingsStyles(theme) {
             marginTop: Spacing.xs,
         },
 
-        // Accounts group
+        // Accounts group — GlassCard supplies background/border now.
         accountsGroup: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.sm,
-            overflow: 'hidden',
             marginBottom: Spacing.sm,
-            borderWidth: 1,
-            borderColor: theme.border,
             ...Shadow.card,
         },
         accountRow: {
@@ -206,14 +200,14 @@ export default function createSavingsStyles(theme) {
             fontWeight: '700',
         },
 
-        // Goal card
+        // Goal card — GlassCard supplies background/border by default;
+        // goalCardComplete (applied alongside, when a goal is done)
+        // still overrides border color/width same as before, since
+        // it's layered after GlassCard's own theme border internally.
         goalCard: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.sm,
             padding: Spacing.md,
             marginBottom: Spacing.sm,
-            borderWidth: 1,
-            borderColor: theme.border,
             ...Shadow.card,
         },
         goalCardComplete: {

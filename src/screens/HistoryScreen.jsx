@@ -15,6 +15,7 @@ import createHistoryStyles from './HistoryScreen.styles';
 import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
 import SelectField from '../components/SelectField';
+import GlassCard from '../components/GlassCard';
 import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent } from '../components/Icons';
 
 // Type filter — same 4 movement types the rest of the app shows,
@@ -298,7 +299,7 @@ export default function HistoryScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
 
                 {/* Hero header — paddingTop absorbs status bar */}
-                <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+                <GlassCard style={[styles.hero, { paddingTop: insets.top + 12 }]}>
                     <View style={styles.heroBar1} />
                     <View style={styles.heroBar2} />
                     <View style={styles.heroBar3} />
@@ -327,7 +328,7 @@ export default function HistoryScreen() {
                             <Text style={styles.statLbl}>Ingresos</Text>
                         </View>
                     </View>
-                </View>
+                </GlassCard>
 
                 {/* Filters — two independent dropdowns instead of one
                     pill row, so type and period can narrow the list
@@ -361,7 +362,7 @@ export default function HistoryScreen() {
                     Object.entries(grouped).map(([month, txns]) => (
                         <View key={month}>
                             <Text style={styles.monthLabel}>{month}</Text>
-                            <View style={styles.txnCard}>
+                            <GlassCard style={styles.txnCard}>
                                 {txns.map((txn, i) => {
                                     const isIncome = txn.type === 'income';
                                     const isTransfer = txn.type === 'transfer';
@@ -408,7 +409,7 @@ export default function HistoryScreen() {
                                         </TouchableOpacity>
                                     );
                                 })}
-                            </View>
+                            </GlassCard>
                         </View>
                     ))
                 )}

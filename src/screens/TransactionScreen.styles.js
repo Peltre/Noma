@@ -9,11 +9,11 @@ import { FontSize, Spacing, Radius, Shadow } from '../constants';
 export default function createTransactionStyles(theme) {
     return StyleSheet.create({
 
-        root: { flex: 1, backgroundColor: theme.bg },
+        root: { flex: 1, backgroundColor: 'transparent' },
 
         // Hero
         hero: {
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
             paddingHorizontal: Spacing.lg,
             paddingBottom: Spacing.lg,
             position: 'relative',
@@ -114,11 +114,23 @@ export default function createTransactionStyles(theme) {
         },
 
         // Sheet
-        sheet: {
+        // Main form surface — GlassCard (sheetWrap) supplies the glass
+        // background/radius now; `sheet` itself stays on the
+        // ScrollView so it can keep scrolling normally inside it
+        // (GlassCard wraps a plain View, not a ScrollView, so the
+        // glass panel has to be the ScrollView's parent instead of
+        // the ScrollView's own style). This is the screen's primary
+        // persistent surface, not a transient overlay, so it gets the
+        // same glass treatment as every other screen's main card
+        // instead of staying opaque like a modal.
+        sheetWrap: {
             flex: 1,
-            backgroundColor: theme.surface,
             borderTopLeftRadius: Radius.lg,
             borderTopRightRadius: Radius.lg,
+        },
+        sheet: {
+            flex: 1,
+            backgroundColor: 'transparent',
         },
         sheetContent: {
             padding: Spacing.lg,

@@ -7,7 +7,7 @@ import { FontSize, Spacing, Radius } from '../constants';
 export default function createAddCardStyles(theme) {
     return StyleSheet.create({
 
-        safeArea: { flex: 1, backgroundColor: theme.bg },
+        safeArea: { flex: 1, backgroundColor: 'transparent' },
 
         header: {
             flexDirection: 'row', alignItems: 'center',

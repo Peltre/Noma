@@ -9,7 +9,7 @@ import { FontSize, Spacing, Radius, Shadow } from '../constants';
 export default function createCardsStyles(theme) {
     return StyleSheet.create({
 
-        safeArea: { flex: 1, backgroundColor: theme.bg },
+        safeArea: { flex: 1, backgroundColor: 'transparent' },
 
         // Header
         header: {

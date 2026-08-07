@@ -31,6 +31,7 @@ import { formatCurrencyShort } from "../utils";
 import { FREQUENCY_LABELS } from '../constants';
 import DatePickerField from '../components/DatePickerField';
 import { IconCalendar, IconCalendarClock, IconChevronLeft, IconPencil, IconPlus } from '../components/Icons';
+import GlassCard from '../components/GlassCard';
 import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
 
 const FILTERS = [
@@ -237,7 +238,7 @@ export default function ScheduledFundsScreen() {
                             const account = accounts.find(a => a.id === fund.accountId);
                             const isPending = status !== 'ok';
                             return (
-                                <View
+                                <GlassCard
                                     key={fund.id}
                                     style={[styles.fundCard, isPending && styles.fundCardPending]}
                                 >
@@ -277,7 +278,7 @@ export default function ScheduledFundsScreen() {
                                             <Text style={styles.deleteBtnText}>Eliminar</Text>
                                         </TouchableOpacity>
                                     </View>
-                                </View>
+                                </GlassCard>
                             );
                         })}
                     </View>
@@ -296,7 +297,7 @@ export default function ScheduledFundsScreen() {
                             const card = creditCards.find(c => c.id === fund.creditCardId);
                             const isPending = status !== 'ok';
                             return (
-                                <View
+                                <GlassCard
                                     key={fund.id}
                                     style={[styles.fundCard, isPending && styles.fundCardPending]}
                                 >
@@ -336,7 +337,7 @@ export default function ScheduledFundsScreen() {
                                             <Text style={styles.deleteBtnText}>Eliminar</Text>
                                         </TouchableOpacity>
                                     </View>
-                                </View>
+                                </GlassCard>
                             );
                         })}
                     </View>

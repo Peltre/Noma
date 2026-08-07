@@ -18,6 +18,7 @@ import { useFinance } from "../store/FinanceContext";
 import { useTheme } from "../store/useTheme";
 import { CURRENCIES } from "../constants";
 import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconChevronRight, IconPencil } from '../components/Icons';
+import GlassCard from '../components/GlassCard';
 
 // Moneda picker — a real conversion, not just a display preference:
 // picking a different currency here rescales every stored amount in
@@ -73,7 +74,7 @@ function CurrencyPickerModal({ visible, onClose }) {
                         Cambiar de moneda convierte automáticamente todo tu dinero — cuentas, tarjetas, ahorros y movimientos — al tipo de cambio del momento.
                     </Text>
 
-                    <View style={styles.card}>
+                    <View style={styles.sheetCard}>
                         {CURRENCIES.map((c, i) => {
                             const isActive = settings.currency === c.code;
                             return (
@@ -186,7 +187,7 @@ export default function SettingsScreen() {
                 {/* Profile */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Perfil</Text>
-                    <View style={styles.card}>
+                    <GlassCard style={styles.card}>
                         <View style={styles.fieldRow}>
                             <View style={styles.fieldIcon}>
                                 <IconUser color={theme.ink} />
@@ -232,7 +233,7 @@ export default function SettingsScreen() {
                             </View>
                             <IconChevronRight color={theme.muted} size={14} />
                         </TouchableOpacity>
-                    </View>
+                    </GlassCard>
                     {isEditingName && (
                         <TouchableOpacity
                             style={styles.saveBtn}
@@ -251,7 +252,7 @@ export default function SettingsScreen() {
                     re-tinting itself is the confirmation. */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Apariencia</Text>
-                    <View style={styles.card}>
+                    <GlassCard style={styles.card}>
                         {themeNames.map((name, i) => {
                             const t = themes[name];
                             const isActive = themeName === name;
@@ -282,13 +283,13 @@ export default function SettingsScreen() {
                                 </TouchableOpacity>
                             );
                         })}
-                    </View>
+                    </GlassCard>
                 </View>
 
                 {/* Danger zone - reset btn */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Zona de peligro</Text>
-                    <View style={styles.dangerCard}>
+                    <GlassCard style={styles.dangerCard}>
                         <TouchableOpacity
                             style={styles.dangerRow}
                             onPress={handleReset}
@@ -298,7 +299,7 @@ export default function SettingsScreen() {
                             </View>
                             <Text style={styles.dangerLabel}>Borrar todos los datos</Text>
                         </TouchableOpacity>
-                    </View>
+                    </GlassCard>
                 </View>
 
                 <Text style={styles.versionText}>Noma v1.0.0</Text>

@@ -14,7 +14,8 @@ import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
-import NightSkyArt from '../components/NightSkyArt';
+import GlassCard from '../components/GlassCard';
+import HeroArt from '../components/HeroArt';
 import {
     IconSwap, IconCash,
     IconTrendUp, IconTrendDown, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent,
@@ -183,7 +184,7 @@ function MSIPaySheet({ fund, accounts, onClose }) {
 
 export default function HomeScreen() {
     const navigation = useNavigation();
-    const { theme } = useTheme();
+    const { theme, themeName } = useTheme();
     const styles = useMemo(() => createHomeStyles(theme), [theme]);
 
     const {
@@ -255,18 +256,14 @@ export default function HomeScreen() {
                 contentContainerStyle={{ paddingTop: insets.top + 8 }}
             >
 
-                {/* Hero: header and balance in one card, with the
-                    night art behind both */}
+                {/* Hero: header and balance, with HeroArt (moon/sun +
+                    horizon, scoped to just this card) filling it —
+                    not a GlassCard: its own illustration already
+                    covers the whole card, so there'd be nothing left
+                    for the blur underneath to show through anyway. */}
                 <View style={styles.heroCard} onLayout={e => setHeroSize(e.nativeEvent.layout)}>
                     {heroSize.width > 0 && heroSize.height > 0 && (
-                        <NightSkyArt
-                            width={heroSize.width}
-                            height={heroSize.height}
-                            glowColor={theme.brand}
-                            moonColor={theme.ink}
-                            duneColor={theme.bg}
-                            starColor={theme.ink}
-                        />
+                        <HeroArt themeName={themeName} width={heroSize.width} height={heroSize.height} />
                     )}
                     <View style={styles.heroHeader}>
                         <View>
@@ -435,7 +432,7 @@ export default function HomeScreen() {
                         {creditCards.map(card => {
                             const pct = Math.min(Math.round((card.currentDebt / card.limit) * 100), 100);
                             return (
-                                <View key={card.id} style={styles.creditCard}>
+                                <GlassCard key={card.id} style={styles.creditCard}>
                                     <View style={styles.creditCardTop}>
                                         <Text style={styles.creditCardName}>{card.name}</Text>
                                         <View style={{ alignItems: 'flex-end' }}>
@@ -454,7 +451,7 @@ export default function HomeScreen() {
                                         <Text style={styles.metaText}>Corte día {card.cutoffDay}</Text>
                                         <Text style={styles.metaText}>{pct}% usado</Text>
                                     </View>
-                                </View>
+                                </GlassCard>
                             );
                         })}
                     </View>
@@ -477,7 +474,7 @@ export default function HomeScreen() {
                             </Text>
                         </View>
                     ) : (
-                        <View style={styles.txnCard}>
+                        <GlassCard style={styles.txnCard}>
                             {recentTransactions.map((txn, i) => {
                                 const visual = getTxnVisual(theme, txn.type, txn.category);
                                 const accountLabel = txn.type === 'transfer'
@@ -527,7 +524,7 @@ export default function HomeScreen() {
                                     </View>
                                 );
                             })}
-                        </View>
+                        </GlassCard>
                     )}
                 </View>
 

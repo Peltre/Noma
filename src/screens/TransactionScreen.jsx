@@ -38,6 +38,7 @@ import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
+import GlassCard from '../components/GlassCard';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
 // plus a neutral for withdrawal — same reduced palette as the rest
@@ -271,238 +272,240 @@ export default function TransactionScreen() {
             </View>
 
             {/* Sheet slides up */}
-            <ScrollView
-                style={styles.sheet}
-                contentContainerStyle={styles.sheetContent}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-            >
-                {/* Reason / name — the only descriptive field now, and
+            <GlassCard style={styles.sheetWrap}>
+                <ScrollView
+                    style={styles.sheet}
+                    contentContainerStyle={styles.sheetContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Reason / name — the only descriptive field now, and
                     what History/Home actually show for this movement */}
-                <Text style={styles.fieldLabel}>¿EN QUÉ? <Text style={styles.requiredMark}>*</Text></Text>
-                <TextInput
-                    style={styles.input}
-                    value={reason}
-                    onChangeText={setReason}
-                    placeholder="Describe el movimiento"
-                    placeholderTextColor={theme.muted}
-                />
+                    <Text style={styles.fieldLabel}>¿EN QUÉ? <Text style={styles.requiredMark}>*</Text></Text>
+                    <TextInput
+                        style={styles.input}
+                        value={reason}
+                        onChangeText={setReason}
+                        placeholder="Describe el movimiento"
+                        placeholderTextColor={theme.muted}
+                    />
 
-                {/* Tags — fully optional, purely for a future
+                    {/* Tags — fully optional, purely for a future
                     breakdown by tag. Same pillsWrap pattern as
                     accounts/MSI months below, plus a trailing "+
                     Nueva" pill that opens the inline creator sheet. */}
-                <Text style={styles.fieldLabel}>ETIQUETAS <Text style={styles.optionalHint}>(opcional)</Text></Text>
-                <View style={styles.pillsWrap}>
-                    {tags.map(tag => {
-                        const TagIcon = getTagIcon(tag.icon);
-                        const isSelected = selectedTagIds.includes(tag.id);
-                        return (
-                            <TouchableOpacity
-                                key={tag.id}
-                                style={[
-                                    styles.tagPill,
-                                    isSelected
-                                        ? { backgroundColor: theme.brandSoft, borderColor: theme.brand }
-                                        : { borderColor: theme.border },
-                                ]}
-                                onPress={() => toggleTag(tag.id)}
-                            >
-                                <TagIcon color={isSelected ? theme.brand : theme.muted} size={14} />
-                                <Text style={[styles.tagPillText, { color: isSelected ? theme.brand : theme.muted }]}>
-                                    {tag.label}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                    <TouchableOpacity style={styles.tagAddPill} onPress={() => setShowNewTag(true)}>
-                        <IconPlus color={theme.muted} size={12} />
-                        <Text style={styles.tagPillText}>Nueva</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Account(s) */}
-                {type === 'transfer' ? (
-                    <>
-                        <Text style={styles.fieldLabel}>CUENTA ORIGEN <Text style={styles.requiredMark}>*</Text></Text>
-                        <View style={styles.pillsWrap}>
-                            {accounts.map(item => {
-                                const isSelected = selectedAccount === item.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        style={[
-                                            styles.catPill,
-                                            isSelected
-                                                ? { backgroundColor: theme.ink, borderColor: theme.ink }
-                                                : { borderColor: theme.border },
-                                        ]}
-                                        onPress={() => {
-                                            setAccount(item.id);
-                                            // Origin just changed — if it now
-                                            // matches the destination, clear
-                                            // the destination instead of
-                                            // silently leaving an invalid
-                                            // "same account" pair selected.
-                                            if (toAccount === item.id) setToAccount(null);
-                                        }}
-                                    >
-                                        <Text style={[
-                                            styles.catPillText,
-                                            isSelected ? { color: theme.bg } : { color: theme.muted },
-                                        ]}>
-                                            {item.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-
-                        <Text style={styles.fieldLabel}>CUENTA DESTINO <Text style={styles.requiredMark}>*</Text></Text>
-                        <View style={styles.pillsWrap}>
-                            {accounts.filter(item => item.id !== selectedAccount).map(item => {
-                                const isSelected = toAccount === item.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        style={[
-                                            styles.catPill,
-                                            isSelected
-                                                ? { backgroundColor: theme.brand, borderColor: theme.brand }
-                                                : { borderColor: theme.border },
-                                        ]}
-                                        onPress={() => setToAccount(item.id)}
-                                    >
-                                        <Text style={[
-                                            styles.catPillText,
-                                            isSelected ? { color: theme.brandOn } : { color: theme.muted },
-                                        ]}>
-                                            {item.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    </>
-                ) : (
-                    <>
-                        <Text style={styles.fieldLabel}>CUENTA <Text style={styles.requiredMark}>*</Text></Text>
-                        {type === 'expense' && creditCards.length > 0 && (
-                            <TouchableOpacity
-                                style={styles.toggle}
-                                onPress={() => { setUseCredit(!useCredit); setIsMSI(false); }}
-                            >
-                                <View style={[styles.checkbox, useCredit && styles.checkboxOn]}>
-                                    {useCredit && <IconCheck color={theme.bg} size={11} />}
-                                </View>
-                                <Text style={styles.toggleText}>Pagar con tarjeta de crédito</Text>
-                            </TouchableOpacity>
-                        )}
-                        {/* One list, never both at once: débito while
-                            useCredit is off, tarjetas while it's on —
-                            picking a payment method replaces the list
-                            instead of adding a second one below it. */}
-                        <View style={styles.pillsWrap}>
-                            {(useCredit ? creditCards : accounts).map(item => {
-                                const isSelected = useCredit
-                                    ? selectedCard === item.id
-                                    : selectedAccount === item.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        style={[
-                                            styles.catPill,
-                                            isSelected
-                                                ? { backgroundColor: theme.ink, borderColor: theme.ink }
-                                                : { borderColor: theme.border },
-                                        ]}
-                                        onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
-                                    >
-                                        <Text style={[
-                                            styles.catPillText,
-                                            isSelected ? { color: theme.bg } : { color: theme.muted },
-                                        ]}>
-                                            {item.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-
-                        {/* Credit available — the store enforces the
-                            actual limit, this is just showing the
-                            person before they hit "Confirmar" instead
-                            of only after. */}
-                        {useCredit && selectedCard && (() => {
-                            const card = creditCards.find(c => c.id === selectedCard);
-                            if (!card) return null;
-                            const available = Math.max(0, card.limit - card.currentDebt);
-                            const overLimit = totalAmt > available;
+                    <Text style={styles.fieldLabel}>ETIQUETAS <Text style={styles.optionalHint}>(opcional)</Text></Text>
+                    <View style={styles.pillsWrap}>
+                        {tags.map(tag => {
+                            const TagIcon = getTagIcon(tag.icon);
+                            const isSelected = selectedTagIds.includes(tag.id);
                             return (
-                                <Text style={[styles.fieldHint, overLimit && { color: theme.moneyOut, fontWeight: '700' }]}>
-                                    Disponible: {formatCurrency(available)} de {formatCurrency(card.limit)}
-                                </Text>
+                                <TouchableOpacity
+                                    key={tag.id}
+                                    style={[
+                                        styles.tagPill,
+                                        isSelected
+                                            ? { backgroundColor: theme.brandSoft, borderColor: theme.brand }
+                                            : { borderColor: theme.border },
+                                    ]}
+                                    onPress={() => toggleTag(tag.id)}
+                                >
+                                    <TagIcon color={isSelected ? theme.brand : theme.muted} size={14} />
+                                    <Text style={[styles.tagPillText, { color: isSelected ? theme.brand : theme.muted }]}>
+                                        {tag.label}
+                                    </Text>
+                                </TouchableOpacity>
                             );
-                        })()}
-                    </>
-                )}
-
-                {/* MSI toggle — uses brand, the one accent reserved for
-                    primary CTAs, since MSI is a special flow, not a
-                    money-in/money-out signal */}
-                {canUseMSI && (
-                    <>
-                        <TouchableOpacity
-                            style={styles.toggle}
-                            onPress={() => setIsMSI(!isMSI)}
-                        >
-                            <View style={[styles.checkbox, isMSI && { backgroundColor: theme.brand, borderColor: theme.brand }]}>
-                                {isMSI && <IconCheck color={theme.bg} size={11} />}
-                            </View>
-                            <Text style={styles.toggleText}>Meses sin intereses (MSI)</Text>
+                        })}
+                        <TouchableOpacity style={styles.tagAddPill} onPress={() => setShowNewTag(true)}>
+                            <IconPlus color={theme.muted} size={12} />
+                            <Text style={styles.tagPillText}>Nueva</Text>
                         </TouchableOpacity>
+                    </View>
 
-                        {isMSI && (
-                            <>
-                                <Text style={[styles.fieldLabel, { marginTop: Spacing.sm }]}>MESES</Text>
-                                <View style={styles.pillsWrap}>
-                                    {MSI_OPTIONS.map(m => (
+                    {/* Account(s) */}
+                    {type === 'transfer' ? (
+                        <>
+                            <Text style={styles.fieldLabel}>CUENTA ORIGEN <Text style={styles.requiredMark}>*</Text></Text>
+                            <View style={styles.pillsWrap}>
+                                {accounts.map(item => {
+                                    const isSelected = selectedAccount === item.id;
+                                    return (
                                         <TouchableOpacity
-                                            key={m}
+                                            key={item.id}
                                             style={[
                                                 styles.catPill,
-                                                msiMonths === m
-                                                    ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                isSelected
+                                                    ? { backgroundColor: theme.ink, borderColor: theme.ink }
                                                     : { borderColor: theme.border },
                                             ]}
-                                            onPress={() => setMsiMonths(m)}
+                                            onPress={() => {
+                                                setAccount(item.id);
+                                                // Origin just changed — if it now
+                                                // matches the destination, clear
+                                                // the destination instead of
+                                                // silently leaving an invalid
+                                                // "same account" pair selected.
+                                                if (toAccount === item.id) setToAccount(null);
+                                            }}
                                         >
                                             <Text style={[
                                                 styles.catPillText,
-                                                msiMonths === m ? { color: theme.brandOn } : { color: theme.muted },
+                                                isSelected ? { color: theme.bg } : { color: theme.muted },
                                             ]}>
-                                                {m}m
+                                                {item.name}
                                             </Text>
                                         </TouchableOpacity>
-                                    ))}
+                                    );
+                                })}
+                            </View>
+
+                            <Text style={styles.fieldLabel}>CUENTA DESTINO <Text style={styles.requiredMark}>*</Text></Text>
+                            <View style={styles.pillsWrap}>
+                                {accounts.filter(item => item.id !== selectedAccount).map(item => {
+                                    const isSelected = toAccount === item.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.id}
+                                            style={[
+                                                styles.catPill,
+                                                isSelected
+                                                    ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                    : { borderColor: theme.border },
+                                            ]}
+                                            onPress={() => setToAccount(item.id)}
+                                        >
+                                            <Text style={[
+                                                styles.catPillText,
+                                                isSelected ? { color: theme.brandOn } : { color: theme.muted },
+                                            ]}>
+                                                {item.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={styles.fieldLabel}>CUENTA <Text style={styles.requiredMark}>*</Text></Text>
+                            {type === 'expense' && creditCards.length > 0 && (
+                                <TouchableOpacity
+                                    style={styles.toggle}
+                                    onPress={() => { setUseCredit(!useCredit); setIsMSI(false); }}
+                                >
+                                    <View style={[styles.checkbox, useCredit && styles.checkboxOn]}>
+                                        {useCredit && <IconCheck color={theme.bg} size={11} />}
+                                    </View>
+                                    <Text style={styles.toggleText}>Pagar con tarjeta de crédito</Text>
+                                </TouchableOpacity>
+                            )}
+                            {/* One list, never both at once: débito while
+                            useCredit is off, tarjetas while it's on —
+                            picking a payment method replaces the list
+                            instead of adding a second one below it. */}
+                            <View style={styles.pillsWrap}>
+                                {(useCredit ? creditCards : accounts).map(item => {
+                                    const isSelected = useCredit
+                                        ? selectedCard === item.id
+                                        : selectedAccount === item.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.id}
+                                            style={[
+                                                styles.catPill,
+                                                isSelected
+                                                    ? { backgroundColor: theme.ink, borderColor: theme.ink }
+                                                    : { borderColor: theme.border },
+                                            ]}
+                                            onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
+                                        >
+                                            <Text style={[
+                                                styles.catPillText,
+                                                isSelected ? { color: theme.bg } : { color: theme.muted },
+                                            ]}>
+                                                {item.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            {/* Credit available — the store enforces the
+                            actual limit, this is just showing the
+                            person before they hit "Confirmar" instead
+                            of only after. */}
+                            {useCredit && selectedCard && (() => {
+                                const card = creditCards.find(c => c.id === selectedCard);
+                                if (!card) return null;
+                                const available = Math.max(0, card.limit - card.currentDebt);
+                                const overLimit = totalAmt > available;
+                                return (
+                                    <Text style={[styles.fieldHint, overLimit && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                        Disponible: {formatCurrency(available)} de {formatCurrency(card.limit)}
+                                    </Text>
+                                );
+                            })()}
+                        </>
+                    )}
+
+                    {/* MSI toggle — uses brand, the one accent reserved for
+                    primary CTAs, since MSI is a special flow, not a
+                    money-in/money-out signal */}
+                    {canUseMSI && (
+                        <>
+                            <TouchableOpacity
+                                style={styles.toggle}
+                                onPress={() => setIsMSI(!isMSI)}
+                            >
+                                <View style={[styles.checkbox, isMSI && { backgroundColor: theme.brand, borderColor: theme.brand }]}>
+                                    {isMSI && <IconCheck color={theme.bg} size={11} />}
                                 </View>
-                            </>
-                        )}
-                    </>
-                )}
+                                <Text style={styles.toggleText}>Meses sin intereses (MSI)</Text>
+                            </TouchableOpacity>
 
-                {/* Confirm button */}
-                <TouchableOpacity
-                    style={[styles.confirmBtn, { backgroundColor: isMSI ? theme.brand : cur.color }]}
-                    onPress={handleConfirm}
-                >
-                    <Text style={[styles.confirmText, { color: isMSI ? theme.brandOn : cur.on }]}>
-                        {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
-                    </Text>
-                </TouchableOpacity>
+                            {isMSI && (
+                                <>
+                                    <Text style={[styles.fieldLabel, { marginTop: Spacing.sm }]}>MESES</Text>
+                                    <View style={styles.pillsWrap}>
+                                        {MSI_OPTIONS.map(m => (
+                                            <TouchableOpacity
+                                                key={m}
+                                                style={[
+                                                    styles.catPill,
+                                                    msiMonths === m
+                                                        ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                        : { borderColor: theme.border },
+                                                ]}
+                                                onPress={() => setMsiMonths(m)}
+                                            >
+                                                <Text style={[
+                                                    styles.catPillText,
+                                                    msiMonths === m ? { color: theme.brandOn } : { color: theme.muted },
+                                                ]}>
+                                                    {m}m
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            )}
+                        </>
+                    )}
 
-                <View style={{ height: Spacing.xl + insets.bottom }} />
-            </ScrollView>
+                    {/* Confirm button */}
+                    <TouchableOpacity
+                        style={[styles.confirmBtn, { backgroundColor: isMSI ? theme.brand : cur.color }]}
+                        onPress={handleConfirm}
+                    >
+                        <Text style={[styles.confirmText, { color: isMSI ? theme.brandOn : cur.on }]}>
+                            {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <View style={{ height: Spacing.xl + insets.bottom }} />
+                </ScrollView>
+            </GlassCard>
 
             {/* "Otro tipo" — just Traspaso now. Used to also have a
                 shortcut to Fondos programados here, but that logic

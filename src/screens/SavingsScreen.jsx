@@ -21,6 +21,7 @@ import createSavingsStyles from './SavingsScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
 import { IconCheck, IconClose, IconWarningTriangle, IconPlus, IconMinus, IconPercent } from '../components/Icons';
+import GlassCard from '../components/GlassCard';
 
 // Only débito/efectivo can back an apartado — same rule useSavings.js
 // enforces server-side, mirrored here so the picker never even shows
@@ -668,7 +669,7 @@ function GoalCard({ goal, savingsAccounts, onDelete, onRedeem, getMonthlySuggest
     };
 
     return (
-        <View style={[styles.goalCard, isComplete && styles.goalCardComplete]}>
+        <GlassCard style={[styles.goalCard, isComplete && styles.goalCardComplete]}>
             {/* Header */}
             <View style={styles.goalHeader}>
                 <View style={styles.goalInfo}>
@@ -746,7 +747,7 @@ function GoalCard({ goal, savingsAccounts, onDelete, onRedeem, getMonthlySuggest
                 goal={goal} savingsAccounts={savingsAccounts} mode="deposit" />
             <GoalContributeModal visible={showWithdraw} onClose={() => setShowWithdraw(false)}
                 goal={goal} savingsAccounts={savingsAccounts} mode="withdraw" />
-        </View>
+        </GlassCard>
     );
 }
 
@@ -872,7 +873,7 @@ export default function SavingsScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
 
                 {/* ── Hero ── */}
-                <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+                <GlassCard style={[styles.hero, { paddingTop: insets.top + 12 }]}>
                     <View style={styles.heroArc} />
                     <View style={styles.heroDot} />
                     <Text style={styles.heroLabel}>Total en ahorros</Text>
@@ -886,7 +887,7 @@ export default function SavingsScreen() {
                             </Text>
                         </View>
                     )}
-                </View>
+                </GlassCard>
 
                 {/* ── Mis apartados ── */}
                 <View style={styles.section}>
@@ -903,7 +904,7 @@ export default function SavingsScreen() {
                             <Text style={styles.emptyCardSub}>Ligado a una tarjeta que ya tienes</Text>
                         </TouchableOpacity>
                     ) : (
-                        <View style={styles.accountsGroup}>
+                        <GlassCard style={styles.accountsGroup}>
                             {savingsAccounts.map((acc, i) => {
                                 const linkedAccount = accounts.find(a => a.id === acc.linkedAccountId);
                                 const { atRisk } = getSavingsAccountRisk(acc.id);
@@ -969,7 +970,7 @@ export default function SavingsScreen() {
                                     </View>
                                 );
                             })}
-                        </View>
+                        </GlassCard>
                     )}
                 </View>
 

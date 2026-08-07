@@ -6,11 +6,11 @@ export default function createSettingsStyles(theme) {
     return StyleSheet.create({
         safeArea: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
         scroll: {
             flex: 1,
-            backgroundColor: theme.bg,
+            backgroundColor: 'transparent',
         },
         header: {
             padding: Spacing.lg,
@@ -46,13 +46,23 @@ export default function createSettingsStyles(theme) {
             letterSpacing: 1,
             marginBottom: Spacing.sm,
         },
+        // GlassCard supplies background/border now.
+        // GlassCard supplies background/border now.
         card: {
+            borderRadius: Radius.md,
+            ...Shadow.card,
+        },
+        // Same shape as `card`, but for lists INSIDE a modal sheet
+        // (CurrencyPickerModal's MXN/USD list) — modals keep their
+        // existing solid treatment for now rather than becoming glass
+        // too, so this keeps the old background+border instead of
+        // reusing the now-transparent-ready `card`.
+        sheetCard: {
             backgroundColor: theme.surface,
             borderRadius: Radius.md,
             overflow: 'hidden',
             borderWidth: 1,
             borderColor: theme.border,
-            ...Shadow.card,
         },
         fieldRow: {
             flexDirection: 'row',
@@ -171,12 +181,9 @@ export default function createSettingsStyles(theme) {
             color: theme.muted,
             marginTop: Spacing.md,
         },
+        // GlassCard supplies background/border now.
         dangerCard: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.md,
-            overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: theme.border,
             ...Shadow.card,
         },
         dangerRow: {

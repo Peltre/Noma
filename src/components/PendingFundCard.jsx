@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { formatCurrencyShort } from '../utils';
 import { FontSize, Spacing, Radius } from '../constants';
 import { IconCalendarClock, IconChevronRight } from './Icons';
+import GlassCard from './GlassCard';
 
 export default function PendingFundCard({ fund, status, onPress, theme }) {
     const isOverdue = status === 'overdue';
@@ -31,51 +32,56 @@ export default function PendingFundCard({ fund, status, onPress, theme }) {
     const Icon = IconCalendarClock;
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-            <View style={styles.iconBox}>
-                <Icon color={theme.muted} size={15} />
-            </View>
-
-            <View style={styles.info}>
-                <View style={styles.titleRow}>
-                    <Text style={styles.title} numberOfLines={1}>{fund.name}</Text>
-                    {isMSI && (
-                        <View style={styles.msiBadge}>
-                            <Text style={styles.msiBadgeText}>
-                                {fund.paidMonths + 1}/{fund.months}
-                            </Text>
-                        </View>
-                    )}
+        <GlassCard style={styles.card}>
+            <TouchableOpacity style={styles.cardTouchable} onPress={onPress} activeOpacity={0.75}>
+                <View style={styles.iconBox}>
+                    <Icon color={theme.muted} size={15} />
                 </View>
-                <Text style={[styles.subtitle, isOverdue && styles.subtitleOverdue]} numberOfLines={1}>
-                    {dateLabel}
-                </Text>
-            </View>
 
-            <View style={styles.right}>
-                <Text style={styles.amount}>
-                    {isMSI ? '−' : '+'}{formatCurrencyShort(isMSI ? fund.monthlyAmount : fund.amount)}
-                </Text>
-                <IconChevronRight color={theme.muted} size={13} />
-            </View>
-        </TouchableOpacity>
+                <View style={styles.info}>
+                    <View style={styles.titleRow}>
+                        <Text style={styles.title} numberOfLines={1}>{fund.name}</Text>
+                        {isMSI && (
+                            <View style={styles.msiBadge}>
+                                <Text style={styles.msiBadgeText}>
+                                    {fund.paidMonths + 1}/{fund.months}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.subtitle, isOverdue && styles.subtitleOverdue]} numberOfLines={1}>
+                        {dateLabel}
+                    </Text>
+                </View>
+
+                <View style={styles.right}>
+                    <Text style={styles.amount}>
+                        {isMSI ? '−' : '+'}{formatCurrencyShort(isMSI ? fund.monthlyAmount : fund.amount)}
+                    </Text>
+                    <IconChevronRight color={theme.muted} size={13} />
+                </View>
+            </TouchableOpacity>
+        </GlassCard>
     );
 }
 
 function createStyles(theme) {
     return StyleSheet.create({
+        // GlassCard supplies background/border now — this only keeps
+        // the shape (radius, spacing) and the dashed borderStyle,
+        // which layers fine on top of GlassCard's own themed border
+        // color since they're independent style properties.
         card: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.sm,
+            marginBottom: Spacing.sm,
+            borderStyle: 'dashed',
+        },
+        cardTouchable: {
             paddingVertical: Spacing.sm + 2,
             paddingHorizontal: Spacing.md,
-            marginBottom: Spacing.sm,
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.sm,
-            borderWidth: 1,
-            borderStyle: 'dashed',
-            borderColor: theme.border,
         },
         iconBox: {
             width: 32, height: 32,
