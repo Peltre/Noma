@@ -5,10 +5,14 @@
 //
 // Deliberately a fixed dark-on-color palette regardless of app theme
 // (same reasoning CardsScreen.styles.js already had): it's meant to
-// look like a physical card, not a themed surface.
+// look like a physical card, not a themed surface. (The color ITSELF
+// now comes from the active theme's own palette — see
+// AddCardScreen.jsx / constants/themes.js's `cardColors` — but once
+// picked, the card renders the same dark-on-color way no matter what
+// theme is active later.)
 import { useState } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
-import Svg, { Defs, Pattern, Path, Circle, Rect } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Stop, Rect, Line } from 'react-native-svg';
 import { FontSize, Spacing, Radius } from '../constants';
 import { IconLock } from './Icons';
 
@@ -16,19 +20,22 @@ import { IconLock } from './Icons';
 // whatever height the "large" card face actually renders at.
 export const CARD_LARGE_HEIGHT = 190;
 
-// Small set of subtle repeating textures a card can carry on top of
-// its color — same minimalist, hand-drawn SVG language as the rest of
-// the app's icon set (no photos, no gradients pretending to be a real
-// card). Low-opacity white so it reads as texture, not print.
+// Cut down to just two options after the previous set (stars/dunes/
+// skyline — small hand-composed scenes echoing the app's own sky/
+// horizon motifs) showed a real mismatch between what got verified
+// here and what actually rendered on-device, and it couldn't get
+// tracked down without a screenshot that didn't come through. Rather
+// than keep guessing at a rendering discrepancy neither side could
+// see, this cuts back to the two simplest, lowest-risk options: no
+// pattern at all, and a plain gradient wash (which never used the
+// scene-composition path those three did — see PatternOverlay below,
+// it's just a Rect filled with a gradient, sized directly off the
+// card's own real width/height, nothing else going on that could
+// drift from what actually renders).
 export const CARD_PATTERNS = [
     { id: 'none', label: 'Liso' },
-    { id: 'diagonal', label: 'Diagonal' },
-    { id: 'dots', label: 'Puntos' },
-    { id: 'waves', label: 'Ondas' },
-    { id: 'grid', label: 'Cuadros' },
+    { id: 'gradient', label: 'Degradado' },
 ];
-
-const TINT = 'rgba(255,255,255,0.12)';
 
 // width/height are required, explicit pixel numbers — not "100%".
 // Same reason as NightSkyArt.jsx: react-native-svg doesn't reliably
@@ -44,34 +51,52 @@ const TINT = 'rgba(255,255,255,0.12)';
 // TouchableOpacity underneath instead of passing them through. Cards
 // here are tappable (to open their detail sheet), so this gets the
 // same safer treatment even though it hadn't been reported broken
-// yet.
+// here specifically.
 function PatternOverlay({ pattern, width, height }) {
-    if (!pattern || pattern === 'none') return null;
+    if (!pattern || pattern !== 'gradient') return null;
+
+    // A plain diagonal light-to-dark wash over whatever color the
+    // card already is, sized directly off the card's own real
+    // width/height — no viewBox/preserveAspectRatio scaling involved,
+    // unlike the scene-composition approach this replaced.
     return (
         <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
             <Svg width={width} height={height}>
                 <Defs>
-                    <Pattern
-                        id="cardTexture"
-                        patternUnits="userSpaceOnUse"
-                        width={pattern === 'dots' ? 14 : 20}
-                        height={pattern === 'dots' ? 14 : 20}
-                    >
-                        {pattern === 'diagonal' && (
-                            <Path d="M-5,5 l10,-10 M0,20 l20,-20 M15,25 l10,-10" stroke={TINT} strokeWidth={2} />
-                        )}
-                        {pattern === 'dots' && (
-                            <Circle cx={7} cy={7} r={1.5} fill={TINT} />
-                        )}
-                        {pattern === 'waves' && (
-                            <Path d="M0,10 Q5,3 10,10 T20,10" stroke={TINT} strokeWidth={1.6} fill="none" />
-                        )}
-                        {pattern === 'grid' && (
-                            <Path d="M20,0 L0,0 0,20" stroke={TINT} strokeWidth={1.2} fill="none" />
-                        )}
-                    </Pattern>
+                    <LinearGradient id="cardWash" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.12} />
+                        <Stop offset="100%" stopColor="#000000" stopOpacity={0.22} />
+                    </LinearGradient>
                 </Defs>
-                <Rect width={width} height={height} fill="url(#cardTexture)" />
+                <Rect width={width} height={height} fill="url(#cardWash)" />
+            </Svg>
+        </View>
+    );
+}
+
+// EMV chip — gold gradient rect with the classic contact-pad divider
+// lines. One reusable size (scaled by `compact`), absolutely
+// positioned below the name/badge row rather than a third flex child
+// — the card's existing layout is `top` and `bottom` pinned to their
+// own edges via justifyContent:'space-between', and a chip belongs
+// pinned to a fixed spot under the header instead of sharing in that
+// space distribution.
+function Chip({ compact }) {
+    const w = compact ? 26 : 32;
+    const h = compact ? 19 : 24;
+    return (
+        <View style={[styles.chipWrap, compact ? styles.chipWrapCompact : styles.chipWrapLarge]}>
+            <Svg width={w} height={h}>
+                <Defs>
+                    <LinearGradient id="chipGrad" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0%" stopColor="#F0DEA8" />
+                        <Stop offset="100%" stopColor="#C9A961" />
+                    </LinearGradient>
+                </Defs>
+                <Rect width={w} height={h} rx={4} fill="url(#chipGrad)" />
+                <Line x1={0} y1={h * 0.42} x2={w} y2={h * 0.42} stroke="rgba(0,0,0,0.3)" strokeWidth={1} />
+                <Line x1={0} y1={h * 0.7} x2={w} y2={h * 0.7} stroke="rgba(0,0,0,0.3)" strokeWidth={1} />
+                <Line x1={w / 2} y1={0} x2={w / 2} y2={h} stroke="rgba(0,0,0,0.3)" strokeWidth={1} />
             </Svg>
         </View>
     );
@@ -155,7 +180,6 @@ export default function CardFace({
             {size.width > 0 && size.height > 0 && (
                 <PatternOverlay pattern={pattern} width={size.width} height={size.height} />
             )}
-            <View style={styles.orb} />
 
             <View style={[styles.top, headerOffsetY !== undefined && { marginTop: headerOffsetY }]}>
                 <Text
@@ -166,6 +190,8 @@ export default function CardFace({
                 </Text>
                 <TypeBadge type={type} compact={isCompact} />
             </View>
+
+            <Chip compact={isCompact} />
 
             {valueLabel !== undefined && (
                 <BottomWrapper style={[styles.bottom, amountOpacity ? { opacity: amountOpacity } : null]}>
@@ -223,12 +249,12 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         height: CARD_LARGE_HEIGHT,
     },
-    orb: {
-        position: 'absolute', width: 160, height: 160,
-        borderRadius: 80,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        top: -50, right: -50,
-    },
+    // Positioned to land just under the name/badge row in each
+    // variant — tuned against that row's actual text size (padding +
+    // one line of nameCompact/name), not a guess independent of it.
+    chipWrap: { position: 'absolute', zIndex: 2 },
+    chipWrapCompact: { left: Spacing.md, top: 50 },
+    chipWrapLarge: { left: Spacing.lg, top: 68 },
     top: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -237,11 +263,11 @@ const styles = StyleSheet.create({
         gap: Spacing.xs,
     },
     name: {
-        fontSize: FontSize.lg, fontWeight: '800',
+        fontSize: FontSize.xl, fontWeight: '800',
         color: '#FFFFFF', letterSpacing: -0.3, flex: 1,
     },
     nameCompact: {
-        fontSize: FontSize.sm, fontWeight: '700',
+        fontSize: FontSize.md, fontWeight: '700',
     },
     badge: {
         paddingHorizontal: 6, paddingVertical: 3,

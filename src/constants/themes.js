@@ -68,6 +68,16 @@ export const Themes = {
 
         cashTone: '#D9C7A3',
 
+        // Card colors — same idea as the app's other palettes
+        // (SAVINGS_COLORS in useSavings.js), but themed instead of
+        // fixed: a card someone colors while on Arena should feel
+        // like it belongs to a warm daylight desert, not an arbitrary
+        // color wheel. Picked/cycled from in AddCardScreen.jsx.
+        cardColors: [
+            '#B8935E', '#8B7355', '#A0785A', '#6B7A5E',
+            '#9E8468', '#B57A5E', '#7A6B4E', '#8B6B4E',
+        ],
+
         // Liquid glass — used by GlassCard.jsx and the tab bar now that
         // AppBackground paints a gradient behind every screen instead
         // of each card carrying its own flat `surface` fill: every
@@ -123,6 +133,13 @@ export const Themes = {
 
         cashTone: '#4A4C52',
 
+        // See arena's cardColors comment for the full reasoning —
+        // same idea, tuned for Medianoche's cool teal/navy night.
+        cardColors: [
+            '#1F4E4A', '#2C3E5C', '#4A3F6B', '#2D5F6E',
+            '#3D4A5C', '#5C4A6B', '#2C5C4A', '#4A5C6B',
+        ],
+
         // See arena's glassFill comment for the full reasoning — same
         // tokens, tuned for a dark surface + cool teal moonlight
         // instead of a bright daytime sky.
@@ -166,6 +183,13 @@ export const Themes = {
         alertOn: '#1E160F',
 
         cashTone: '#4A3C2C',
+
+        // See arena's cardColors comment for the full reasoning —
+        // same idea, tuned for Brasa's warm ember night.
+        cardColors: [
+            '#8B4A2E', '#A66B2E', '#6B3A2C', '#8B5E2E',
+            '#5C3A2C', '#9E5A3D', '#7A4A2C', '#6B4A3A',
+        ],
 
         // Same reasoning as arena/medianoche — warmed to match Brasa's
         // ember glow instead of teal moonlight or daylight.

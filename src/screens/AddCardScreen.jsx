@@ -13,7 +13,6 @@ import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
-import { SAVINGS_COLORS } from '../store/useSavings';
 import { IconChevronLeft } from '../components/Icons';
 
 export default function AddCardScreen() {
@@ -36,13 +35,16 @@ export default function AddCardScreen() {
     const [limit, setLimit] = useState(editCard?.limit ? String(editCard.limit) : '');
     const [cutoffDay, setCutoffDay] = useState(editCard?.cutoffDay ? String(editCard.cutoffDay) : '');
     const [paymentDay, setPaymentDay] = useState(editCard?.paymentDay ? String(editCard.paymentDay) : '');
-    // Cycle the default color through the same palette Ahorros
-    // sub-accounts use, so a brand new card doesn't default to plain
-    // black — picked once at mount, not recalculated on every render.
+    // Cycle the default color through the active theme's own card
+    // palette (constants/themes.js) instead of the fixed palette
+    // Ahorros sub-accounts use — a card someone colors on Brasa should
+    // feel like it belongs there, not an arbitrary color wheel that
+    // happens to be the same one savings apartados use. Picked once
+    // at mount, not recalculated on every render.
     const [color, setColor] = useState(() => {
         if (editCard?.color) return editCard.color;
         const count = accounts.filter(a => a.type === 'debit').length + creditCards.length;
-        return SAVINGS_COLORS[count % SAVINGS_COLORS.length];
+        return theme.cardColors[count % theme.cardColors.length];
     });
     const [pattern, setPattern] = useState(editCard?.pattern || 'none');
     const [loading, setLoading] = useState(false);
@@ -276,7 +278,7 @@ export default function AddCardScreen() {
 
                     <Text style={styles.fieldLabel}>COLOR</Text>
                     <View style={styles.colorRow}>
-                        {SAVINGS_COLORS.map(c => (
+                        {theme.cardColors.map(c => (
                             <TouchableOpacity
                                 key={c}
                                 style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotActive]}
