@@ -27,15 +27,17 @@ const VB_W = 400;
 const VB_H = 870;
 
 // [topColor, bottomColor] per theme. Deliberately darker than each
-// theme's own `theme.bg` now — a later, explicit request to go past
-// that anchor, after this had been restored to match it exactly.
-// Particles (stars/embers/dust) still carry the visual interest on
-// top of this — see the STARS/EMBERS/DUST arrays below, untouched by
-// this.
+// theme's own `theme.bg` — a step past that anchor, then lightened
+// back up about two steps from the darkest point tried. Particles
+// (stars/embers/dust) still carry the visual interest on top of
+// this — see the STARS/EMBERS/DUST arrays below, untouched by this.
 const PALETTES = {
-    medianoche: { top: '#11121a', bottom: '#11121a', accent: '#ECEEE7', accent2: '#5FC9BD' },
-    brasa: { top: '#150E0A', bottom: '#150E0A', accent: '#D9763E', accent2: '#F2A65A' },
-    arena: { top: '#F1E9D9', bottom: '#F1E9D9', accent: '#F0C87E', accent2: '#C17C3A' },
+    medianoche: { top: '#181B24', bottom: '#181B24', accent: '#ECEEE7', accent2: '#5FC9BD' },
+    brasa: { top: '#241A13', bottom: '#241A13', accent: '#D9763E', accent2: '#F2A65A' },
+    arena: { top: '#F4EEE1', bottom: '#F4EEE1', accent: '#F0C87E', accent2: '#C17C3A' },
+    amanecer: { top: '#FDF0EC', bottom: '#FDF0EC', accent: '#E85D82', accent2: '#8B6FC9' },
+    neon: { top: '#0F0A0C', bottom: '#0F0A0C', accent: '#FF1744', accent2: '#FF3D8F' },
+    synthwave: { top: '#1A0B2E', bottom: '#1A0B2E', accent: '#FF2E97', accent2: '#00E5FF' },
 };
 
 // Medianoche — 26 quiet stars, mostly small and dim, plus two
@@ -138,7 +140,7 @@ export default function AppBackground({ themeName }) {
     const palette = PALETTES[themeName] || PALETTES.medianoche;
 
     return (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <View style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
             <Svg
                 width={width}
                 height={height}
@@ -153,10 +155,23 @@ export default function AppBackground({ themeName }) {
                 </Defs>
                 <Path d={`M0,0 H${VB_W} V${VB_H} H0 Z`} fill="url(#bgSky)" />
 
-                {themeName === 'brasa' ? (
+                {themeName === 'brasa' || themeName === 'neon' || themeName === 'synthwave' ? (
+                    // Neón and Synthwave both reuse Embers' glow-halo
+                    // mechanic as-is — "bigger dots get a soft halo
+                    // underneath" reads as neon glow just as naturally
+                    // as it reads as embers, just recolored via
+                    // accent/accent2 (hot pink + electric cyan here,
+                    // instead of red/red-pink).
                     <Embers colorA={palette.accent} colorB={palette.accent2} />
                 ) : themeName === 'arena' ? (
                     <Dust color={palette.accent2} />
+                ) : themeName === 'amanecer' ? (
+                    // No particles at all here — matches HeroArt.jsx's
+                    // own Amanecer, which went through the same
+                    // question (sun+rings, then snowballs, then
+                    // snowballs+sparks) before landing on "just the
+                    // gradient, nothing decorative on top of it".
+                    null
                 ) : (
                     <Stars color={palette.accent} />
                 )}

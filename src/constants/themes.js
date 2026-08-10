@@ -199,6 +199,203 @@ export const Themes = {
         glassTint: 'dark',
         glassIntensity: 55,
     },
+
+    // Same "time of day in the desert" idea the other three follow
+    // (day/midnight/warm-night) rather than an unrelated add-on — a
+    // desert sunrise is naturally soft, pink/lavender/peach, so
+    // "pastel and playful" fits the family instead of breaking it.
+    amanecer: {
+        label: 'Amanecer',
+        description: 'Pastel y juguetón, al amanecer',
+        statusBarStyle: 'dark',
+
+        bg: '#FDF0EC',
+        surface: '#FFFFFF',
+        border: '#F6DDD6',
+
+        ink: '#5C3A4A',
+        inkSoft: 'rgba(92,58,74,0.4)',
+        muted: '#C79AA8',
+
+        brand: '#F2789A',
+        brandSoft: 'rgba(242,120,154,0.14)',
+        brandOn: '#FFFFFF',
+
+        // Was #5FBF9E — a teal-leaning green with enough blue in it
+        // to read as part of the same "blue/cyan" family this theme
+        // was asked to drop entirely, not just savings and cardColors'
+        // sky blue. This is a green with (almost) no blue channel in
+        // it at all — shows up in the trend indicator, income color,
+        // and income amounts, all three read from this one token.
+        moneyIn: '#8FBF5E',
+        moneyInSoft: 'rgba(143,191,94,0.14)',
+        moneyOut: '#F2789A',
+        moneyOutSoft: 'rgba(242,120,154,0.16)',
+
+        // Was a blue-violet (#9B8FD9) — cool, and the one color in
+        // this whole theme that wasn't warm/pastel, so it stood out
+        // against everything else instead of blending in. Gold reads
+        // as "savings" just as naturally (coins) and actually fits
+        // the rest of the palette instead of fighting it.
+        savings: '#D9A548',
+        savingsSoft: 'rgba(217,165,72,0.16)',
+        savingsOn: '#FFFFFF',
+
+        alert: '#B89AA0',
+        alertSoft: 'rgba(184,154,160,0.10)',
+        alertOn: '#FFFFFF',
+
+        cashTone: '#F5D9C8',
+
+        // See arena's cardColors comment for the full reasoning — same
+        // idea, tuned playful/pastel: enough hue variety to still tell
+        // cards apart, none of them saturated or dark enough to lose
+        // the "soft" feeling the rest of this theme has.
+        // '#A6C8E8' (sky blue) was here — same reasoning as the old
+        // `savings` color above: the one cool/blue note in an
+        // otherwise all-warm palette. Coral fills the same "distinct
+        // from the other 7" role without breaking the family.
+        // '#B8A6E0' and '#C4A6E0' (lavender, lilac) were the last two
+        // blue-dominant values anywhere in this theme — options in a
+        // picker, not auto-applied UI, but asked to go too. Mauve
+        // keeps a little of what lavender was doing (a cooler-feeling
+        // option among mostly-hot pinks/corals) without any actual
+        // blue in it; sage adds a genuinely new hue the other 7
+        // didn't have yet, instead of two pinks-with-different-names.
+        cardColors: [
+            '#F2A6B4', '#C99AA8', '#9FD9C4', '#F5C99A',
+            '#E89078', '#F2E29A', '#E0A6C4', '#A8C088',
+        ],
+
+        // Light glass, same family as arena's (bright bg, BlurView's
+        // light-glass algorithm) — see arena's glassFill comment for
+        // the full reasoning.
+        glassFill: 'rgba(255,255,255,0.6)',
+        glassBorder: 'rgba(255,255,255,0.6)',
+        glassBorderTop: 'rgba(255,255,255,0.9)',
+        glassTint: 'light',
+        glassIntensity: 45,
+    },
+
+    // A genuine departure from the other four (not a desert time-of-
+    // day at all) — asked for directly as "cyberpunk, red and black,
+    // with everything that implies". Red and black stay the dominant
+    // two colors throughout (bg/surface/brand/cardColors are all
+    // black-with-red-undertone or red-family), but a couple of
+    // semantic tokens that need to stay functionally distinct from
+    // pure red (moneyIn vs. moneyOut, so income and expense don't
+    // read as the same color) pull a hot magenta and a deep crimson-
+    // purple instead of leaving the red/black family entirely for an
+    // unrelated hue like cyan — same "still recognizably one palette"
+    // reasoning the other four themes follow.
+    neon: {
+        label: 'Neón',
+        description: 'Cyberpunk, rojo sobre negro',
+        statusBarStyle: 'light',
+
+        bg: '#0A0708',
+        surface: '#161012',
+        border: 'rgba(255,45,85,0.16)',
+
+        ink: '#F5EDEE',
+        inkSoft: 'rgba(245,237,238,0.4)',
+        muted: '#8A6F74',
+
+        brand: '#FF1744',
+        brandSoft: 'rgba(255,23,68,0.18)',
+        brandOn: '#FFFFFF',
+
+        moneyIn: '#FF3D8F',
+        moneyInSoft: 'rgba(255,61,143,0.16)',
+        moneyOut: '#FF1744',
+        moneyOutSoft: 'rgba(255,23,68,0.18)',
+
+        savings: '#A6296B',
+        savingsSoft: 'rgba(166,41,107,0.20)',
+        savingsOn: '#FFFFFF',
+
+        alert: '#B0525E',
+        alertSoft: 'rgba(176,82,94,0.14)',
+        alertOn: '#FFFFFF',
+
+        cashTone: '#3A1218',
+
+        // See arena's cardColors comment for the full reasoning — same
+        // idea, kept inside the red/black family on purpose (deep
+        // crimsons, near-blacks, dark plums) rather than reaching for
+        // unrelated hues just for variety.
+        cardColors: [
+            '#3D0F1A', '#1A1416', '#5C1128', '#2B0F1E',
+            '#4A0E1C', '#1F0A12', '#601830', '#0F0F14',
+        ],
+
+        // Dark glass, same family as medianoche/brasa's — tuned with a
+        // red undertone instead of teal or ember warmth, so the glass
+        // itself still reads as part of this palette and not a
+        // generic dark-mode gray.
+        glassFill: 'rgba(22,16,18,0.45)',
+        glassBorder: 'rgba(255,45,85,0.12)',
+        glassBorderTop: 'rgba(255,90,120,0.28)',
+        glassTint: 'dark',
+        glassIntensity: 55,
+    },
+
+    // Unlike Neón (red/black, cyan deliberately avoided), synthwave
+    // isn't synthwave without hot pink AND electric cyan together —
+    // that pairing is the whole identity of the genre, not a color
+    // choice to second-guess the way it was for Amanecer. Purple
+    // fills the space between them (the classic dusk-gradient third
+    // color) instead of reaching outside that three-color family.
+    synthwave: {
+        label: 'Synthwave',
+        description: 'Atardecer retro, rosa y cian',
+        statusBarStyle: 'light',
+
+        bg: '#1A0B2E',
+        surface: '#2D1445',
+        border: 'rgba(255,62,201,0.18)',
+
+        ink: '#F5E8FF',
+        inkSoft: 'rgba(245,232,255,0.4)',
+        muted: '#9A82B5',
+
+        brand: '#FF2E97',
+        brandSoft: 'rgba(255,46,151,0.18)',
+        brandOn: '#FFFFFF',
+
+        moneyIn: '#00E5FF',
+        moneyInSoft: 'rgba(0,229,255,0.16)',
+        moneyOut: '#FF2E97',
+        moneyOutSoft: 'rgba(255,46,151,0.18)',
+
+        savings: '#B026FF',
+        savingsSoft: 'rgba(176,38,255,0.18)',
+        savingsOn: '#FFFFFF',
+
+        alert: '#C9A0D9',
+        alertSoft: 'rgba(201,160,217,0.14)',
+        alertOn: '#1A0B2E',
+
+        cashTone: '#3D1D52',
+
+        // See arena's cardColors comment for the full reasoning — same
+        // idea, this time drawing from the genre's actual signature
+        // palette (hot pink, electric cyan, violet) instead of
+        // avoiding any part of it.
+        cardColors: [
+            '#FF2E97', '#00E5FF', '#B026FF', '#FF6B9D',
+            '#7B2FF7', '#FF3EC9', '#00B8D9', '#C724B1',
+        ],
+
+        // Dark glass with a pink undertone instead of teal (medianoche)
+        // or red (neon) — same family of tokens, tuned to this theme's
+        // own dominant hue.
+        glassFill: 'rgba(45,20,69,0.45)',
+        glassBorder: 'rgba(255,62,201,0.14)',
+        glassBorderTop: 'rgba(0,229,255,0.24)',
+        glassTint: 'dark',
+        glassIntensity: 55,
+    },
 };
 
 export const THEME_NAMES = Object.keys(Themes);
