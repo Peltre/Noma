@@ -253,7 +253,7 @@ function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
                         style={styles.sheetInput}
                         value={name}
                         onChangeText={setName}
-                        placeholder="Ej. Vacaciones, Emergencia..."
+                        placeholder="Ej. Cajita , Apartado BBVA..."
                         placeholderTextColor={theme.muted}
                     />
 
