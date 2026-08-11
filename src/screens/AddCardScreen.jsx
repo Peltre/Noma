@@ -13,6 +13,7 @@ import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
+import ColorPicker from 'react-native-wheel-color-picker';
 import { IconChevronLeft } from '../components/Icons';
 
 export default function AddCardScreen() {
@@ -48,6 +49,13 @@ export default function AddCardScreen() {
     });
     const [pattern, setPattern] = useState(editCard?.pattern || 'none');
     const [loading, setLoading] = useState(false);
+    // Drives the ScrollView's scrollEnabled below — the color wheel's
+    // own drag gesture and the form's scroll gesture both want to own
+    // a vertical (or any) finger drag, and without this the ScrollView
+    // can steal the gesture mid-drag on the wheel. True only for the
+    // duration of an actual wheel/slider interaction, not the whole
+    // time the picker is visible.
+    const [pickerActive, setPickerActive] = useState(false);
 
     const typeIsCredit = cardType === 'credit';
     // A débito account with linked apartados can't be deleted either
@@ -152,7 +160,7 @@ export default function AddCardScreen() {
 
     return (
         <View style={styles.safeArea}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={!pickerActive}>
 
                 {/* Header */}
                 <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -277,14 +285,37 @@ export default function AddCardScreen() {
                     )}
 
                     <Text style={styles.fieldLabel}>COLOR</Text>
-                    <View style={styles.colorRow}>
-                        {theme.cardColors.map(c => (
-                            <TouchableOpacity
-                                key={c}
-                                style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotActive]}
-                                onPress={() => setColor(c)}
-                            />
-                        ))}
+                    {/* Any color at all, full HSV — no preset row above
+                        this anymore. theme.cardColors still picks the
+                        DEFAULT color for a brand new card (see the
+                        color state's own comment above), just isn't
+                        shown as tappable swatches here anymore.
+                        swatches={false} because the library's own
+                        default palette is generic and wouldn't fit any
+                        theme in particular. useNativeLayout avoids a
+                        layout-measurement footgun this screen already
+                        hit once with a hand-rolled slider (see the
+                        removed HueSlider.jsx, no longer used) — same
+                        class of bug, this prop is the library's own
+                        fix for it. onInteractionStart/
+                        onColorChangeComplete bracket each drag to
+                        disable the ScrollView above for just that
+                        duration — see pickerActive's own comment for
+                        why. */}
+                    <View style={{ height: 240, marginTop: Spacing.sm }}>
+                        <ColorPicker
+                            color={color}
+                            onColorChange={setColor}
+                            onInteractionStart={() => setPickerActive(true)}
+                            onColorChangeComplete={(c) => {
+                                setColor(c);
+                                setPickerActive(false);
+                            }}
+                            thumbSize={30}
+                            sliderSize={24}
+                            swatches={false}
+                            useNativeLayout={true}
+                        />
                     </View>
 
                     <Text style={styles.fieldLabel}>PATRÓN</Text>
