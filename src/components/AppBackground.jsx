@@ -54,7 +54,7 @@ const STARS = [
     [220.3, 804.7, 0.9, 0.49], [397.6, 673.6, 1.5, 0.31], [344.5, 562, 1.4, 0.29],
     [213.2, 223.3, 2.0, 0.37], [364.1, 128, 1.0, 0.49],
 ];
-const SPARKLES = [[90, 140, 1], [320, 400, 0.85]];
+const SPARKLES = [[240, 95, 1], [320, 400, 0.85]];
 
 // Brasa — 22 embers, warm two-tone (accent/accent2 alternating), the
 // bigger ones (r > 2.4) get a soft low-opacity halo underneath to
