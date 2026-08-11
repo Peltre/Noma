@@ -213,9 +213,9 @@ export const Themes = {
         surface: '#FFFFFF',
         border: '#F6DDD6',
 
-        ink: '#5C3A4A',
+        ink: '#412934',
         inkSoft: 'rgba(92,58,74,0.4)',
-        muted: '#C79AA8',
+        muted: '#7d5d67',
 
         brand: '#F2789A',
         brandSoft: 'rgba(242,120,154,0.14)',
@@ -227,8 +227,8 @@ export const Themes = {
         // sky blue. This is a green with (almost) no blue channel in
         // it at all — shows up in the trend indicator, income color,
         // and income amounts, all three read from this one token.
-        moneyIn: '#8FBF5E',
-        moneyInSoft: 'rgba(143,191,94,0.14)',
+        moneyIn: '#7f4898',
+        moneyInSoft: 'rgba(160, 94, 191, 0.14)',
         moneyOut: '#F2789A',
         moneyOutSoft: 'rgba(242,120,154,0.16)',
 

@@ -163,7 +163,7 @@ function AmanecerHero() {
                     <Stop offset="100%" stopColor="#C4B0E8" />
                 </LinearGradient>
             </Defs>
-            <Path d={`M0,0 H${VB_W} V${VB_H} H0 Z`} fill="url(#hamSky)" opacity={0.55} />
+            <Path d={`M0,0 H${VB_W} V${VB_H} H0 Z`} fill="url(#hamSky)" opacity={0.95} />
         </>
     );
 }
