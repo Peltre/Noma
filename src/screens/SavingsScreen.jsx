@@ -234,6 +234,7 @@ function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
                 <Sheet scroll>
                     <Text style={styles.sheetTitle}>Nuevo apartado</Text>
 
@@ -253,7 +254,7 @@ function AddApartadoModal({ visible, onClose, accounts, getFreeRoom }) {
                         style={styles.sheetInput}
                         value={name}
                         onChangeText={setName}
-                        placeholder="Ej. Cajita , Apartado BBVA..."
+                        placeholder="Ej. Cajita Nu, Apartado BBVA..."
                         placeholderTextColor={theme.muted}
                     />
 
@@ -353,6 +354,7 @@ function EditInterestModal({ visible, onClose, savingsAccount }) {
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
                 <Sheet scroll>
                     <View style={styles.sheetTitleRow}>
                         <AccountDot color={savingsAccount.color} size={28} />
@@ -403,6 +405,7 @@ function MoveMoneyModal({ visible, onClose, savingsAccount, getFreeRoom, mode })
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
                 <Sheet>
                     <View style={styles.sheetTitleRow}>
                         <AccountDot color={savingsAccount?.color} size={28} />
@@ -477,6 +480,7 @@ function AddGoalModal({ visible, onClose }) {
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
                 <Sheet scroll>
                     <Text style={styles.sheetTitle}>Nuevo objetivo</Text>
 
@@ -564,6 +568,7 @@ function GoalContributeModal({ visible, onClose, goal, savingsAccounts, mode }) 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
                 <Sheet>
                     <Text style={styles.sheetTitle}>
                         {isDeposit ? 'Aportar al objetivo' : 'Retirar del objetivo'}

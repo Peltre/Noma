@@ -354,8 +354,8 @@ export default function ScheduledFundsScreen() {
                 animationType="fade"
                 onRequestClose={() => setEditingMSI(null)}
             >
-                <View style={styles.modalBackdrop}>
-                    <View style={styles.modalSheet}>
+                <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setEditingMSI(null)}>
+                    <TouchableOpacity style={styles.modalSheet} activeOpacity={1} onPress={() => { }}>
                         <Text style={styles.modalTitle}>Editar mensualidad</Text>
 
                         <View style={styles.fieldGroup}>
@@ -392,8 +392,8 @@ export default function ScheduledFundsScreen() {
                                 <Text style={styles.modalSaveText}>Guardar</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
-                </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
             </Modal>
         </SafeAreaView>
     );
