@@ -52,11 +52,12 @@ const PERIOD_FILTERS = [
 // payment — is still a real `type: 'withdrawal'` underneath (see
 // HomeScreen's getTxnVisual for why that has to stay true), but
 // neither reads as a plain retiro here: both get their own label and
-// the same moneyOut accent PendingFundCard already gives an MSI due
-// before it's paid.
+// their own accent (theme.msi / theme.cardPayment) instead of
+// sharing moneyOut with a plain Gasto — kept in sync with
+// HomeScreen's getTxnVisual, which must mirror this.
 function getTypeConfig(theme, type, category) {
-    if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Mensualidad' };
-    if (category === 'card_payment') return { Icon: IconCash, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Pago de tarjeta' };
+    if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.msiSoft, fg: theme.msi, label: 'Mensualidad' };
+    if (category === 'card_payment') return { Icon: IconCash, bg: theme.cardPaymentSoft, fg: theme.cardPayment, label: 'Pago de tarjeta' };
     // Interest credits are real income transactions (see
     // FinanceContext's accrual effect), but they're app-generated,
     // not something the person typed in — same "own icon/color"
@@ -186,7 +187,9 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, sh
                             <Text style={[
                                 sheet.amount,
                                 txn.category === 'goal' ? { color: theme.savings }
-                                    : txn.type === 'expense' && { color: theme.moneyOut },
+                                    : txn.category === 'card_payment' ? { color: theme.cardPayment }
+                                        : txn.category === 'msi' ? { color: theme.msi }
+                                            : txn.type === 'expense' && { color: theme.moneyOut },
                             ]}>
                                 {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrency(txn.amount)}
                             </Text>
@@ -397,8 +400,10 @@ export default function HistoryScreen() {
                                                     styles.txnAmount,
                                                     isIncome ? styles.amountPos
                                                         : txn.category === 'goal' ? { color: theme.savings }
-                                                            : txn.type === 'expense' ? styles.amountExpense
-                                                                : styles.amountNeg,
+                                                            : txn.category === 'card_payment' ? { color: theme.cardPayment }
+                                                                : txn.category === 'msi' ? { color: theme.msi }
+                                                                    : txn.type === 'expense' ? styles.amountExpense
+                                                                        : styles.amountNeg,
                                                 ]}>
                                                     {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>

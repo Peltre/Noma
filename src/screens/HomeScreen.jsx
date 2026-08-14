@@ -61,13 +61,14 @@ function getAccountColor(theme, account) {
 // manual/full payment — is a `type: 'withdrawal'` under the hood
 // (that's what makes the balance math in useFinanceStore work: real
 // money leaves a real account), but neither one is a plain retiro
-// the way pulling cash from a cajero is. Both get the same moneyOut
-// accent PendingFundCard already uses for an MSI due before it's
-// paid, and their own icon each so they don't blend into the
+// the way pulling cash from a cajero is. Each gets its own accent
+// (theme.msi / theme.cardPayment) instead of borrowing moneyOut —
+// otherwise Gasto, Mensualidad and Pago de tarjeta all read as the
+// same color — plus their own icon so they don't blend into the
 // generic withdrawal icon or into each other.
 function getTxnVisual(theme, type, category) {
-    if (category === 'msi') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCalendarClock };
-    if (category === 'card_payment') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconCash };
+    if (category === 'msi') return { bg: theme.msiSoft, color: theme.msi, Icon: IconCalendarClock };
+    if (category === 'card_payment') return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCash };
     // Same reasoning as HistoryScreen's getTypeConfig: an interest
     // credit is app-generated, not typed in by the person, so it
     // gets the same `savings` accent as everywhere else interest
@@ -514,8 +515,10 @@ export default function HomeScreen() {
                                                 styles.txnAmount,
                                                 txn.type === 'income' ? styles.amountPos
                                                     : txn.category === 'goal' ? { color: theme.savings }
-                                                        : txn.type === 'expense' ? styles.amountExpense
-                                                            : styles.amountNeg,
+                                                        : txn.category === 'card_payment' ? { color: theme.cardPayment }
+                                                            : txn.category === 'msi' ? { color: theme.msi }
+                                                                : txn.type === 'expense' ? styles.amountExpense
+                                                                    : styles.amountNeg,
                                             ]}>
                                                 {txn.type === 'income' ? '+' : txn.type === 'transfer' ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                             </Text>

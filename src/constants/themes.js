@@ -25,6 +25,22 @@
 //            calm, desert-toned accents.
 //   alertOn  same idea as brandOn/savingsOn, for an `alert`-colored
 //            surface
+//   cardPayment  a `type: 'withdrawal'` paying down a credit card
+//            (category 'card_payment' — see HomeScreen/HistoryScreen).
+//            Used to just reuse `moneyOut`, same as a plain Gasto —
+//            but a card payment isn't a new expense, it's paying off
+//            one you already made, so it gets its own softer
+//            amber/orange-yellow instead of competing for the same
+//            accent as Gasto and Mensualidad. Every theme keeps this
+//            in its own warm-adjacent family (never a hue the theme
+//            doesn't already use elsewhere), just shifted enough from
+//            `moneyOut`/`brand` to read as distinct at a glance.
+//   msi      a `type: 'withdrawal'` for one MSI installment (category
+//            'msi'). Same reasoning as `cardPayment` — was also
+//            silently reusing `moneyOut`. Deliberately its own hue
+//            from `cardPayment` too (not just a lighter/darker
+//            version of it), so Gasto/Mensualidad/Pago de tarjeta
+//            read as three distinct colors instead of a repeated one.
 // An expense amount in text always uses `ink` (neutral), never
 // moneyOut. A single expense should not read as an alert.
 
@@ -65,6 +81,19 @@ export const Themes = {
         alert: '#7E8580',
         alertSoft: 'rgba(126,133,128,0.08)',
         alertOn: '#FFFFFF',
+
+        // Amber/mustard — a notch more yellow than moneyOut's
+        // terracotta orange, and softer (lower saturation) than the
+        // "no tan fuerte" ask called for. Lightened and pushed
+        // further toward yellow per follow-up feedback.
+        cardPayment: '#DDC170',
+        cardPaymentSoft: 'rgba(221,193,112,0.16)',
+        // Clay/terracotta-brown — a third warm earth tone alongside
+        // moneyOut's orange and cardPayment's amber, but deeper and
+        // less saturated than both so it doesn't just read as a
+        // shade of one of them.
+        msi: '#B5754F',
+        msiSoft: 'rgba(181,117,79,0.14)',
 
         cashTone: '#D9C7A3',
 
@@ -131,6 +160,18 @@ export const Themes = {
         alertSoft: 'rgba(154,163,176,0.10)',
         alertOn: '#11151D',
 
+        // moneyOut here is already a muted tan/gold, so cardPayment
+        // pushes further into a richer, more saturated amber instead
+        // of sitting right next to it. Lightened and pushed further
+        // toward yellow per follow-up feedback.
+        cardPayment: '#E3C56E',
+        cardPaymentSoft: 'rgba(227,197,110,0.18)',
+        // A warm brick-rust red — this theme had no red at all yet
+        // (teal, gold-tan, blue, gray), so this reads as clearly its
+        // own thing instead of a variation on moneyOut or cardPayment.
+        msi: '#C97158',
+        msiSoft: 'rgba(201,113,88,0.16)',
+
         cashTone: '#4A4C52',
 
         // See arena's cardColors comment for the full reasoning —
@@ -181,6 +222,18 @@ export const Themes = {
         alert: '#9BA0A6',
         alertSoft: 'rgba(155,160,166,0.10)',
         alertOn: '#1E160F',
+
+        // Same amber family as arena, shifted for Brasa's darker
+        // ember-warm surface — still clearly more yellow than
+        // moneyOut's orange. Lightened and pushed further toward
+        // yellow per follow-up feedback.
+        cardPayment: '#E1C576',
+        cardPaymentSoft: 'rgba(225,197,118,0.18)',
+        // A deep brick-rose red — embers glow red as well as orange,
+        // so this stays in the "warm night" family while landing far
+        // enough from moneyOut/cardPayment's orange-amber hues.
+        msi: '#A8524A',
+        msiSoft: 'rgba(168,82,74,0.16)',
 
         cashTone: '#4A3C2C',
 
@@ -244,6 +297,19 @@ export const Themes = {
         alert: '#B89AA0',
         alertSoft: 'rgba(184,154,160,0.10)',
         alertOn: '#FFFFFF',
+
+        // Warm and pastel like the rest of this theme, but pulled far
+        // enough from `savings`' gold (#D9A548) to not blend into
+        // "Interés", and nowhere near brand/moneyOut's pink.
+        // Lightened and pushed further toward yellow (butter instead
+        // of peach) per follow-up feedback.
+        cardPayment: '#EACB90',
+        cardPaymentSoft: 'rgba(234,203,144,0.18)',
+        // A more muted, darker terracotta-caramel — same hue
+        // neighborhood as cardPayment but visibly deeper/duller, so
+        // Mensualidad and Pago de tarjeta don't read as the same peach.
+        msi: '#B8785A',
+        msiSoft: 'rgba(184,120,90,0.16)',
 
         cashTone: '#F5D9C8',
 
@@ -318,6 +384,22 @@ export const Themes = {
         alertSoft: 'rgba(176,82,94,0.14)',
         alertOn: '#FFFFFF',
 
+        // Neon amber-yellow — reads as a cyberpunk sign color as much
+        // as red/magenta do, so it stays inside this theme's own
+        // family instead of reaching for an unrelated hue, while
+        // landing far enough from brand/moneyOut's red (350°) and
+        // moneyIn's magenta (332°) to read as its own signal. Pushed
+        // lighter/more yellow per follow-up feedback, kept fully
+        // saturated (unlike the other themes' softer version) so it
+        // still reads as a neon glow instead of a pastel.
+        cardPayment: '#FFB452',
+        cardPaymentSoft: 'rgba(255,180,82,0.20)',
+        // A duller, darker copper — same orange family as
+        // cardPayment but visibly less neon-bright, closer to
+        // "burnt metal" than "sign glow", so it doesn't compete with it.
+        msi: '#C97A3D',
+        msiSoft: 'rgba(201,122,61,0.16)',
+
         cashTone: '#3A1218',
 
         // See arena's cardColors comment for the full reasoning — same
@@ -375,6 +457,21 @@ export const Themes = {
         alert: '#C9A0D9',
         alertSoft: 'rgba(201,160,217,0.14)',
         alertOn: '#1A0B2E',
+
+        // Sunset gold — this theme's dusk gradient always has an
+        // amber/orange band between the pink and the horizon, so this
+        // fits the genre instead of adding an unrelated hue, and sits
+        // clear of brand's pink (327°), moneyIn's cyan (189°) and
+        // savings' purple (283°). Pushed lighter/more yellow per
+        // follow-up feedback, kept fully saturated to stay a neon
+        // sunset glow rather than a pastel.
+        cardPayment: '#FFCF66',
+        cardPaymentSoft: 'rgba(255,207,102,0.20)',
+        // Sunset red-orange — the band of the gradient just below the
+        // gold, closer to the horizon's red — same "atardecer" family
+        // as cardPayment, different enough hue to stay its own signal.
+        msi: '#FF6B4A',
+        msiSoft: 'rgba(255,107,74,0.16)',
 
         cashTone: '#3D1D52',
 
