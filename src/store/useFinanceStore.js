@@ -280,6 +280,77 @@ export function useFinanceStore() {
         return newTransaction;
     };
 
+    // Batch version of addTransaction, scoped to what goal redemption
+    // needs: several plain expenses (no credit card, no transfer),
+    // each against its own accountId, applied atomically. Same
+    // reasoning as addAccountsBatch/creditInterestBatch above —
+    // looping addTransaction() (as SavingsScreen's handleRedeemGoal
+    // used to) has every call read the same pre-loop
+    // `accounts`/`transactions` snapshot, so only the LAST account
+    // touched ends up with a correct balance and only the LAST
+    // transaction record survives; every earlier one in the same
+    // loop silently disappears.
+    //
+    // Every entry is validated FIRST, against a running per-account
+    // balance so two entries sharing an account are checked
+    // cumulatively (not each against the same starting balance,
+    // which would let them together overspend it) — and only once
+    // every entry passes does anything actually get applied. If one
+    // entry fails, NONE of them are, instead of leaving a goal
+    // half-redeemed the way the old loop could (stop partway through,
+    // with the first N sources already spent for real).
+    const addTransactionsBatch = async (list) => {
+        if (!list.length) return { transactions: [], accounts, error: null };
+
+        const runningBalance = {};
+        for (let i = 0; i < list.length; i++) {
+            const t = list[i];
+            if (!t.amount || t.amount <= 0) {
+                return { error: 'El monto debe ser mayor a cero.', index: i };
+            }
+            const amount = round2(t.amount);
+            if (!(t.accountId in runningBalance)) {
+                const account = accounts.find(a => a.id === t.accountId);
+                runningBalance[t.accountId] = account ? account.balance : null;
+            }
+            const current = runningBalance[t.accountId];
+            if (current == null) {
+                return { error: 'Cuenta no encontrada.', index: i };
+            }
+            if (current - amount < 0) {
+                const account = accounts.find(a => a.id === t.accountId);
+                return { error: `${account.name} solo tiene ${current.toFixed(2)} disponibles.`, index: i };
+            }
+            runningBalance[t.accountId] = round2(current - amount);
+        }
+
+        let updatedAccounts = accounts;
+        const newTransactions = list.map((t, i) => {
+            const amount = round2(t.amount);
+            updatedAccounts = updatedAccounts.map(acc =>
+                acc.id === t.accountId
+                    ? { ...acc, balance: round2(acc.balance - amount) }
+                    : acc
+            );
+            return {
+                id: `${Date.now()}_${i}`,
+                date: new Date().toISOString(),
+                type: 'expense',
+                amount,
+                reason: t.reason,
+                category: t.category || null,
+                accountId: t.accountId,
+                creditCardId: null,
+            };
+        });
+        const updatedTransactions = [...newTransactions, ...transactions];
+        setAccounts(updatedAccounts);
+        setTransactions(updatedTransactions);
+        await saveData(KEYS.accounts, updatedAccounts);
+        await saveData(KEYS.transactions, updatedTransactions);
+        return { transactions: newTransactions, accounts: updatedAccounts, error: null };
+    };
+
     const deleteTransaction = async (txnId) => {
         const txn = transactions.find(t => t.id === txnId);
         if (!txn) return;
@@ -611,6 +682,7 @@ export function useFinanceStore() {
         isLoading,
         // Actions
         addTransaction,
+        addTransactionsBatch,
         updateTransaction,
         deleteTransaction,
         addCreditCard,

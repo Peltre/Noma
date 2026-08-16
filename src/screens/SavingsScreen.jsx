@@ -761,7 +761,7 @@ export default function SavingsScreen() {
     const {
         accounts, savingsAccounts, savingsGoals,
         deleteSavingsAccount, deleteSavingsGoal, getMonthlySuggestion,
-        addTransaction, getAccountDeficit, getFreeRoom,
+        addTransactionsBatch, getAccountDeficit, getFreeRoom,
         getSavingsAccountRisk, getGoalRisk,
     } = useFinance();
     const { theme } = useTheme();
@@ -807,11 +807,19 @@ export default function SavingsScreen() {
     // one real expense transaction per apartado that fed this goal,
     // each charged against THAT apartado's own linked account (a goal
     // funded from two different cards spends from both, same as it
-    // would if you paid for something split across two cards). Each
-    // addTransaction call already carries its own real-balance check,
-    // so if a linked account has since dropped below what its
-    // apartado promised, this fails there with a clear error instead
-    // of silently spending money that isn't really there.
+    // would if you paid for something split across two cards).
+    // Applied through one addTransactionsBatch call, not a loop of
+    // addTransaction() — addTransaction reads accounts/transactions
+    // by closure, so looping it here (as this used to) would have
+    // every call build off the same pre-loop snapshot: only the last
+    // account touched would end up with the right balance, and only
+    // the last transaction record would survive, silently dropping
+    // every source before it. The batch validates every source
+    // first — so if a linked account has since dropped below what
+    // its apartado promised, this fails there with a clear error
+    // instead of silently spending money that isn't really there —
+    // and only applies anything once all of them pass, so a goal
+    // never ends up half-redeemed.
     const handleRedeemGoal = (goal) => {
         const bySource = {};
         goal.contributions.forEach(c => {
@@ -825,18 +833,15 @@ export default function SavingsScreen() {
             .map(([savingsAccountId, amt]) => ({
                 amount: amt,
                 sa: savingsAccounts.find(a => a.id === savingsAccountId),
-            }));
+            }))
+            // An apartado deleted before redeeming has nothing left to
+            // trace this slice back to — skip it here, once, instead
+            // of re-checking `source.sa` at every other use below.
+            .filter(source => source.sa);
 
         // What the confirmation below promises to deduct — the real
         // sum of what's about to be charged, not goal.targetAmount.
-        // Sources whose apartado was deleted before redeeming get
-        // skipped in the loop further down (nothing left to trace
-        // them back to), so they're excluded here too — otherwise
-        // the dialog would promise more than what actually gets
-        // charged.
-        const totalToDeduct = round2(
-            sources.filter(s => s.sa).reduce((sum, s) => sum + s.amount, 0)
-        );
+        const totalToDeduct = round2(sources.reduce((sum, s) => sum + s.amount, 0));
 
         Alert.alert(
             'Marcar como comprado',
@@ -845,26 +850,25 @@ export default function SavingsScreen() {
                 { text: 'Cancelar', style: 'cancel' },
                 {
                     text: 'Confirmar', onPress: async () => {
-                        const warnings = [];
-                        for (const source of sources) {
-                            if (!source.sa) continue; // its apartado was deleted before redeeming — can't trace where this slice lives anymore
-                            const result = await addTransaction({
-                                type: 'expense',
-                                amount: source.amount,
-                                reason: goal.name,
-                                category: 'goal',
-                                accountId: source.sa.linkedAccountId,
-                                creditCardId: null,
-                            });
-                            if (result?.error) {
-                                Alert.alert('No se pudo', `${result.error} (al descontar de ${source.sa.name})`);
-                                return;
-                            }
-                            if (result.savingsWarning) warnings.push(result.savingsWarning);
+                        const result = await addTransactionsBatch(sources.map(source => ({
+                            amount: source.amount,
+                            reason: goal.name,
+                            category: 'goal',
+                            accountId: source.sa.linkedAccountId,
+                        })));
+                        if (result.error) {
+                            const failedSource = sources[result.index];
+                            Alert.alert(
+                                'No se pudo',
+                                `${result.error}${failedSource ? ` (al descontar de ${failedSource.sa.name})` : ''}`
+                            );
+                            return;
                         }
                         await deleteSavingsGoal(goal.id, { returnFunds: false });
-                        if (warnings.length > 0) {
-                            const lines = warnings.map(w => `· ${formatCurrencyShort(w.newlyAtRisk)} en ${w.accountName}`).join('\n');
+                        if (result.savingsWarnings?.length > 0) {
+                            const lines = result.savingsWarnings
+                                .map(w => `· ${formatCurrencyShort(w.newlyAtRisk)} en ${w.accountName}`)
+                                .join('\n');
                             Alert.alert('Comprado — con aviso', `Esta compra también usó fondos de otros apartados en la misma cuenta:\n${lines}`);
                         }
                     },

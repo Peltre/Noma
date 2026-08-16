@@ -62,6 +62,46 @@ export function FinanceProvider({ children }) {
         return result;
     };
 
+    // Wraps financeStore.addTransactionsBatch the same way addTransaction
+    // above wraps financeStore.addTransaction — adds a savings warning
+    // per account that ended up more at-risk because of this batch.
+    // Unlike addTransaction's wrapper (always exactly one account),
+    // this can touch several at once — e.g. SavingsScreen's
+    // handleRedeemGoal spending from every apartado that funded a
+    // goal in a single call — so this returns a `savingsWarnings`
+    // array (one entry per newly-at-risk account) instead of a single
+    // `savingsWarning`.
+    // "After" is read straight from the batch's own returned
+    // `accounts` array, not from financeStore.accounts — that state
+    // variable won't reflect this batch's changes until the next
+    // render, and re-reading it here would just reintroduce the same
+    // stale-closure problem addTransactionsBatch exists to avoid.
+    const addTransactionsBatch = async (list) => {
+        const uniqueAccountIds = [...new Set(list.map(t => t.accountId).filter(Boolean))];
+        const deficitsBefore = {};
+        uniqueAccountIds.forEach(id => {
+            deficitsBefore[id] = savingsStore.getAccountDeficit(id).deficit;
+        });
+
+        const result = await financeStore.addTransactionsBatch(list);
+        if (result.error) return result;
+
+        const savingsWarnings = [];
+        uniqueAccountIds.forEach(id => {
+            const account = result.accounts.find(a => a.id === id);
+            if (!account) return;
+            const deficitAfter = savingsStore.getAccountDeficit(id, account.balance).deficit;
+            if (deficitAfter > deficitsBefore[id]) {
+                savingsWarnings.push({
+                    accountName: account.name,
+                    newlyAtRisk: round2(deficitAfter - deficitsBefore[id]),
+                });
+            }
+        });
+
+        return { ...result, savingsWarnings };
+    };
+
     // financeStore.deleteAccount only ever checks the account's OWN
     // balance — it has no idea apartados exist, same reason
     // addTransaction needs wrapping above. Without this, a débito
@@ -175,6 +215,7 @@ export function FinanceProvider({ children }) {
             ...savingsStore,
             ...tagsStore,
             addTransaction,
+            addTransactionsBatch,
             deleteAccount,
             changeCurrency,
             isLoading,
