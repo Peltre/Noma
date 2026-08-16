@@ -98,6 +98,52 @@ export function useFinanceStore() {
         return newAccount;
     };
 
+    // Batch version of addAccount — same reasoning as
+    // creditInterestBatch below: addAccount reads `accounts` by
+    // closure, so calling it in a loop (e.g. onboarding creating
+    // several debit accounts in one go) would have every call build
+    // off the SAME pre-loop `accounts` snapshot, and the last
+    // setAccounts() call would silently overwrite every account
+    // added earlier in that same loop. This builds the whole array
+    // in one synchronous pass and saves once.
+    // Also sidesteps a second, smaller bug the loop had: addAccount's
+    // id is just Date.now().toString() — fine for a single call, but
+    // several calls back-to-back inside one loop iteration can land
+    // in the same millisecond and collide. The index suffix here
+    // guarantees uniqueness within a batch.
+    // Entries missing a name or with an invalid type are skipped
+    // (not created) and reported in `errors`, same rejection addAccount
+    // would give one at a time — callers that don't care can ignore it.
+    const addAccountsBatch = async (list) => {
+        if (!list.length) return { accounts: [], errors: [] };
+        const errors = [];
+        const newAccounts = [];
+        let updatedAccounts = accounts;
+        list.forEach(({ name, type, color, pattern, initialBalance = 0 }) => {
+            if (!name || !name.trim()) {
+                errors.push({ name, error: 'Ponle un nombre a la cuenta.' });
+                return;
+            }
+            if (type !== 'debit') {
+                errors.push({ name, error: 'Por ahora solo se pueden agregar cuentas de débito.' });
+                return;
+            }
+            const newAccount = {
+                id: `${Date.now()}_${newAccounts.length}`,
+                type,
+                name: name.trim(),
+                color: color || null,
+                pattern: pattern || null,
+                balance: Math.max(0, round2(initialBalance)),
+            };
+            updatedAccounts = [...updatedAccounts, newAccount];
+            newAccounts.push(newAccount);
+        });
+        setAccounts(updatedAccounts);
+        await saveData(KEYS.accounts, updatedAccounts);
+        return { accounts: newAccounts, errors };
+    };
+
     // Rename / recolor / re-pattern an existing debit account. Balance
     // is never touched here — that only ever moves through a real
     // transaction.
@@ -574,6 +620,7 @@ export function useFinanceStore() {
         payCreditCard,
         updateAccountBalance,
         addAccount,
+        addAccountsBatch,
         updateAccountDetails,
         deleteAccount,
         resetAll,

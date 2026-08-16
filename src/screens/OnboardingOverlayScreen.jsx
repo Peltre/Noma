@@ -63,7 +63,7 @@ export default function Onboarding({ visible }) {
     const {
         updateSettings,
         setInitialBalances,
-        addAccount,
+        addAccountsBatch,
     } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createOnboardingStyles(theme), [theme]);
@@ -75,9 +75,10 @@ export default function Onboarding({ visible }) {
     const [userName, setUserName] = useState('');
 
     // Step 3 - Cash & debit
-    // Each entry here becomes its own real account (via addAccount)
-    // when the user finishes — not summed into one lump. An entry
-    // left with no name is treated as "skipped", not created.
+    // Each entry here becomes its own real account (via
+    // addAccountsBatch) when the user finishes — not summed into one
+    // lump. An entry left with no name is treated as "skipped", not
+    // created.
     const [cashAmount, setCashAmount] = useState('');
     const [debitCards, setDebitCards] = useState([
         { id: '1', name: '', balance: '' },
@@ -121,17 +122,19 @@ export default function Onboarding({ visible }) {
         // same palette Ahorros sub-accounts use, so they're
         // distinguishable from the very first screen instead of all
         // starting identical.
-        let colorIndex = 0;
-        for (const card of debitCards) {
-            if (!card.name.trim()) continue;
-            await addAccount({
-                name: card.name.trim(),
-                type: 'debit',
-                color: SAVINGS_COLORS[colorIndex % SAVINGS_COLORS.length],
-                initialBalance: positiveFloat(card.balance),
-            });
-            colorIndex++;
-        }
+        //
+        // Created in one addAccountsBatch call, not a loop of
+        // addAccount() — addAccount reads `accounts` by closure, so
+        // looping it here would silently drop every debit card
+        // except the last one (see addAccountsBatch in
+        // useFinanceStore.js for the full explanation).
+        const validCards = debitCards.filter(c => c.name.trim());
+        await addAccountsBatch(validCards.map((card, i) => ({
+            name: card.name.trim(),
+            type: 'debit',
+            color: SAVINGS_COLORS[i % SAVINGS_COLORS.length],
+            initialBalance: positiveFloat(card.balance),
+        })));
 
         // Marking onboardingCompleted last (and awaited) so the overlay
         // closes only once everything else has actually been saved.
@@ -241,9 +244,9 @@ export default function Onboarding({ visible }) {
                         </View>
 
                         {/* Debit — each entry becomes its own real
-                            account (see handleFinish + addAccount in
-                            useFinanceStore.js), so this can be as many
-                            cards as the person actually has. */}
+                            account (see handleFinish + addAccountsBatch
+                            in useFinanceStore.js), so this can be as
+                            many cards as the person actually has. */}
                         <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>
                             TARJETAS DE DÉBITO
                         </Text>
