@@ -83,7 +83,7 @@ function promptDeleteCard(card, { deleteAccount, deleteCreditCard }) {
 // card's debt, so History shows where the payment came from and
 // Balance total drops by the right amount.
 function PayCardSheet({ card, accounts, onClose }) {
-    const { addTransaction, payCreditCard } = useFinance();
+    const { payCardWithTransaction } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
     const [amount, setAmount] = useState(card ? String(card.currentDebt.toFixed(2)) : '');
@@ -104,20 +104,19 @@ function PayCardSheet({ card, accounts, onClose }) {
     const handleConfirm = async () => {
         if (!canConfirm) return;
         setLoading(true);
-        const result = await addTransaction({
-            type: 'withdrawal',
+        const result = await payCardWithTransaction({
+            accountId,
             amount: amt,
             reason: `Pago a ${card.name}`,
             category: 'card_payment',
-            accountId,
-            creditCardId: null,
-            // NOT the same thing as creditCardId above (that one stays null
-            // on purpose — see the comment before this function — because
-            // `expense` + creditCardId means "new purchase" everywhere
-            // else). linkedCardId just remembers which card this payment
-            // paid down, so useFinanceStore's deleteTransaction/
-            // updateTransaction can restore the right amount of debt if
-            // this payment is later edited or removed from Historial.
+            // NOT the same thing as a transaction's own creditCardId field
+            // (that one stays null on purpose — see linkedCardId below —
+            // because `expense` + creditCardId means "new purchase"
+            // everywhere else). linkedCardId just remembers which card
+            // this payment paid down, so useFinanceStore's
+            // deleteTransaction/updateTransaction can restore the right
+            // amount of debt if this payment is later edited or removed
+            // from Historial.
             linkedCardId: card.id,
         });
         setLoading(false);
@@ -125,7 +124,6 @@ function PayCardSheet({ card, accounts, onClose }) {
             Alert.alert('Fondos insuficientes', result.error);
             return;
         }
-        await payCreditCard(card.id, amt);
         if (result.savingsWarning) {
             Alert.alert(
                 'Usaste fondos de ahorro',

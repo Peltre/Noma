@@ -578,6 +578,49 @@ export function useFinanceStore() {
         await saveData(KEYS.creditCards, updated);
     };
 
+    // Combines what CardsScreen's PayCardSheet and HomeScreen's
+    // MSIPaySheet both used to do by hand — create the withdrawal
+    // transaction, debit the paying account, then separately call
+    // payCreditCard — into one action, for two real reasons rather
+    // than just tidiness:
+    //  1. A validation the split version never had in the store
+    //     itself, only in CardsScreen's UI-level `canConfirm`:
+    //     payCreditCard alone silently clamps an overpayment to $0
+    //     debt with no feedback, so a caller that (unlike
+    //     PayCardSheet) doesn't already guard the amount could
+    //     "pay" more than a card owes and have the difference just
+    //     vanish. This rejects that up front, before any money moves.
+    //  2. The debt reduction now happens immediately after the
+    //     balance write, inside the same function, instead of the
+    //     screen making a second separate call — as tight a window
+    //     as this storage layer allows between "money left the
+    //     account" and "the card knows it", instead of leaving that
+    //     ordering up to whatever the screen happens to do next.
+    const payCardWithTransaction = async ({ accountId, amount, reason, category, linkedCardId }) => {
+        if (!amount || amount <= 0) {
+            return { error: 'El monto debe ser mayor a cero.' };
+        }
+        const roundedAmount = round2(amount);
+        const card = creditCards.find(c => c.id === linkedCardId);
+        if (card && roundedAmount > card.currentDebt) {
+            return { error: `${card.name} solo debe ${card.currentDebt.toFixed(2)}.` };
+        }
+
+        const result = await addTransaction({
+            type: 'withdrawal',
+            amount: roundedAmount,
+            reason,
+            category,
+            accountId,
+            creditCardId: null,
+            linkedCardId,
+        });
+        if (result?.error) return result;
+
+        await payCreditCard(linkedCardId, roundedAmount);
+        return result;
+    };
+
     // Sets initial balances for new users during onboarding
     // **Does NOT create transactions, just sets the starting point
     // Clamped to >= 0 here too — the rest of the app has never
@@ -690,6 +733,7 @@ export function useFinanceStore() {
         deleteCreditCard,
         updateCreditCardDebt,
         payCreditCard,
+        payCardWithTransaction,
         updateAccountBalance,
         addAccount,
         addAccountsBatch,

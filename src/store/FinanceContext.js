@@ -102,6 +102,35 @@ export function FinanceProvider({ children }) {
         return { ...result, savingsWarnings };
     };
 
+    // Wraps financeStore.payCardWithTransaction the same way
+    // addTransaction above wraps financeStore.addTransaction — a
+    // card payment is still a single-account withdrawal under the
+    // hood, so this follows addTransaction's shape exactly (one
+    // `savingsWarning`, not the plural `savingsWarnings` the batch
+    // wrapper above uses for multi-account operations).
+    const payCardWithTransaction = async (payload) => {
+        const account = payload.accountId
+            ? financeStore.accounts.find(a => a.id === payload.accountId)
+            : null;
+        const deficitBefore = account ? savingsStore.getAccountDeficit(account.id).deficit : 0;
+
+        const result = await financeStore.payCardWithTransaction(payload);
+        if (result?.error || !account) return result;
+
+        const newBalance = round2(account.balance - result.amount);
+        const deficitAfter = savingsStore.getAccountDeficit(account.id, newBalance).deficit;
+        if (deficitAfter > deficitBefore) {
+            return {
+                ...result,
+                savingsWarning: {
+                    accountName: account.name,
+                    newlyAtRisk: round2(deficitAfter - deficitBefore),
+                },
+            };
+        }
+        return result;
+    };
+
     // financeStore.deleteAccount only ever checks the account's OWN
     // balance — it has no idea apartados exist, same reason
     // addTransaction needs wrapping above. Without this, a débito
@@ -216,6 +245,7 @@ export function FinanceProvider({ children }) {
             ...tagsStore,
             addTransaction,
             addTransactionsBatch,
+            payCardWithTransaction,
             deleteAccount,
             changeCurrency,
             isLoading,

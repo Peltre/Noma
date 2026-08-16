@@ -90,10 +90,11 @@ function getTxnVisual(theme, type, category) {
 // means "new purchase" everywhere else in the app — made the card's
 // debt go UP every month instead of down, and no money ever left an
 // account. Fixed by treating a monthly MSI payment exactly like a
-// manual card payment: withdrawal (accountId, no creditCardId) +
-// payCreditCard, instead of an expense tagged with the card.
+// manual card payment: withdrawal (accountId, no creditCardId) + a
+// debt reduction, both via payCardWithTransaction, instead of an
+// expense tagged with the card.
 function MSIPaySheet({ fund, accounts, onClose }) {
-    const { addTransaction, payCreditCard, confirmMSI } = useFinance();
+    const { payCardWithTransaction, confirmMSI } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createHomeStyles(theme), [theme]);
     const [accountId, setAccountId] = useState(accounts[0]?.id || null);
@@ -104,13 +105,11 @@ function MSIPaySheet({ fund, accounts, onClose }) {
     const handleConfirm = async () => {
         if (!canConfirm) return;
         setLoading(true);
-        const result = await addTransaction({
-            type: 'withdrawal',
+        const result = await payCardWithTransaction({
+            accountId,
             amount: fund.monthlyAmount,
             reason: `${fund.name} MSI ${fund.paidMonths + 1}/${fund.months}`,
             category: 'msi',
-            accountId,
-            creditCardId: null,
             // See linkedCardId's comment in CardsScreen.jsx's PayCardSheet —
             // same idea: remembers which card this installment paid down
             // without tripping the "expense + creditCardId = new purchase"
@@ -123,7 +122,12 @@ function MSIPaySheet({ fund, accounts, onClose }) {
             Alert.alert('Fondos insuficientes', result.error);
             return;
         }
-        await payCreditCard(fund.creditCardId, fund.monthlyAmount);
+        // confirmMSI lives in useScheduledFunds, a separate store from
+        // the transaction/debt update payCardWithTransaction just did —
+        // it can't be folded into that same call, so this stays a
+        // second step. It doesn't touch accounts/transactions/creditCards
+        // though, so there's no risk of it clobbering what the call
+        // above just wrote.
         await confirmMSI(fund.id);
         setLoading(false);
         if (result.savingsWarning) {
