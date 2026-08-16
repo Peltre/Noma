@@ -1,36 +1,24 @@
 // Global background, mounted once in App.js behind the navigator —
-// NOT the illustrated scene anymore (that's HeroArt.jsx now, scoped
-// to just Home's hero card). Every other glass card in the app
-// (credit cards, transaction lists, Ahorros/Historial/Settings
-// cards, the tab bar) blurs THIS.
+// NOT the illustrated scene (that's HeroArt.jsx, scoped to Home's
+// hero card). Every other glass card/tab bar in the app blurs THIS.
 //
-// Went through a few pure-gradient iterations before this one (single
-// centered glow, four scattered glows, a too-subtle 2-tone gradient)
-// before landing on this: keep the same anchored-to-theme.bg gradient
-// as the stable base, but give each theme its own small "personality"
-// of scattered particles instead of trying to make one shape design
-// work for all three — Medianoche gets quiet stars, Brasa gets warm
-// embers (literal to the theme's name), Arena gets drifting dust/light
-// motes. Coordinates below are baked-in (not random-per-render) so
-// the layout is stable across re-renders and matches what was
-// actually approved in mockup — generated once with a seeded PRNG and
-// copied in, not computed on the fly.
+// A gradient anchored to theme.bg as the stable base, with each theme
+// getting its own small "personality" of scattered particles instead
+// of one shape design for all: Medianoche gets stars, Brasa gets
+// embers, Arena gets dust motes. Coordinates are baked-in (generated
+// once with a seeded PRNG), not random-per-render, so the layout is stable.
 //
-// Same platform note as HeroArt: react-native-svg doesn't reliably
-// support <filter> (feGaussianBlur) across iOS/Android/web, so ember
-// "glow" here is a second, larger, low-opacity circle underneath the
-// dot rather than an actually-blurred halo.
+// Same as HeroArt: react-native-svg doesn't reliably support <filter>
+// across platforms, so ember "glow" is a second, larger, low-opacity
+// circle underneath the dot, not an actual blur.
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Circle, Path, G } from 'react-native-svg';
 
 const VB_W = 400;
 const VB_H = 870;
 
-// [topColor, bottomColor] per theme. Deliberately darker than each
-// theme's own `theme.bg` — a step past that anchor, then lightened
-// back up about two steps from the darkest point tried. Particles
-// (stars/embers/dust) still carry the visual interest on top of
-// this — see the STARS/EMBERS/DUST arrays below, untouched by this.
+// [topColor, bottomColor] per theme, deliberately darker than
+// theme.bg — particles (below) carry the visual interest on top.
 const PALETTES = {
     medianoche: { top: '#11121a', bottom: '#11121a', accent: '#ECEEE7', accent2: '#5FC9BD' },
     brasa: { top: '#241A13', bottom: '#241A13', accent: '#D9763E', accent2: '#F2A65A' },
@@ -40,9 +28,7 @@ const PALETTES = {
     synthwave: { top: '#1A0B2E', bottom: '#1A0B2E', accent: '#FF2E97', accent2: '#00E5FF' },
 };
 
-// Medianoche — 26 quiet stars, mostly small and dim, plus two
-// brighter "sparkle" accents (a dot with a small 4-point cross) for a
-// touch of twinkle without turning the whole field busy.
+// Medianoche — 26 quiet stars plus two brighter "sparkle" accents (dot + 4-point cross).
 const STARS = [
     [0, 388.8, 1.2, 0.21], [344.2, 355.4, 1.4, 0.34], [188.9, 245, 1.1, 0.41],
     [56.2, 330.9, 1.5, 0.45], [153.1, 73.7, 1.1, 0.42], [236.9, 482.4, 1.4, 0.27],
@@ -56,9 +42,7 @@ const STARS = [
 ];
 const SPARKLES = [[240, 95, 1], [320, 400, 0.85]];
 
-// Brasa — 22 embers, warm two-tone (accent/accent2 alternating), the
-// bigger ones (r > 2.4) get a soft low-opacity halo underneath to
-// read as glowing rather than just a solid warm dot.
+// Brasa — 22 embers, warm two-tone; bigger ones (r > 2.4) get a soft halo to read as glowing.
 const EMBERS = [
     [0.1, 777.6, 2.6, 0.29, 1], [326.8, 30.4, 3.4, 0.63, 1], [174.8, 371.6, 1.7, 0.55, 2],
     [261.4, 665.8, 1.4, 0.42, 2], [73.9, 94.8, 3.5, 0.44, 1], [237, 20.2, 2.0, 0.31, 2],
@@ -70,9 +54,7 @@ const EMBERS = [
     [230.6, 568, 2.9, 0.55, 1],
 ];
 
-// Arena — 30 small dust/light motes, dimmer and smaller than either
-// of the night themes' particles since this is meant to read as
-// "sunlight catching dust", not a focal point.
+// Arena — 30 small dust/light motes, dim and small ("sunlight catching dust", not a focal point).
 const DUST = [
     [0.1, 296.4, 1.9, 0.19], [232.5, 196.3, 1.4, 0.26], [166.7, 735, 1.5, 0.19],
     [168.7, 122.6, 1.7, 0.28], [59.2, 221, 1.5, 0.21], [310.8, 577.2, 1.2, 0.35],
@@ -156,21 +138,13 @@ export default function AppBackground({ themeName }) {
                 <Path d={`M0,0 H${VB_W} V${VB_H} H0 Z`} fill="url(#bgSky)" />
 
                 {themeName === 'brasa' || themeName === 'neon' || themeName === 'synthwave' ? (
-                    // Neón and Synthwave both reuse Embers' glow-halo
-                    // mechanic as-is — "bigger dots get a soft halo
-                    // underneath" reads as neon glow just as naturally
-                    // as it reads as embers, just recolored via
-                    // accent/accent2 (hot pink + electric cyan here,
-                    // instead of red/red-pink).
+                    // Neón/Synthwave reuse Embers' glow-halo mechanic as-is —
+                    // reads as neon glow just as naturally, just recolored.
                     <Embers colorA={palette.accent} colorB={palette.accent2} />
                 ) : themeName === 'arena' ? (
                     <Dust color={palette.accent2} />
                 ) : themeName === 'amanecer' ? (
-                    // No particles at all here — matches HeroArt.jsx's
-                    // own Amanecer, which went through the same
-                    // question (sun+rings, then snowballs, then
-                    // snowballs+sparks) before landing on "just the
-                    // gradient, nothing decorative on top of it".
+                    // No particles — matches HeroArt.jsx's Amanecer: just the gradient.
                     null
                 ) : (
                     <Stars color={palette.accent} />

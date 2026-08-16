@@ -1,64 +1,39 @@
 // Reusable visual "card" — used for the grid tile in Tarjetas, the
-// live preview while creating/editing one, and the header of its
-// detail sheet. One component, one set of rules, instead of three
-// near-copies drifting apart over time.
+// live preview while creating/editing one, and its detail sheet
+// header. One component instead of three near-copies drifting apart.
 //
-// Deliberately a fixed dark-on-color palette regardless of app theme
-// (same reasoning CardsScreen.styles.js already had): it's meant to
-// look like a physical card, not a themed surface. (The color ITSELF
-// now comes from the active theme's own palette — see
-// AddCardScreen.jsx / constants/themes.js's `cardColors` — but once
-// picked, the card renders the same dark-on-color way no matter what
-// theme is active later.)
+// Fixed dark-on-color palette regardless of app theme — meant to look
+// like a physical card, not a themed surface. (The color itself comes
+// from the active theme's cardColors — see AddCardScreen.jsx — but
+// once picked, always renders dark-on-color.)
 import { useState } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Line } from 'react-native-svg';
 import { FontSize, Spacing, Radius } from '../constants';
 import { IconLock } from './Icons';
 
-// Shared with FocusStack.jsx so the stack's slot math always matches
-// whatever height the "large" card face actually renders at.
+// Shared with FocusStack.jsx so the stack's slot math matches the
+// "large" card face's real rendered height.
 export const CARD_LARGE_HEIGHT = 190;
 
-// Cut down to just two options after the previous set (stars/dunes/
-// skyline — small hand-composed scenes echoing the app's own sky/
-// horizon motifs) showed a real mismatch between what got verified
-// here and what actually rendered on-device, and it couldn't get
-// tracked down without a screenshot that didn't come through. Rather
-// than keep guessing at a rendering discrepancy neither side could
-// see, this cuts back to the two simplest, lowest-risk options: no
-// pattern at all, and a plain gradient wash (which never used the
-// scene-composition path those three did — see PatternOverlay below,
-// it's just a Rect filled with a gradient, sized directly off the
-// card's own real width/height, nothing else going on that could
-// drift from what actually renders).
+// Only two options — a previous set of hand-composed scenes (stars/
+// dunes/skyline) had a rendering mismatch that couldn't be tracked
+// down, so this keeps the two lowest-risk options: none, and a plain
+// gradient wash (sized directly off the card's real width/height).
 export const CARD_PATTERNS = [
     { id: 'none', label: 'Liso' },
     { id: 'gradient', label: 'Degradado' },
 ];
 
-// width/height are required, explicit pixel numbers — not "100%".
-// Same reason as NightSkyArt.jsx: react-native-svg doesn't reliably
-// stretch a percentage-sized Svg to match an auto-size flex parent on
-// native, so the pattern rendered smaller than the card and left part
-// of it uncovered. The card measures itself with onLayout and passes
-// its real size down instead.
-//
-// pointerEvents="none" lives on a plain View wrapper around the Svg,
-// not as a standalone prop on <Svg> itself — GlassCard.jsx hit a real
-// bug from that exact pattern (react-native-svg's root <Svg> not
-// reliably forwarding the prop), which silently swallowed taps on a
-// TouchableOpacity underneath instead of passing them through. Cards
-// here are tappable (to open their detail sheet), so this gets the
-// same safer treatment even though it hadn't been reported broken
-// here specifically.
+// width/height are required, explicit pixels — react-native-svg
+// doesn't reliably stretch a percentage-sized Svg on native, so the
+// card measures itself with onLayout and passes its real size down.
+// pointerEvents="none" on a wrapper View, not on <Svg> directly —
+// react-native-svg's root doesn't reliably forward that prop, which
+// can swallow taps meant for the TouchableOpacity underneath.
 function PatternOverlay({ pattern, width, height }) {
     if (!pattern || pattern !== 'gradient') return null;
 
-    // A plain diagonal light-to-dark wash over whatever color the
-    // card already is, sized directly off the card's own real
-    // width/height — no viewBox/preserveAspectRatio scaling involved,
-    // unlike the scene-composition approach this replaced.
     return (
         <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
             <Svg width={width} height={height}>
@@ -74,13 +49,10 @@ function PatternOverlay({ pattern, width, height }) {
     );
 }
 
-// EMV chip — gold gradient rect with the classic contact-pad divider
-// lines. One reusable size (scaled by `compact`), absolutely
-// positioned below the name/badge row rather than a third flex child
-// — the card's existing layout is `top` and `bottom` pinned to their
-// own edges via justifyContent:'space-between', and a chip belongs
-// pinned to a fixed spot under the header instead of sharing in that
-// space distribution.
+// EMV chip — gold gradient rect with contact-pad divider lines,
+// absolutely positioned under the name/badge row (the layout's top
+// and bottom are pinned to their own edges via space-between, so the
+// chip needs a fixed spot rather than sharing that distribution).
 function Chip({ compact }) {
     const w = compact ? 26 : 32;
     const h = compact ? 19 : 24;
@@ -102,12 +74,9 @@ function Chip({ compact }) {
     );
 }
 
-// Type badge — the visual cue that makes débito vs. crédito
-// distinguishable at a glance in a mixed grid, not just by content.
-// Débito: outlined, transparent — blends into the card. Crédito:
-// filled white — reads as "this one costs you money", a small nod to
-// the same "moneyOut gets the strong treatment" rule used everywhere
-// else, without actually borrowing the theme's moneyOut color onto a
+// Débito vs. crédito at a glance in a mixed grid. Débito: outlined,
+// transparent. Crédito: filled white — reads as "this one costs you
+// money" without borrowing the theme's moneyOut color onto a
 // non-themed card face.
 function TypeBadge({ type, compact }) {
     const isCredit = type === 'credit';
@@ -125,9 +94,8 @@ function TypeBadge({ type, compact }) {
     );
 }
 
-// variant: 'grid' (compact tile), 'preview' (live preview while
-// creating/editing), 'detail' (header of the detail sheet — same
-// size as preview, just semantically separate).
+// variant: 'grid' (compact tile), 'preview' (live create/edit),
+// 'detail' (detail sheet header — same size as preview).
 export default function CardFace({
     name,
     type = 'debit',
@@ -138,26 +106,19 @@ export default function CardFace({
     progressPct,
     variant = 'grid',
     placeholder,
-    // Animated.Value (0–1), optional. Lets a parent (FocusStack) drive
-    // the amount's visibility explicitly instead of relying on one
-    // card being physically covered by another — see FocusStack.jsx
-    // for why that distinction matters. Every other caller omits this
-    // and gets the old always-visible behavior for free.
+    // Animated.Value (0–1), optional — lets FocusStack drive the
+    // amount's visibility explicitly instead of relying on physical
+    // overlap. Omit for the normal always-visible behavior.
     amountOpacity,
-    // Number (px), optional. Nudges the name/badge row up (negative)
-    // or down (positive) without touching the card's own padding —
-    // FocusStack uses this to sit the name closer to the top edge on
-    // a peeking (non-focused) card, where there's only ~44px of the
-    // card actually visible. Omit it and you get the normal position.
+    // Number (px), optional — nudges the name/badge row up/down
+    // without touching padding. FocusStack uses this on a peeking
+    // (non-focused) card, where only ~44px is visible.
     headerOffsetY,
-    // String, optional (e.g. "$400" or "$400 ·2"). Shows a small pill
-    // in the card's bottom-right corner — the one spot its layout
-    // leaves empty (name+badge own the top row, value+progress sit at
-    // the bottom-LEFT) — with a lock icon in front of it. Used on
-    // débito/efectivo cards that have at least one apartado linked to
-    // them, so "part of this balance is already spoken for" is
-    // visible without opening the card's detail sheet. Omit it and
-    // nothing renders — every other caller is unaffected.
+    // String, optional (e.g. "$400" or "$400 ·2") — a small locked
+    // pill in the bottom-right corner, the one empty spot in this
+    // layout. Shown on débito/efectivo cards with an apartado linked,
+    // so "part of this is already spoken for" is visible without
+    // opening the detail sheet.
     savingsBadge,
 }) {
     const isCompact = variant === 'grid';
@@ -249,9 +210,7 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         height: CARD_LARGE_HEIGHT,
     },
-    // Positioned to land just under the name/badge row in each
-    // variant — tuned against that row's actual text size (padding +
-    // one line of nameCompact/name), not a guess independent of it.
+    // Tuned to land just under the name/badge row in each variant.
     chipWrap: { position: 'absolute', zIndex: 2 },
     chipWrapCompact: { left: Spacing.md, top: 50 },
     chipWrapLarge: { left: Spacing.lg, top: 68 },
@@ -289,10 +248,8 @@ const styles = StyleSheet.create({
     },
     badgeTextDebit: { color: '#FFFFFF' },
     badgeTextCredit: { color: '#1A1A2E' },
-    // Deliberately a hair under FontSize.xs — the grid/compact card
-    // is small enough that the scale's own smallest step still reads
-    // as slightly too big for a decorative corner badge. Everywhere
-    // else in the app, FontSize.xs is the floor.
+    // A hair under FontSize.xs — the app's usual floor — since this
+    // corner badge on the compact card reads too big otherwise.
     badgeTextCompact: { fontSize: 8 },
     bottom: { zIndex: 2 },
     valueLabel: {
@@ -300,7 +257,6 @@ const styles = StyleSheet.create({
         fontWeight: '600', letterSpacing: 1,
         textTransform: 'uppercase', marginBottom: 2,
     },
-    // Same deliberate exception as badgeTextCompact above.
     valueLabelCompact: { fontSize: 9 },
     valueText: {
         fontSize: FontSize.xl, fontWeight: '800',

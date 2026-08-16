@@ -1,32 +1,22 @@
-// Hook to handle savings buckets ("apartados") & objectives (goals).
-//
-// PHASE 1 of the savings redesign — this file only. SavingsScreen.jsx
-// still expects the old API at this point and WILL be broken/crash
-// until it's rewritten in Phase 2 — that's expected, not a bug here.
+// Hook for savings buckets ("apartados") & objectives (goals).
 //
 // ── The model ──
-// There is no separate "Ahorros" pot anymore. An apartado is a label
-// on top of part of a REAL account's balance (débito or efectivo) —
-// it never moves money anywhere. That account keeps showing its full
-// real balance always; the apartado just remembers "how much of
-// this is spoken for."
+// An apartado is a label on top of part of a REAL account's balance
+// (débito/efectivo) — it never moves money anywhere. The account
+// keeps showing its full real balance; the apartado just remembers
+// "how much of this is spoken for."
 //
 //   Cuenta real (débito/efectivo) → Apartado (linkedAccountId) → Objetivo
 //
-// Every layer is just a number reserved on top of the layer below it.
 // Nothing here ever touches `accounts` balances — only a real
 // transaction (useFinanceStore's addTransaction) does that.
 //
 // ── Déficit ──
-// Because the linked account's real balance can drop below what's
-// earmarked in it (you spent from that card), an apartado's number
-// is never silently corrected — it stays exactly what you set it to,
-// and a live "risk" amount is computed on top instead (see
-// getAccountDeficit / getSavingsAccountRisk / getGoalRisk below).
-// When one account backs several apartados and comes up short, the
-// shortfall is split across them proportional to how much each one
-// claims — an apartado with 70% of the account's earmark absorbs 70%
-// of that account's deficit.
+// An apartado's earmarked number is never silently corrected if the
+// linked account's real balance drops below it — a live "risk" is
+// computed on top instead (getAccountDeficit / getSavingsAccountRisk
+// / getGoalRisk). When one account backs several apartados and comes
+// up short, the shortfall splits proportionally across them.
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
 import { round2 } from "../utils/formatCurrency";
@@ -51,8 +41,7 @@ export const SAVINGS_COLORS = [
     '#2C7BB5', // ocean
 ];
 
-// Only débito/efectivo hold real, spendable money that can be earmarked
-// this way — crédito is debt, not a balance to reserve part of.
+// Only débito/efectivo hold real, spendable money that can be earmarked.
 const LINKABLE_TYPES = ['debit', 'cash'];
 
 export function useSavings(accounts = []) {
@@ -71,10 +60,10 @@ export function useSavings(accounts = []) {
 
     // ── Déficit / risk ──
 
-    // How much every apartado linked to this account claims in total,
-    // vs. how much the account actually has. `balanceOverride` lets a
-    // caller ask "what WOULD the deficit be at this balance" — used to
-    // check a transaction before/after without waiting for a render.
+    // Total earmarked across every apartado linked to this account,
+    // vs. what the account actually has. `balanceOverride` lets a
+    // caller check "what WOULD the deficit be at this balance" before
+    // a render happens.
     const getAccountDeficit = (accountId, balanceOverride) => {
         const linked = savingsAccounts.filter(a => a.linkedAccountId === accountId);
         const totalEarmarked = round2(linked.reduce((s, a) => s + a.earmarkedAmount, 0));
@@ -84,8 +73,7 @@ export function useSavings(accounts = []) {
         return { totalEarmarked, balance, deficit };
     };
 
-    // Free room left in an account to create or grow an apartado —
-    // never negative, even if the account is already short.
+    // Free room left in an account for a new/bigger apartado — never negative.
     const getFreeRoom = (accountId) => {
         const account = accounts.find(a => a.id === accountId);
         if (!account) return 0;
@@ -93,8 +81,8 @@ export function useSavings(accounts = []) {
         return round2(Math.max(0, account.balance - totalEarmarked));
     };
 
-    // One apartado's own slice of its account's deficit — proportional
-    // to how much of that account's total earmark this one claims.
+    // One apartado's own slice of its account's deficit, proportional
+    // to how much of the account's total earmark it claims.
     const getSavingsAccountRisk = (savingsAccountId) => {
         const sa = savingsAccounts.find(a => a.id === savingsAccountId);
         if (!sa) return { atRisk: 0, safeAmount: 0 };
@@ -106,16 +94,10 @@ export function useSavings(accounts = []) {
         return { atRisk, safeAmount: round2(sa.earmarkedAmount - atRisk) };
     };
 
-    // A goal's at-risk amount: trace what it currently holds back to
-    // whichever apartados fed it (net of any withdrawals sent back
-    // out), then apply each of those apartados' own risk ratio.
-    //
-    // Approximation, not exact accounting: if a goal was funded from
-    // apartado A and later partly withdrawn back to a DIFFERENT
-    // apartado B, this treats A's and B's flows independently rather
-    // than tracking which specific peso came from where — pooled
-    // money doesn't really have a "which one" once it's mixed, so
-    // this is the same simplification any budgeting app makes here.
+    // A goal's at-risk amount: trace what it holds back to whichever
+    // apartados fed it (net of withdrawals), then apply each
+    // apartado's own risk ratio. An approximation — pooled money
+    // doesn't track which specific peso came from where.
     const getGoalRisk = (goal) => {
         const bySource = {};
         goal.contributions.forEach(c => {
@@ -128,7 +110,7 @@ export function useSavings(accounts = []) {
         Object.entries(bySource).forEach(([savingsAccountId, netAmount]) => {
             if (netAmount <= 0) return;
             const sa = savingsAccounts.find(a => a.id === savingsAccountId);
-            if (!sa) return; // that apartado no longer exists — can't trace risk for it
+            if (!sa) return; // apartado no longer exists — can't trace risk for it
             const { totalEarmarked, deficit } = getAccountDeficit(sa.linkedAccountId);
             if (deficit <= 0 || totalEarmarked <= 0) return;
             atRisk += netAmount * (deficit / totalEarmarked);
@@ -138,15 +120,8 @@ export function useSavings(accounts = []) {
 
     // ── Apartados ──
 
-    // Creates an apartado linked to a real débito/efectivo account,
-    // and — optionally — immediately earmarks part of that account's
-    // currently-free balance (capped, same "can't hand out more than
-    // exists" rule as everywhere else in this app).
-    //
-    // `interest` is entirely optional (per-apartado, opt-in — see the
-    // "── Interest ──" section below for how it actually accrues):
-    // { enabled, rate, cap, rateAboveCap }. Left out or `enabled:
-    // false` and this apartado just behaves exactly as it always has.
+    // `interest` is optional per-apartado opt-in: { enabled, rate,
+    // cap, rateAboveCap }. Left out or `enabled: false` behaves as before.
     const addSavingsAccount = async ({ name, color, linkedAccountId, initialAmount = 0, interest = null }) => {
         if (!name || !name.trim()) {
             return { error: 'Ponle un nombre al apartado.' };
@@ -198,9 +173,8 @@ export function useSavings(accounts = []) {
         return { ok: true };
     };
 
-    // Earmark more of the linked account's balance into this apartado.
-    // Nothing moves — this is the whole "no fake pot" point — so it's
-    // just capped by how much of that specific account is still free.
+    // Earmark more of the linked account's balance. Nothing moves —
+    // just capped by how much of that account is still free.
     const addToSavingsAccount = async ({ savingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -222,10 +196,8 @@ export function useSavings(accounts = []) {
         return { ok: true };
     };
 
-    // Un-earmark part of an apartado — frees up room in its linked
-    // account for something else. Always allowed down to 0; there's
-    // no "unallocated pot" to return it to because it was never
-    // anywhere else to begin with.
+    // Un-earmark part of an apartado. Always allowed down to 0 — there's
+    // no separate pot to return it to.
     const removeFromSavingsAccount = async ({ savingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -244,29 +216,16 @@ export function useSavings(accounts = []) {
     };
 
     // ── Interest ──
-    // Optional, per-apartado, entirely opt-in — mirrors how a real
-    // Mexican savings account works (Nu, etc.): an annual rate on
-    // whatever's earmarked here, and — optionally — a second, lower
-    // rate for whatever sits above a cap (e.g. 13% up to $25,000,
-    // less above that). Interest compounds daily.
-    //
-    // This file only computes and books the numbers. The actual
-    // crediting is driven by FinanceContext.js's accrual effect,
-    // which owns the one thing this file deliberately doesn't have
-    // access to: financeStore.addTransaction. That matters because
-    // interest has to become REAL money in the linked account (a
-    // real 'income' transaction, visible in Historial) — not just a
-    // bigger number inside this apartado — since an apartado is only
-    // ever a claim on top of a real balance, never its own pot (see
-    // the file header). creditInterestBatch below runs right after that
-    // real transaction lands, and only grows the earmark by the same
-    // amount that already, for real, grew the account.
+    // Optional, per-apartado, opt-in: an annual rate on what's
+    // earmarked, plus an optional lower rate above a cap. Compounds
+    // daily. This file only computes the numbers — FinanceContext.js's
+    // accrual effect books the matching real income transaction (via
+    // financeStore.addTransaction) and then calls creditInterestBatch
+    // below to grow the earmark by the same real amount.
 
-    // Pure: one apartado's accrued interest over `days` whole days,
-    // given its current earmarkedAmount and interest config. No
-    // storage writes — used both by the accrual effect (to know how
-    // much to actually credit) and by getEstimatedMonthlyInterest
-    // (for a rough preview in the UI).
+    // Pure: one apartado's accrued interest over `days` days. No
+    // storage writes — used by both the accrual effect and
+    // getEstimatedMonthlyInterest's UI preview.
     const computeAccruedInterest = (sa, days) => {
         if (!sa?.interest?.enabled || days <= 0) return 0;
         const { rate, cap, rateAboveCap } = sa.interest;
@@ -277,10 +236,7 @@ export function useSavings(accounts = []) {
         const belowCapAmount = cap != null ? Math.min(principal, cap) : principal;
         let accrued = belowCapAmount * (Math.pow(1 + dailyRate, days) - 1);
 
-        // The slice above the cap earns the reduced rate — 0 if the
-        // person set a cap but left the reduced rate blank, same as
-        // most real accounts default to when you don't ask them for
-        // a second tier.
+        // The slice above the cap earns the reduced rate (0 if left blank).
         if (cap != null && principal > cap) {
             const aboveCapAmount = principal - cap;
             const dailyRateAbove = ((rateAboveCap || 0) / 100) / 365;
@@ -289,28 +245,15 @@ export function useSavings(accounts = []) {
         return round2(accrued);
     };
 
-    // Rough "about how much per month" preview for the apartado card —
-    // deliberately just computeAccruedInterest over a flat 30 days
-    // rather than trying to predict deposits/withdrawals that haven't
-    // happened yet. Good enough for "should I turn this on", not
-    // meant to be a promise.
+    // Rough "about how much per month" preview — flat 30 days, not a promise.
     const getEstimatedMonthlyInterest = (savingsAccountId) => {
         const sa = savingsAccounts.find(a => a.id === savingsAccountId);
         return computeAccruedInterest(sa, 30);
     };
 
-    // Turns interest on/off (or edits rate/cap) for an apartado that
-    // already exists — same shape as addSavingsAccount's `interest`
-    // param, editable any time, exactly because the person asked for
-    // this to be "completamente opcional, y depende del usuario".
-    //
-    // (Re-)enabling resets lastInterestAccrualAt to right now. Without
-    // that, turning it on today would let the next accrual assume
-    // interest had already been running since createdAt (or whenever
-    // it was last touched) and credit a lump sum backdated to a
-    // period where it was actually off. Editing the rate/cap while
-    // ALREADY enabled does NOT reset the clock — that would let
-    // someone reset their own accrual window on demand for no reason.
+    // (Re-)enabling resets lastInterestAccrualAt to now, so the next
+    // accrual doesn't backdate to a period where interest was off.
+    // Editing rate/cap while already enabled does NOT reset the clock.
     const updateSavingsAccountInterest = async (savingsAccountId, { enabled, rate, cap, rateAboveCap }) => {
         const sa = savingsAccounts.find(a => a.id === savingsAccountId);
         if (!sa) return { error: 'No se encontró el apartado.' };
@@ -338,22 +281,11 @@ export function useSavings(accounts = []) {
         return { ok: true };
     };
 
-    // Books interest for potentially SEVERAL apartados in one atomic
-    // update — called once by FinanceContext's accrual effect after
-    // it's recorded the matching real income transaction(s) on each
-    // linked account (see that file's creditInterestBatch call on
-    // financeStore). This has to be a single batched write rather
-    // than a loop calling a per-apartado version: each call in a
-    // loop would build its update off the SAME pre-effect
-    // `savingsAccounts` closure (a setState call doesn't change what
-    // an already-created closure sees), so a second apartado credited
-    // in the same run would silently overwrite the first one's
-    // change instead of adding to it.
-    //
-    // `amount` can be 0 (e.g. a tiny rate/principal rounds to $0 for
-    // this stretch) — the clock still advances by `daysElapsed` so
-    // the same already-elapsed span isn't recomputed forever with
-    // nothing to show for it.
+    // Books interest for several apartados in one write — a loop of
+    // per-apartado calls would each build off the same pre-effect
+    // closure and lose everything but the last. `amount` can be 0 (a
+    // tiny stretch rounds to $0); the clock still advances by
+    // daysElapsed so it isn't recomputed forever.
     const creditInterestBatch = async (credits) => {
         // credits: [{ savingsAccountId, amount, daysElapsed }]
         if (!credits.length) return;
@@ -390,18 +322,11 @@ export function useSavings(accounts = []) {
         return newGoal;
     };
 
-    // Deleting a goal returns whatever it holds back to wherever it
-    // came from — net per apartado, since a goal can be fed from
-    // several and partly withdrawn from others along the way. This is
-    // the one place that money would otherwise just vanish: unlike
-    // the old fake-pot model, an apartado's earmarkedAmount is real
-    // stored state now, not something a derived "unallocated" total
-    // could quietly absorb.
-    //
-    // `returnFunds: false` is for the "marcar como comprado" flow
-    // (SavingsScreen's handleRedeemGoal) — there, the money already
-    // left for real through actual expense transactions against the
-    // linked accounts, so crediting it back here would double it.
+    // Returns whatever the goal holds back to wherever it came from,
+    // net per apartado. `returnFunds: false` is for "marcar como
+    // comprado" (SavingsScreen), where the money already left for
+    // real through expense transactions — crediting it back here
+    // would double it.
     const deleteSavingsGoal = async (goalId, { returnFunds = true } = {}) => {
         const goal = savingsGoals.find(g => g.id === goalId);
         if (!goal) {
@@ -419,7 +344,7 @@ export function useSavings(accounts = []) {
 
             let updatedSavingsAccounts = savingsAccounts;
             Object.entries(bySource).forEach(([savingsAccountId, netAmount]) => {
-                if (netAmount <= 0) return; // an apartado that was deleted mid-way, or net-negative, gets nothing back
+                if (netAmount <= 0) return; // apartado deleted mid-way, or net-negative — gets nothing back
                 updatedSavingsAccounts = updatedSavingsAccounts.map(a =>
                     a.id === savingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + netAmount) } : a
                 );
@@ -434,10 +359,8 @@ export function useSavings(accounts = []) {
         return { ok: true, releasedAmount: returnFunds ? goal.savedAmount : 0 };
     };
 
-    // Move money from an apartado → earmark it in a goal instead.
-    // Same relabeling-without-moving-real-money principle, one layer
-    // deeper: this reduces the apartado's earmark by exactly what the
-    // goal gains, so the account's total claimed amount never changes.
+    // Move money from an apartado into a goal — reduces the
+    // apartado's earmark by exactly what the goal gains.
     const contributeToGoal = async ({ goalId, fromSavingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -447,10 +370,8 @@ export function useSavings(accounts = []) {
         if (!goal) {
             return { error: 'No se encontró el objetivo.' };
         }
-        // Same reasoning as before: capping here means savedAmount can
-        // never legitimately pass targetAmount, so "Marcar como
-        // comprado" (which only ever spends targetAmount) can't leave
-        // an unexplained leftover behind when the goal is cleared out.
+        // Capped so savedAmount can never pass targetAmount — otherwise
+        // "Marcar como comprado" could leave an unexplained leftover.
         const remaining = round2(goal.targetAmount - goal.savedAmount);
         if (remaining <= 0) {
             return { error: 'Este objetivo ya está completo.' };
@@ -533,10 +454,8 @@ export function useSavings(accounts = []) {
     };
 
     // Currency switch (Settings → Moneda): rescales every real amount
-    // by `rate` — earmarkedAmount, totalInterestEarned, goal amounts,
-    // and each goal contribution. `interest.rate`/`rateAboveCap` are
-    // percentages, NEVER converted; `interest.cap` IS a real amount
-    // threshold, so it converts along with everything else.
+    // by `rate`. interest.rate/rateAboveCap are percentages, never
+    // converted; interest.cap IS a real amount, so it converts too.
     const convertAllAmounts = async (rate) => {
         const updatedSavingsAccounts = savingsAccounts.map(a => ({
             ...a,

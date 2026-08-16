@@ -18,10 +18,9 @@ import SelectField from '../components/SelectField';
 import GlassCard from '../components/GlassCard';
 import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent } from '../components/Icons';
 
-// Type filter — same 4 movement types the rest of the app shows,
-// plus 'withdrawal' (Retiros): the data model already has it as a
-// real transaction type (cajero, pago de tarjeta, mensualidad), it
-// was just never reachable as its own filter before.
+// Type filter — the same 4 movement types plus 'withdrawal'
+// (Retiros), which the data model already had but was never
+// reachable as its own filter before.
 const TYPE_FILTERS = [
     { key: 'all', label: 'Todos' },
     { key: 'expense', label: 'Gastos' },
@@ -31,9 +30,7 @@ const TYPE_FILTERS = [
 ];
 
 // Period filter — independent of type, both apply together. 'all' is
-// the default so History keeps showing full history like before this
-// change; the other three narrow to the current week/month/year
-// relative to "now".
+// the default; the other three narrow to the current week/month/year.
 const PERIOD_FILTERS = [
     { key: 'all', label: 'Todo el tiempo' },
     { key: 'week', label: 'Esta semana' },
@@ -41,30 +38,17 @@ const PERIOD_FILTERS = [
     { key: 'year', label: 'Este año' },
 ];
 
-// Only two accents with fixed meaning across the app: moneyIn/moneyOut.
-// A plain withdrawal (cajero, or anything with no more specific
-// category) is neither, so it stays neutral — same rule as Home. A
-// transfer isn't either one either, but it's not neutral-as-in-
-// "regular" like a withdrawal — it's a special flow, so it gets the
-// same brand accent as its type pill in TransactionScreen.
-//
-// Paying a credit card — an MSI installment or a manual/full
-// payment — is still a real `type: 'withdrawal'` underneath (see
-// HomeScreen's getTxnVisual for why that has to stay true), but
-// neither reads as a plain retiro here: both get their own label and
-// their own accent (theme.msi / theme.cardPayment) instead of
-// sharing moneyOut with a plain Gasto — kept in sync with
-// HomeScreen's getTxnVisual, which must mirror this.
+// moneyIn/moneyOut are the only fixed-meaning accents. A plain
+// withdrawal is neither, so it stays neutral. Transfer gets the brand
+// accent (a special flow, not gain/loss). A card payment or MSI
+// installment is a `type: 'withdrawal'` underneath (see HomeScreen's
+// getTxnVisual) but gets its own label/accent instead of sharing
+// moneyOut with a plain Gasto — kept in sync with getTxnVisual there.
 function getTypeConfig(theme, type, category) {
     if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.msiSoft, fg: theme.msi, label: 'Mensualidad' };
     if (category === 'card_payment') return { Icon: IconCash, bg: theme.cardPaymentSoft, fg: theme.cardPayment, label: 'Pago de tarjeta' };
-    // Interest credits are real income transactions (see
-    // FinanceContext's accrual effect), but they're app-generated,
-    // not something the person typed in — same "own icon/color"
-    // treatment as msi/card_payment above, using the same `savings`
-    // accent SavingsScreen's interest badge already uses, so it
-    // reads as "this grew on its own" rather than blending into a
-    // regular Ingreso.
+    // Interest is a real income transaction but app-generated, so it
+    // gets the same `savings` accent as everywhere else interest shows up.
     if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };

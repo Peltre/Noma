@@ -1,5 +1,5 @@
-// Manages scheduled income reminders AND MSI (months without interest) installments
-// Nothing executes automatically — user confirms each payment from the Home screen
+// Manages scheduled income reminders AND MSI (months without interest) installments.
+// Nothing executes automatically — the user confirms each payment from Home.
 
 import { useState, useEffect } from "react";
 import { saveData, loadData, removeData } from "./storage";
@@ -46,7 +46,7 @@ export function useScheduledFunds() {
     const addScheduledFund = async (fund) => {
         const newFund = {
             id: Date.now().toString(),
-            type: 'income',         // explicit type for income funds
+            type: 'income',
             createdAt: new Date().toISOString(),
             ...fund,
         };
@@ -71,14 +71,10 @@ export function useScheduledFunds() {
         await saveData(KEY, updated);
     };
 
-    // Generic partial update, used by both AddScheduledFundScreen (name,
-    // amount, frequency, accountId, nextDate for income funds) and the
-    // MSI edit modal on ScheduledFundsScreen (name, nextDate only). Only
-    // name/date are ever safe to change on an MSI after the purchase
-    // already happened — totalAmount/months/monthlyAmount/paidMonths are
-    // load-bearing for the debt math in useFinanceStore and confirmMSI
-    // above, so callers simply never send those fields rather than this
-    // function needing to filter them out.
+    // Generic partial update, used by AddScheduledFundScreen (income
+    // funds) and the MSI edit modal (name/nextDate only) — an MSI's
+    // totalAmount/months/monthlyAmount/paidMonths are load-bearing for
+    // the debt math elsewhere, so callers just never send those fields.
     const updateScheduledFund = async (fundId, changes) => {
         const updated = scheduledFunds.map(f =>
             f.id === fundId ? { ...f, ...changes } : f
@@ -99,7 +95,7 @@ export function useScheduledFunds() {
             months,
             monthlyAmount: round2(monthly),
             paidMonths: 0,
-            nextDate: firstDate, // ISO string of first payment date
+            nextDate: firstDate,
             accountId: accountId || null,
             creditCardId: creditCardId || null,
             createdAt: new Date().toISOString(),
@@ -110,14 +106,13 @@ export function useScheduledFunds() {
         return newMSI;
     };
 
-    // Confirm one MSI payment auto-removes when all months are paid
+    // Confirm one MSI payment — auto-removes once all months are paid
     const confirmMSI = async (msiId) => {
         let removed = false;
         const updated = scheduledFunds.reduce((acc, f) => {
             if (f.id !== msiId) { acc.push(f); return acc; }
             const newPaid = f.paidMonths + 1;
             if (newPaid >= f.months) {
-                // All installments paid — drop it
                 removed = true;
                 return acc;
             }
@@ -134,7 +129,7 @@ export function useScheduledFunds() {
         return { removed };
     };
 
-    // Reset 
+    // Reset
 
     const resetScheduledFunds = async () => {
         await removeData(KEY);
@@ -143,9 +138,8 @@ export function useScheduledFunds() {
 
     // Currency switch (Settings → Moneda): rescales every real amount
     // by `rate`. `amount` belongs to income funds, `totalAmount`/
-    // `monthlyAmount` to MSI — each only checked/converted when
-    // present so this works for both shapes without branching on
-    // `type`.
+    // `monthlyAmount` to MSI — checked/converted independently so this
+    // works for both shapes.
     const convertAllAmounts = async (rate) => {
         const updated = scheduledFunds.map(f => ({
             ...f,

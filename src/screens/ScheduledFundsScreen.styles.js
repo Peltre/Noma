@@ -1,15 +1,11 @@
-// ScheduledFundsScreen styles — theme-driven. Cards are neutral now
-// (theme.surface, no moneyIn/moneyOut tint), matching Home's
-// PendingFundCard: nothing here has actually moved yet, so nothing
-// should look as settled as a real transaction. Delete still uses
-// moneyOut — that action itself is a clear negative, unlike the fund
-// sitting there waiting.
+// ScheduledFundsScreen styles — theme-driven. Cards are neutral
+// (theme.surface, no moneyIn/moneyOut tint) since nothing has moved
+// yet — matching Home's PendingFundCard. Delete still uses moneyOut,
+// a clear negative action.
 //
-// This screen is view-only now (create/edit for income funds lives
-// on AddScheduledFundScreen instead), so the form-field styles that
-// used to live here moved there with it. What's left: the list
-// itself, and the small MSI edit modal (its fields are too different
-// from an income fund's to reuse that other screen's form).
+// View-only now — create/edit for income funds lives on
+// AddScheduledFundScreen. What's left: the list, and the MSI edit
+// modal (too different from an income fund's form to share it).
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 

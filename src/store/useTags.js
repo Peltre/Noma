@@ -1,19 +1,15 @@
-// Custom hook to manage transaction tags — a fully optional way to
-// label a movement (e.g. "Comida", "Transporte") for a future
-// breakdown by tag. Deliberately separate from `category`
-// (constants/categories.js), which is internal/app-generated (msi,
-// card_payment, goal) and was removed as something a person has to
-// pick — tags are the opposite: always optional, always person-
-// picked, and never block registering a transaction.
+// Manages transaction tags — a fully optional way to label a movement
+// (e.g. "Comida", "Transporte") for a future breakdown by tag.
+// Separate from `category` (internal/app-generated: msi, card_payment,
+// goal) — tags are always optional and person-picked.
 import { useState, useEffect } from 'react';
 import { saveData, loadData, removeData } from './storage';
 
 const TAGS_KEY = 'tags';
 
 // Seeded once for a new user; after that this list is just whatever
-// is saved (edits/additions persist, the app never re-seeds on top).
-// `builtin: true` only means "came with the app" — it doesn't behave
-// any differently from a tag the person creates themselves.
+// is saved. `builtin: true` only means "came with the app" — it
+// behaves the same as a tag the person creates themselves.
 const defaultTags = [
     { id: 'food', label: 'Comida', icon: 'food', builtin: true },
     { id: 'transport', label: 'Transporte', icon: 'transport', builtin: true },
@@ -41,8 +37,7 @@ export function useTags() {
     }, []);
 
     // Created inline from TransactionScreen's "+ Nueva" chip. Name is
-    // the only required input; icon defaults to the generic "other"
-    // glyph if the person doesn't pick one from the palette.
+    // required; icon defaults to "other" if not picked.
     const addTag = async ({ label, icon }) => {
         if (!label || !label.trim()) {
             return { error: 'Ponle un nombre a la etiqueta.' };
@@ -59,11 +54,7 @@ export function useTags() {
         return newTag;
     };
 
-    // Same shape as resetSettings: a reset user is a new user, and a
-    // new user starts with the seeded defaultTags, not an empty list.
-    // Without this, "Borrar todos los datos" in Settings left custom
-    // tags sitting in storage even though every other piece of data
-    // was wiped.
+    // A reset user is a new user — starts with defaultTags, not empty.
     const resetTags = async () => {
         await removeData(TAGS_KEY);
         setTags(defaultTags);

@@ -107,17 +107,13 @@ function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
     );
 }
 
-// Empty/default shape for the interest form state shared by
-// AddApartadoModal (creation) and EditInterestModal (edit any time
-// after) below. Values are kept as strings the whole time — same
-// reasoning as every other money field in this app (DecimalInput
-// wants strings) — and only parsed to numbers right at submit time.
+// Empty/default shape for the interest form, shared by AddApartadoModal
+// and EditInterestModal below. Kept as strings until submit, like
+// every other money field in this app.
 const EMPTY_INTEREST = { enabled: false, rate: '', cap: '', rateAboveCap: '' };
 
-// Rate/cap fields for "this apartado grows on its own" — same toggle
-// pattern as the deadline toggle in AddGoalModal below. Shared between
-// creation and editing so both stay in sync automatically instead of
-// two copies of the same form drifting apart over time.
+// Rate/cap fields for "this apartado grows on its own" — shared
+// between creation and editing so both stay in sync.
 function InterestFields({ value, onChange }) {
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
@@ -803,23 +799,15 @@ export default function SavingsScreen() {
         );
     };
 
-    // Redeem a completed goal: the money actually leaves for real —
-    // one real expense transaction per apartado that fed this goal,
-    // each charged against THAT apartado's own linked account (a goal
-    // funded from two different cards spends from both, same as it
-    // would if you paid for something split across two cards).
+    // Redeem a completed goal: one real expense per apartado that fed
+    // it, each charged against that apartado's own linked account.
     // Applied through one addTransactionsBatch call, not a loop of
-    // addTransaction() — addTransaction reads accounts/transactions
-    // by closure, so looping it here (as this used to) would have
-    // every call build off the same pre-loop snapshot: only the last
-    // account touched would end up with the right balance, and only
-    // the last transaction record would survive, silently dropping
-    // every source before it. The batch validates every source
-    // first — so if a linked account has since dropped below what
-    // its apartado promised, this fails there with a clear error
-    // instead of silently spending money that isn't really there —
-    // and only applies anything once all of them pass, so a goal
-    // never ends up half-redeemed.
+    // addTransaction() — that reads accounts/transactions by closure,
+    // so looping it would silently drop every source but the last.
+    // The batch validates everything first (so a since-depleted
+    // account fails with a clear error instead of spending money
+    // that isn't there) and only applies once all sources pass, so a
+    // goal never ends up half-redeemed.
     const handleRedeemGoal = (goal) => {
         const bySource = {};
         goal.contributions.forEach(c => {

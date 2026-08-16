@@ -1,9 +1,7 @@
-// SavingsScreen.styles.js — theme-driven. Savings/goals keep using
-// theme.brand as their accent (this is the old design's "violet =
-// savings, MSI, main accent" role — brand is the token reserved for
-// exactly that kind of primary, non money-in/out accent). Completed
-// goals reuse moneyIn as a positive/done signal. The savings account
-// dot colors (SAVINGS_COLORS in useSavings.js) stay fixed — they're
+// SavingsScreen.styles.js — theme-driven. Savings/goals use
+// theme.brand as their accent (the primary, non money-in/out role).
+// Completed goals reuse moneyIn as a positive/done signal. Savings
+// account dot colors (SAVINGS_COLORS in useSavings.js) stay fixed —
 // user-chosen labels, not theme surfaces.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';

@@ -1,26 +1,20 @@
-// Screen to register a new expense, income or withdrawal
-// Hero with amount + type, sheet slides up with the rest
+// Screen to register a new expense, income or withdrawal.
+// Hero with amount + type, sheet slides up with the rest.
 //
-// Only Gasto/Ingreso sit in the hero as one-tap pills — they're the
+// Only Gasto/Ingreso sit in the hero as one-tap pills — the
 // overwhelming majority of what gets logged here. Traspaso lives
-// behind a single "Otro tipo" control instead of competing for space
-// in the same row: a traspaso's form shape (two accounts) is
-// different enough that showing it as an equal peer up front was
-// promising a simplicity the rest of the screen couldn't keep.
+// behind "Otro tipo" instead, since its form shape (two accounts) is
+// different enough not to promise the same simplicity up front.
 //
-// Fondos programados/mensualidades have no presence here anymore —
-// not even a navigation shortcut. A recurring reminder isn't a
-// transaction (it doesn't move money the moment it's created), so it
-// never really belonged in this flow; it now lives entirely behind
-// Home's own "Fondos programados" section instead.
+// Fondos programados/mensualidades have no presence here — a
+// recurring reminder doesn't move money the moment it's created, so
+// it lives entirely under Home's "Fondos programados" instead.
 //
-// No category picker anymore — it was a required field with no
-// payoff (nothing in the app filters or charts by it), so it was
-// pure friction on the most common action in the app. The
-// description the person already has to type is what shows in
-// History/Home now; category still exists as an internal tag for
-// transactions the APP creates on its own (MSI, card payments, goal
-// purchases), just never as something a person has to pick.
+// No category picker — it was required friction with no payoff
+// (nothing filters/charts by it). The description shown in
+// History/Home is what the person types; category still exists as an
+// internal tag for app-generated transactions (MSI, card payments,
+// goal purchases), never something a person picks.
 import { useMemo, useState } from 'react';
 import {
     View, Text, TouchableOpacity, TextInput,
@@ -41,11 +35,8 @@ import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
 import GlassCard from '../components/GlassCard';
 
 // Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
-// plus a neutral for withdrawal — same reduced palette as the rest
-// of the app, no per-type dark hero tones. Transfer uses brand, same
-// reasoning as the MSI toggle below: it's a special flow (money
-// moving between the user's own accounts), not a money-in/money-out
-// signal, so it shouldn't borrow moneyIn or moneyOut.
+// plus a neutral for withdrawal. Transfer uses brand — a special flow
+// (money between the user's own accounts), not a money-in/out signal.
 function getTypes(theme) {
     return {
         expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
@@ -56,13 +47,10 @@ function getTypes(theme) {
 }
 
 // Types that live behind "Otro tipo" instead of the hero row.
-// Withdrawal isn't here on purpose — the only place a person would
-// reach for it manually is "I moved money to another account of
-// mine", and Traspaso already covers that correctly (the money stays
-// tracked, just in a different account). A withdrawal makes it
-// vanish from the total with no destination, which is only right
-// for what the app already does on its own (paying a card, an MSI
-// installment) — never something worth a person picking by hand.
+// Withdrawal isn't here — the only manual case ("moved money to
+// another of my accounts") is already correctly Traspaso, which keeps
+// the money tracked; a withdrawal makes it vanish with no
+// destination, which should only happen automatically (card/MSI payments).
 const SECONDARY_TYPES = ['transfer'];
 const TYPE_DESCRIPTIONS = {
     transfer: 'Mover dinero entre tus propias cuentas',
@@ -507,11 +495,8 @@ export default function TransactionScreen() {
                 </ScrollView>
             </GlassCard>
 
-            {/* "Otro tipo" — just Traspaso now. Used to also have a
-                shortcut to Fondos programados here, but that logic
-                (and any trace of it) moved out entirely — it has its
-                own home now, reachable from Home's "Fondos
-                programados" section, not from inside this flow. */}
+            {/* "Otro tipo" — just Traspaso now; Fondos programados
+                moved to Home's own section, not reachable from here. */}
             <Modal visible={showTypeSheet} transparent animationType="slide" onRequestClose={() => setShowTypeSheet(false)}>
                 <View style={styles.modalBg}>
                     <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowTypeSheet(false)} />

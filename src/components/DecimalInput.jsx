@@ -1,16 +1,12 @@
 // TextInput preset for money/number fields (keyboardType="decimal-pad").
-// iOS's decimal-pad has no return key at all — there's no built-in way
-// to dismiss it. This adds a small accessory bar with a "Listo" button
-// above the keyboard so the flow doesn't get stuck. Android already
-// shows a checkmark/done key on its numeric keyboard, so the accessory
-// bar only renders on iOS; everything else behaves like a plain
-// TextInput.
+// iOS's decimal-pad has no return key, so this adds a "Listo"
+// accessory bar above the keyboard to dismiss it — Android already
+// has a done key, so the bar only renders on iOS.
 //
-// Also sanitizes every keystroke: digits and a single "." only, capped
-// at 2 decimal places. This is the one shared input every money field
-// in the app uses (Transaction, Onboarding, Savings, AddCard, History's
-// edit sheet), so fixing it here fixes "too many decimals" everywhere
-// at once instead of a smaller fix per screen.
+// Also sanitizes every keystroke: digits and a single "." only,
+// capped at 2 decimals. The one shared money input in the app
+// (Transaction, Onboarding, Savings, AddCard, History's edit sheet),
+// so fixing it here fixes "too many decimals" everywhere at once.
 import { TextInput, InputAccessoryView, View, Text, TouchableOpacity, Platform, StyleSheet, Keyboard } from 'react-native';
 import { useTheme } from '../store/useTheme';
 import { FontSize } from '../constants';

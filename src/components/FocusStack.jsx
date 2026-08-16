@@ -1,53 +1,36 @@
-// FocusStack — cards for ONE type (débito or crédito) stacked behind
-// each other, wallet-fan style, exactly like Tarjetas already had.
-// The only new behavior: tap a card that's peeking behind the front
-// one and it's reordered to the front slot; tap the front card and
-// it opens the full detail sheet. The card that used to be in front
-// slides back and takes whatever slot the tapped card is vacating.
+// FocusStack — cards for ONE type (débito or crédito) stacked wallet-fan
+// style. Tap a peeking card to bring it to the front slot; tap the
+// front card to open its detail sheet.
 //
-// Every card is always rendered at the same size (CardFace's
-// "preview"/large size) — nothing ever grows or shrinks. "Growing"
-// is really just "no longer being covered by the card that used to
-// sit in front of it", so the only thing that ever animates is
-// position (translateY). The amount (SALDO/DEUDA) visibility is
-// driven independently by its own opacity animation tied to focus
-// state, not by whichever card happens to be painted on top — see
-// the comment on CardFace's `amountOpacity` prop for why that
-// distinction matters (it's what stops the amount from flashing/
-// duplicating mid-animation).
+// Every card renders at the same size — "growing" is really just "no
+// longer covered by the card in front", so only position (translateY)
+// animates. The amount's visibility is driven by its own opacity
+// animation tied to focus state (see CardFace's `amountOpacity`), not
+// by paint order — that's what stops it flashing/duplicating mid-animation.
 import { useEffect, useRef, useMemo } from 'react';
 import { View, Animated, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import CardFace, { CARD_LARGE_HEIGHT } from './CardFace';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { Radius, Shadow } from '../constants';
 
-// How much of a covered card peeks out above the one in front of it.
-// Same idea as the old STACK_PEEK in CardsScreen.jsx, just bigger
-// now that the front card is full preview-size instead of grid-size.
+// How much of a covered card peeks above the one in front of it.
 const REVEAL = 44;
 const SLOT_STEP = REVEAL; // vertical distance between consecutive slots
 const ANIM_MS = 380;
 
-// How far to pull the name/badge row up on a peeking (non-focused)
-// card — negative moves it toward the top edge. The card's own top
-// padding (Spacing.lg = 24, see CardFace.jsx's cardLarge style) is
-// what pushes the name down in the first place; this just cancels
-// part of that, only for cards that aren't focused. Tune this one
-// number to move it — bigger negative = higher up.
+// Pulls the name/badge row up on a peeking (non-focused) card,
+// canceling part of CardFace's top padding. Bigger negative = higher up.
 const PEEK_HEADER_OFFSET = -10;
 
 export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDetail, onLongPressCard, savingsAccounts = [] }) {
-    // One Animated.Value per card id for position, one for amount
-    // opacity — created once and reused across renders/reorders so
+    // One Animated.Value per card id, reused across renders so
     // they animate FROM wherever they currently are, not from zero.
     const posAnims = useRef(new Map());
     const opacityAnims = useRef(new Map());
     const cardRefs = useRef(new Map());
 
-    // Cards not currently focused keep their original relative order;
-    // the focused one is always slotted last, which is what makes it
-    // "the front of the deck" (later siblings paint on top in RN,
-    // same rule the old fanned stack already relied on).
+    // Non-focused cards keep their relative order; the focused one is
+    // always slotted last, so it paints on top (later siblings win in RN).
     const order = useMemo(() => {
         if (cards.length === 0) return [];
         const validFocusId = cards.some(c => c.id === focusedId) ? focusedId : cards[cards.length - 1].id;
@@ -58,9 +41,8 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
 
     const resolvedFocusedId = order.length ? order[order.length - 1].id : null;
 
-    // Make sure every card in view has its Animated.Values before we
-    // read them below (new cards start already docked at their slot
-    // — no reason to animate something appearing for the first time).
+    // Every card needs its Animated.Values before we read them below —
+    // new cards start already docked at their slot, no entrance animation.
     order.forEach((card, slot) => {
         if (!posAnims.current.has(card.id)) {
             posAnims.current.set(card.id, new Animated.Value(slot * SLOT_STEP));
@@ -70,9 +52,8 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
         }
     });
 
-    // Whenever the order changes (a card was brought to the front),
-    // animate every card's position to its new slot, and cross-fade
-    // the amount from the old front card to the new one.
+    // When the order changes, animate every card to its new slot and
+    // cross-fade the amount from the old front card to the new one.
     useEffect(() => {
         const animations = order.map((card, slot) => {
             const isFocused = card.id === resolvedFocusedId;
@@ -111,9 +92,7 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
                     ? Math.min(Math.round((card.currentDebt / card.limit) * 100), 100)
                     : undefined;
 
-                // Apartados linked to this specific débito account —
-                // n/a for crédito, since a card in debt isn't a real
-                // balance you could earmark part of.
+                // Apartados linked to this account — n/a for crédito (debt isn't earmarkable).
                 const linkedApartados = isCredit ? [] : savingsAccounts.filter(sa => sa.linkedAccountId === card.id);
                 const earmarkedTotal = linkedApartados.reduce((s, sa) => s + sa.earmarkedAmount, 0);
                 const savingsBadge = earmarkedTotal > 0

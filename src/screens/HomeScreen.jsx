@@ -21,59 +21,41 @@ import {
     IconTrendUp, IconTrendDown, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent,
 } from '../components/Icons';
 
-// Same "d MMM · HH:mm" shape History already uses, just swapping in
-// "Hoy" for same-day movements — Recientes is meant to be skimmed at
-// a glance, and "Hoy" reads faster than today's actual date would.
+// Same shape History uses, swapping in "Hoy" for same-day movements
+// so Recientes reads faster at a glance.
 function formatTxnDate(dateStr, now) {
     const d = parseISO(dateStr);
     const day = isSameDay(d, now) ? 'Hoy' : format(d, 'd MMM', { locale: es });
     return `${day} · ${format(d, 'HH:mm')}`;
 }
 
-// Which color token each account type gets in the allocation bar.
-// A debit account can carry its own `color` (set from the Tarjetas
-// tab, same SAVINGS_COLORS palette Ahorros sub-accounts use) so
-// multiple debit accounts stay visually distinguishable in the list —
-// that custom color always wins when present. Accounts without one
-// (Efectivo, Ahorros, and any debit account that hasn't been given a
-// color yet) fall back to the fixed per-type color exactly as before,
-// so the common single-account case looks unchanged.
+// Which color each account gets in the allocation bar. A debit
+// account's own custom `color` (set in Tarjetas) always wins;
+// otherwise falls back to a fixed per-type color.
 function getAccountColor(theme, account) {
     if (account.color) return account.color;
     if (account.type === 'cash') return theme.cashTone;
     if (account.type === 'debit') return theme.moneyIn;
-    // No new account can be type 'savings' anymore (see
-    // useFinanceStore.js's initialAccounts) — this stays only so a
-    // stale one from old local test data still colors sensibly
-    // instead of falling through to the generic gray below.
+    // No new account can be type 'savings' anymore — kept only so
+    // stale local test data still colors sensibly.
     if (account.type === 'savings') return theme.savings;
     return theme.muted;
 }
 
-// Only two accents with fixed meaning: moneyIn = comes in or is saved,
-// moneyOut = goes out. A plain withdrawal (cajero, or anything with
-// no more specific category) is neither, so it stays neutral instead
-// of borrowing one of the two. A transfer isn't either one either —
-// same brand accent used for its type pill in TransactionScreen,
-// since it's a special flow, not gain or loss.
-//
-// Paying a credit card — whether it's one MSI installment or a
-// manual/full payment — is a `type: 'withdrawal'` under the hood
-// (that's what makes the balance math in useFinanceStore work: real
-// money leaves a real account), but neither one is a plain retiro
-// the way pulling cash from a cajero is. Each gets its own accent
-// (theme.msi / theme.cardPayment) instead of borrowing moneyOut —
-// otherwise Gasto, Mensualidad and Pago de tarjeta all read as the
-// same color — plus their own icon so they don't blend into the
-// generic withdrawal icon or into each other.
+// moneyIn/moneyOut are the only two fixed-meaning accents. A plain
+// withdrawal (cajero, or no specific category) is neither, so it
+// stays neutral. Transfer gets the brand accent (a special flow, not
+// gain or loss). A card payment or MSI installment is a
+// `type: 'withdrawal'` under the hood (real money leaving a real
+// account), but isn't a plain retiro either — each gets its own
+// accent (theme.msi / theme.cardPayment) and icon instead of
+// borrowing moneyOut, so Gasto/Mensualidad/Pago de tarjeta don't all
+// read as the same color.
 function getTxnVisual(theme, type, category) {
     if (category === 'msi') return { bg: theme.msiSoft, color: theme.msi, Icon: IconCalendarClock };
     if (category === 'card_payment') return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCash };
-    // Same reasoning as HistoryScreen's getTypeConfig: an interest
-    // credit is app-generated, not typed in by the person, so it
-    // gets the same `savings` accent as everywhere else interest
-    // shows up (SavingsScreen's badge, HistoryScreen's detail sheet)
-    // instead of blending into a regular Ingreso.
+    // Interest is app-generated, so it gets the same `savings` accent
+    // it uses everywhere else instead of blending into a regular Ingreso.
     if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
@@ -81,18 +63,9 @@ function getTxnVisual(theme, type, category) {
     return { bg: theme.border, color: theme.muted, Icon: IconWallet };
 }
 
-// Confirm-and-pay sheet for one MSI installment.
-// This is what actually moves the money: a withdrawal from a real,
-// chosen account, plus a matching reduction of the card's debt —
-// same pattern as PayCardSheet in CardsScreen.jsx. Previously,
-// "confirming" a month here logged an `expense` straight against the
-// card with no source account, which — since an `expense` on a card
-// means "new purchase" everywhere else in the app — made the card's
-// debt go UP every month instead of down, and no money ever left an
-// account. Fixed by treating a monthly MSI payment exactly like a
-// manual card payment: withdrawal (accountId, no creditCardId) + a
-// debt reduction, both via payCardWithTransaction, instead of an
-// expense tagged with the card.
+// Confirm-and-pay sheet for one MSI installment — a withdrawal from a
+// chosen account plus a matching debt reduction via
+// payCardWithTransaction, same pattern as CardsScreen's PayCardSheet.
 function MSIPaySheet({ fund, accounts, onClose }) {
     const { payCardWithTransaction, confirmMSI } = useFinance();
     const { theme } = useTheme();
@@ -110,11 +83,9 @@ function MSIPaySheet({ fund, accounts, onClose }) {
             amount: fund.monthlyAmount,
             reason: `${fund.name} MSI ${fund.paidMonths + 1}/${fund.months}`,
             category: 'msi',
-            // See linkedCardId's comment in CardsScreen.jsx's PayCardSheet —
-            // same idea: remembers which card this installment paid down
-            // without tripping the "expense + creditCardId = new purchase"
-            // logic elsewhere, so editing/deleting it later can still
-            // restore the right amount of debt.
+            // Remembers which card this installment paid down, so
+            // deleteTransaction/updateTransaction can restore the
+            // right amount of debt if this is later edited or removed.
             linkedCardId: fund.creditCardId,
         });
         if (result?.error) {
@@ -122,12 +93,9 @@ function MSIPaySheet({ fund, accounts, onClose }) {
             Alert.alert('Fondos insuficientes', result.error);
             return;
         }
-        // confirmMSI lives in useScheduledFunds, a separate store from
-        // the transaction/debt update payCardWithTransaction just did —
-        // it can't be folded into that same call, so this stays a
-        // second step. It doesn't touch accounts/transactions/creditCards
-        // though, so there's no risk of it clobbering what the call
-        // above just wrote.
+        // confirmMSI lives in a separate store (useScheduledFunds) and
+        // doesn't touch accounts/transactions/creditCards, so it's a
+        // safe second step here.
         await confirmMSI(fund.id);
         setLoading(false);
         if (result.savingsWarning) {
@@ -227,12 +195,9 @@ export default function HomeScreen() {
     const positiveTotal = accounts.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
     const allocTotal = positiveTotal + totalDebt;
 
-    // Balance trend — compares the current total against what it was
-    // at the start of THIS calendar month (current total minus this
-    // month's net effect), since the app has no separate historical
-    // balance snapshots to compare against. A transfer moves money
-    // between the user's own accounts, so it never changes the total
-    // and is excluded; income/expense/withdrawal all do.
+    // Balance trend: current total vs. what it was at the start of
+    // this calendar month (no historical snapshots to compare
+    // against otherwise). Transfers don't change the total, so excluded.
     const now = new Date();
     const thisMonthTxns = transactions.filter(t => isSameMonth(parseISO(t.date), now));
     const netChangeThisMonth = round2(thisMonthTxns.reduce((sum, t) => {
@@ -241,13 +206,11 @@ export default function HomeScreen() {
         return sum;
     }, 0));
     const balanceAtMonthStart = round2(totalBalance - netChangeThisMonth);
-    // Nothing to compare against yet this month — don't show a
-    // trend rather than a misleading "0.0%".
+    // Nothing to compare against yet this month — hide the trend
+    // instead of showing a misleading "0.0%".
     const hasTrend = thisMonthTxns.length > 0;
     const trendUp = netChangeThisMonth >= 0;
-    // Percent only makes sense against a positive starting point;
-    // otherwise fall back to a plain amount (e.g. account started
-    // this month at $0).
+    // Percent only makes sense against a positive starting point.
     const trendPct = balanceAtMonthStart > 0
         ? Math.abs(netChangeThisMonth / balanceAtMonthStart) * 100
         : null;
@@ -261,11 +224,9 @@ export default function HomeScreen() {
                 contentContainerStyle={{ paddingTop: insets.top + 8 }}
             >
 
-                {/* Hero: header and balance, with HeroArt (moon/sun +
-                    horizon, scoped to just this card) filling it —
-                    not a GlassCard: its own illustration already
-                    covers the whole card, so there'd be nothing left
-                    for the blur underneath to show through anyway. */}
+                {/* Hero: not a GlassCard — HeroArt's illustration
+                    already covers the whole card, nothing left for
+                    the blur to show through. */}
                 <View style={styles.heroCard} onLayout={e => setHeroSize(e.nativeEvent.layout)}>
                     {heroSize.width > 0 && heroSize.height > 0 && (
                         <HeroArt themeName={themeName} width={heroSize.width} height={heroSize.height} />
@@ -289,13 +250,9 @@ export default function HomeScreen() {
                     <View style={styles.heroBalance}>
                         <View style={styles.balanceLabelRow}>
                             <Text style={styles.balanceLabel}>Balance total</Text>
-                            {/* Small, deliberately quiet currency tag — the
-                                amount itself always renders identically
-                                (same "$", same grouping) no matter which
-                                currency is active, so this is the one place
-                                that actually says which one it is. Home only,
-                                on purpose (see SettingsScreen's Moneda picker
-                                for where it's changed). */}
+                            {/* The amount itself always renders the same
+                                regardless of active currency — this tag
+                                is the one place that says which one it is. */}
                             <Text style={styles.currencyTag}>{settings.currency}</Text>
                         </View>
                         <View style={styles.balanceRow}>
@@ -319,11 +276,7 @@ export default function HomeScreen() {
                     </View>
                 </View>
 
-                {/* Allocation bar, replaces the old pills.
-                    Read-only here on purpose — adding, renaming, or
-                    deleting a debit account now lives in the Tarjetas
-                    tab alongside credit cards, so débito/crédito share
-                    one place to manage both instead of two. */}
+                {/* Allocation bar. Read-only — managing accounts lives in Tarjetas. */}
                 {accounts.length > 0 && (
                     <View style={styles.alloc}>
                         <View style={styles.allocBar}>
@@ -374,13 +327,8 @@ export default function HomeScreen() {
                     </View>
                 )}
 
-                {/* Fondos programados / mensualidades — this section
-                    always renders, even with nothing due soon right
-                    now, so there's a direct way into the full list.
-                    Before this, the only path in was a shortcut
-                    buried inside Nuevo Movimiento's "Otro tipo" sheet
-                    — fine as a secondary way to get there, not as
-                    the only one. */}
+                {/* Fondos programados / mensualidades — always renders,
+                    even with nothing due, as a direct way into the full list. */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Fondos programados</Text>
@@ -487,10 +435,7 @@ export default function HomeScreen() {
                                     : txn.creditCardId
                                         ? (creditCards.find(c => c.id === txn.creditCardId)?.name ?? '—')
                                         : (accounts.find(a => a.id === txn.accountId)?.name ?? '—');
-                                // Tags are optional — most transactions
-                                // will have none, so the "· etiqueta"
-                                // part only appears when there's
-                                // something to show.
+                                // "· etiqueta" only appears when there's a tag to show.
                                 const txnTagLabel = (txn.tagIds || [])
                                     .map(id => tags.find(t => t.id === id)?.label)
                                     .filter(Boolean)

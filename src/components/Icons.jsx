@@ -1,24 +1,13 @@
-// Unified icon set for the whole app.
+// Unified icon set for the whole app — one SVG library
+// (react-native-svg) replacing the old mix of hand-rolled SVGs,
+// Unicode-as-text, and emoji, so every icon shares stroke weight,
+// viewBox, and line caps ("gruesecito" on purpose: SW below is
+// thicker than the ~1.6 the old hand-rolled icons used).
 //
-// Before this file, Noma drew icons three different ways depending on
-// which screen you were on: hand-rolled SVGs (each screen defining its
-// own, slightly different stroke width), plain Unicode characters
-// styled as <Text> (↓ ↑ ⇄ → ✓ ✕ ← ⌄ — whatever weight the system font
-// happened to render them at), and actual emoji (✏️ 💵 🗑️ ⚠️ 🔒 🎯 —
-// full-color, ignoring the active theme completely, different on
-// iOS/Android). This file replaces all three with one library
-// (react-native-svg, already a core dependency — no new package to
-// install) so every icon in the app shares the same stroke weight,
-// the same viewBox, and the same rounded line caps. "Gruesecito" on
-// purpose: SW below is noticeably thicker than the ~1.6 most of the
-// old hand-rolled icons used.
-//
-// Every icon takes `color` (required) and `size` (optional, defaults
-// per-icon below to whatever that icon's original call sites used).
-// Nav-bar icons additionally take `focused` (solid fill) and, where
-// they draw a light "cutout" detail on top of that fill, `bgColor`
-// (the surface they sit on, so the cutout reads correctly against
-// either the tab bar or the sheet header background).
+// Every icon takes `color` (required) and `size` (optional). Nav-bar
+// icons also take `focused` (solid fill) and, where they draw a light
+// "cutout" on top of that fill, `bgColor` (so the cutout reads
+// correctly against whatever surface it sits on).
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 const SW = 2;
@@ -276,14 +265,9 @@ export function IconCalendar({ color, size = 18 }) {
 }
 
 // Calendar + clock — "Programado" (a scheduled/recurring MSI
-// payment). The plain calendar above is DatePickerField's "pick a
-// date" glyph; this is a different meaning ("this happens on a
-// schedule"), so it gets the clock badge to read as recurring, not
-// just "has a date". The calendar body+tabs are sized and placed so
-// their own bounding box sits dead-center at (12,12) — the clock is
-// a small corner badge on top, same as any other icon+badge pairing
-// in this file, not something the calendar shifts over to make room
-// for.
+// payment), distinct from DatePickerField's plain calendar ("pick a
+// date"). Calendar body+tabs are centered at (12,12); clock is a
+// corner badge on top.
 export function IconCalendarClock({ color, size = 18 }) {
     return (
         <Svg {...vb(size)}>
@@ -296,23 +280,11 @@ export function IconCalendarClock({ color, size = 18 }) {
     );
 }
 
-// Banknote + plus — "Ingreso". The badge is a solid filled circle
-// (same `color` as the banknote) sitting right on the banknote's
-// corner, same overlapping placement as IconCalendarClock's clock —
-// the "+" on top is painted in `bgColor` (the icon's own container
-// background, e.g. theme.moneyInSoft) rather than cut out as a real
-// transparent hole. A transparent cutout let whatever was underneath
-// (the banknote's own lines) show through wherever they crossed it;
-// painting the plus in the container's actual background color always
-// reads clean regardless of what the badge happens to overlap. The
-// badge circle also gets a `bgColor` border — a thin halo of the same
-// color as the plus, same trick PendingFundCard's badges use to
-// separate a circle cleanly from whatever sits behind it.
-// bgColor must be an OPAQUE color (theme.surface, not visual.bg/cfg.bg
-// — those are low-alpha tints, and painted over the solid badge
-// circle they barely show up at all). It doesn't need to match the
-// icon's own soft-tinted box exactly, just needs to be solid enough
-// to read clearly.
+// Banknote + plus — "Ingreso". The "+" badge is painted in `bgColor`
+// (the icon's container background) rather than cut out transparent,
+// so it always reads clean regardless of what's underneath — same
+// trick PendingFundCard's badges use. `bgColor` must be OPAQUE
+// (theme.surface, not a low-alpha tint like visual.bg) or it barely shows.
 export function IconBanknotePlus({ color, bgColor = '#FFFFFF', size = 18 }) {
     return (
         <Svg {...vb(size)}>
@@ -370,12 +342,9 @@ export function IconCard({ color, size = 20 }) {
     );
 }
 
-// One piece, not "IconPlus next to IconCard" — a plus badge only ever
-// lines up perfectly against the card behind it if they're drawn as a
-// single shape instead of two components someone has to position
-// with gap/margin by eye. `bgColor` (the button's own fill) punches a
-// clean hole behind the badge so the card's stripe line doesn't cut
-// through it.
+// One piece, not "IconPlus next to IconCard" — a single shape lines
+// up the badge against the card exactly. `bgColor` punches a clean
+// hole so the card's stripe doesn't cut through the badge.
 export function IconCardAdd({ color, bgColor, size = 20 }) {
     return (
         <Svg {...vb(size)}>
@@ -423,11 +392,8 @@ export function IconSparkle({ color, size = 20 }) {
 }
 
 // ── Trend (Home's balance indicator) ───────────────────────────────
-// Diagonal on purpose — distinct from IconArrowUp/IconArrowDown
-// above, which already mean "expense"/"income" everywhere else in
-// the app. This pair means something different (balance up/down vs.
-// last month), so it needed its own shape, not a reused one that'd
-// carry the wrong association.
+// Diagonal on purpose — distinct from IconArrowUp/Down above, which
+// already mean expense/income elsewhere in the app.
 export function IconPercent({ color, size = 16 }) {
     return (
         <Svg {...vb(size)}>

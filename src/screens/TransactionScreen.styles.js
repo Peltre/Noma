@@ -1,8 +1,6 @@
-// TransactionScreen styles — theme-driven. The hero no longer changes
-// background per transaction type (that would need 3 extra dark
-// tones not defined in the theme registry); it now stays on theme.bg
-// and only the glow/pills/amount carry the type accent, same rule as
-// everywhere else in the app.
+// TransactionScreen styles — theme-driven. The hero stays on
+// theme.bg for every transaction type; only the glow/pills/amount
+// carry the type accent, same rule as everywhere else in the app.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
@@ -114,15 +112,10 @@ export default function createTransactionStyles(theme) {
         },
 
         // Sheet
-        // Main form surface — GlassCard (sheetWrap) supplies the glass
-        // background/radius now; `sheet` itself stays on the
-        // ScrollView so it can keep scrolling normally inside it
-        // (GlassCard wraps a plain View, not a ScrollView, so the
-        // glass panel has to be the ScrollView's parent instead of
-        // the ScrollView's own style). This is the screen's primary
-        // persistent surface, not a transient overlay, so it gets the
-        // same glass treatment as every other screen's main card
-        // instead of staying opaque like a modal.
+        // GlassCard (sheetWrap) supplies the glass background/radius;
+        // `sheet` stays on the ScrollView so it keeps scrolling
+        // normally inside it (GlassCard wraps a plain View, so the
+        // glass panel has to be the ScrollView's parent).
         sheetWrap: {
             flex: 1,
             borderTopLeftRadius: Radius.lg,
@@ -216,15 +209,9 @@ export default function createTransactionStyles(theme) {
             backgroundColor: theme.bg,
         },
 
-        // "Nueva etiqueta" modal — a centered card with a blurred
-        // backdrop (BlurView, same pattern OnboardingOverlayScreen
-        // already uses) instead of a bottom sheet. A bottom sheet has
-        // no room to move once the keyboard opens (the TextInput here
-        // autofocuses), so it either sits half-hidden behind the
-        // keyboard or has to fight it — centering the card and
-        // wrapping it in KeyboardAvoidingView sidesteps that
-        // entirely: there's always room above the keyboard to shift
-        // into.
+        // "Nueva etiqueta" modal — centered card with a blurred
+        // backdrop instead of a bottom sheet, since a bottom sheet has
+        // no room once the keyboard opens (the TextInput autofocuses).
         tagModalOverlay: {
             flex: 1,
             justifyContent: 'center',

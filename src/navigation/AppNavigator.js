@@ -16,19 +16,9 @@ import CurvedTabBar from './CurvedTabBar';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Stacks
-//
-// `contentStyle` used to matter more than it looked like it should:
-// react-navigation doesn't paint a themed background behind a
-// stack's screens on its own, so without this, the sliver of
-// native-stack transition animation (and any brief instant before a
-// screen's own View has painted) used to fall back to the library's
-// default white. Now that AppBackground is a single, stable layer
-// mounted once in App.js behind the ENTIRE navigator, that
-// white-flash risk is gone a different way — every one of these
-// needs to be transparent instead, or it paints an opaque flat color
-// directly in front of AppBackground, on every screen in this stack,
-// defeating the whole point of it being there.
+// Stacks — contentStyle:transparent so screens don't paint an opaque
+// flat color in front of AppBackground (a single stable layer mounted
+// once in App.js behind the whole navigator).
 
 function HomeStack() {
   return (
@@ -51,21 +41,13 @@ function CardsStack() {
   );
 }
 
-// Screens nested inside a tab's own stack that are meant to take over
-// the whole screen — each has its own back button, its own hero
-// starting right at insets.top, and its own bottom padding that only
-// ever accounts for the home indicator (insets.bottom), never for the
-// tab bar's height. Without this list, CurvedTabBar stays mounted
-// underneath all of them by default (that's just how a nested
-// stack-inside-a-tab works), floating its own "+" on top of screens
-// that don't expect it — AddTransaction most confusingly of all,
-// since it's already the screen you'd reach by tapping that same "+".
+// Screens nested in a tab's stack that take over the whole screen —
+// without this list, CurvedTabBar stays mounted underneath them,
+// floating its "+" on top of screens that don't expect it.
 const FULLSCREEN_ROUTES = ['AddTransaction', 'ScheduledFunds', 'AddScheduledFund', 'Settings', 'AddCard'];
 
-// Reads which screen is actually focused *inside* a tab's nested
-// stack (not just which tab is active) and returns the tabBarStyle
-// that hides the bar for it. `route` here is the Tab.Screen's own
-// route, so this only ever runs for HomeTab/CardsTab.
+// Reads which screen is focused *inside* a tab's nested stack (not
+// just which tab is active) and hides the bar for fullscreen ones.
 function getTabBarStyle(route) {
   const focusedRouteName = getFocusedRouteNameFromRoute(route) ?? route.name;
   return FULLSCREEN_ROUTES.includes(focusedRouteName) ? { display: 'none' } : undefined;

@@ -12,13 +12,9 @@ export const FontSize = {
     xl: 20,
     xxl: 28,
     hero: 44,
-    // Deliberately its own step above `hero`, not a stray number.
-    // `hero` is for passive, read-only totals (Home balance, History's
-    // month summary, Savings total) — this one is for the single
-    // place in the app where a person is actively typing an amount
-    // (TransactionScreen's amount field), where going even bigger
-    // than `hero` is the whole point: it's the one thing on that
-    // screen that matters.
+    // Its own step above `hero` on purpose: `hero` is for passive
+    // totals (Home balance, History's summary); this is for the one
+    // place someone actively types an amount (TransactionScreen).
     input: 64,
 };
 

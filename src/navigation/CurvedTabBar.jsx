@@ -1,13 +1,8 @@
-// Bottom tab bar — a glass panel over AppBackground instead of a
-// solid-filled shape, so it traded its old wavy "hill" top edge for
-// plain rounded top corners: BlurView blurs whatever's behind it in
-// the actual native view hierarchy, and it can only be clipped to a
-// shape via `overflow:'hidden'` + `borderRadius` on its container —
-// it can't be masked to an arbitrary SVG path the way the old solid
-// <Path> fill could. Rounded corners are the shape vocabulary that's
-// actually reliable with a real blur.
-// Icons stay outlined when inactive, filled with the brand accent
-// when active — unchanged from before.
+// Bottom tab bar — a glass panel over AppBackground, so it uses plain
+// rounded top corners instead of the old wavy "hill" edge: BlurView
+// can only be clipped via overflow:'hidden' + borderRadius, not
+// masked to an arbitrary SVG path. Icons stay outlined when inactive,
+// filled with the brand accent when active.
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -15,19 +10,12 @@ import { useTheme } from '../store/useTheme';
 import { Shadow, FontSize, Radius, Spacing } from '../constants';
 import { IconHome, IconHistory, IconSavings, IconCards, IconPlus } from '../components/Icons';
 
-// Tight to the content (icon + label), not padded out further — went
-// 74 → 54 → 40 already. Nudged back up slightly here (not a full
-// reversal) specifically to make room for `row`'s bigger paddingTop
-// below — without this, that extra top padding would just squeeze
-// the icon/label content into a smaller box instead of actually
-// adding visible breathing room.
+// Tight to icon+label content. Nudged up slightly to make room for
+// `row`'s bigger paddingTop below.
 const BASE_HEIGHT = 46;
-// How far the "+" pokes up above the glass bar's own top edge. Was
-// tied to a formula that grew with the device's bottom safe-area
-// inset (taller on an iPhone with a home indicator than on a device
-// without one) — that's why it could look like it was floating way
-// off on some devices: not a fixed "a little proud of the bar" look,
-// a variable one. Fixed to a flat number instead.
+// How far the "+" pokes up above the glass bar's top edge — a flat
+// number, not tied to the safe-area inset (which made it look
+// inconsistently "floaty" across devices).
 const FAB_POKE = 18;
 
 const ICONS = {
@@ -37,35 +25,26 @@ const ICONS = {
     CardsTab: IconCards,
 };
 
-// Top corner radius — kept as its own constant (not just inlined
-// twice) because `glass` and `borderOverlay` both need the EXACT same
-// value to stay lined up. Went 28 → 18 already after "the curve is
-// crowding the corner icons" — screenshot showed it was still a very
-// visible curve at 18, so this is a second, bigger cut instead of
-// another small nudge.
+// Own constant since `glass` and `borderOverlay` both need the exact
+// same value to stay lined up.
 const CORNER_RADIUS = 10;
 
 export default function CurvedTabBar({ state, descriptors, navigation }) {
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
 
-    // AppNavigator sets tabBarStyle: { display: 'none' } on the
-    // focused tab's options while one of its nested full-screen
-    // routes (AddTransaction, Settings, etc.) is open. That option is
-    // normally applied automatically by React Navigation's own tab
-    // bar — since this is a custom one, we have to read it ourselves
-    // and bail out before rendering anything, or this bar (and its
-    // floating "+") would stay floating on top of those screens.
+    // AppNavigator hides the tab bar (tabBarStyle: display:'none')
+    // while a nested full-screen route is open — React Navigation
+    // applies that automatically for its own tab bar, but this custom
+    // one has to read and honor it manually.
     const focusedOptions = descriptors[state.routes[state.index].key].options;
     if (focusedOptions.tabBarStyle?.display === 'none') return null;
 
     const totalHeight = BASE_HEIGHT + insets.bottom;
 
-    // The "+" isn't a real tab — there's no screen you're ever "on"
-    // for it, it just opens Nuevo movimiento. Splitting the routes
-    // around it (rather than adding it as a 6th Tab.Screen) keeps
-    // state.index/focused meaning exactly what it already means for
-    // the 5 real tabs.
+    // The "+" isn't a real tab (no screen to be "on") — splitting the
+    // routes around it keeps state.index/focused meaning what it
+    // already means for the 5 real tabs.
     const leftRoutes = state.routes.slice(0, 2);
     const rightRoutes = state.routes.slice(2);
 
@@ -99,12 +78,9 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
     };
 
     return (
-        // Outer wrapper is NOT clipped — only `glass` (the blurred bar
-        // itself) needs overflow:hidden, to clip BlurView to its
-        // rounded top corners. The FAB deliberately pokes up above
-        // the bar's own top edge (see fabFloating's `bottom` below);
-        // rendering it inside that clipped container was cutting off
-        // exactly the part meant to float above it.
+        // Outer wrapper isn't clipped — only `glass` needs
+        // overflow:hidden. The FAB pokes above the bar's own top edge
+        // on purpose, so it renders outside this clipped container.
         <View style={[styles.outer, { height: totalHeight }]}>
             <View style={[styles.glass, { height: totalHeight }]}>
                 <BlurView
@@ -119,9 +95,7 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
                         {leftRoutes.map((route, i) => renderTab(route, i))}
                     </View>
 
-                    {/* Empty spacer — same width as the floating FAB
-                        below, just keeping the two tab groups spaced
-                        apart correctly. */}
+                    {/* Same width as the floating FAB, just spacing the two tab groups apart. */}
                     <View style={styles.fabSlot} />
 
                     <View style={styles.tabGroup}>
@@ -130,19 +104,10 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
                 </View>
             </View>
 
-            {/* Top border, on its own plain (non-blur) overlay instead
-                of living on `glass` alongside BlurView — same fix as
-                GlassCard.jsx, same reason: a native blur's rendering
-                doesn't reliably respect its container's border-radius
-                clip AT THE CORNERS, so a border on that same view gets
-                partly erased right where it curves. A plain View's own
-                border+radius doesn't have that problem.
-                `pointerEvents: 'none'` lives in `style` here, not as a
-                standalone prop — GlassCard.jsx hit a real bug from the
-                prop form not always being honored (it blocked taps on
-                a TouchableOpacity underneath), and this overlay sits
-                directly on top of the actual tab buttons, so it gets
-                the same safer treatment preventively. */}
+            {/* Border on its own plain (non-blur) overlay, same fix as
+                GlassCard.jsx — a native blur doesn't reliably respect
+                border-radius clipping at the corners. pointerEvents in
+                style (not as a prop), same reason as GlassCard. */}
             <View
                 style={[
                     StyleSheet.absoluteFillObject,
@@ -163,26 +128,20 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
 }
 
 const styles = StyleSheet.create({
-    // Outer, unclipped — carries the drop shadow (a shadow is drawn
-    // OUTSIDE an element's own bounds, so it would get clipped away
-    // by `glass`'s overflow:hidden below if it lived there instead —
-    // same reason the FAB moved out here too).
+    // Unclipped — carries the drop shadow (which draws outside an
+    // element's bounds, so it'd be clipped away by glass's overflow:hidden).
     outer: {
         width: '100%',
         ...Shadow.float,
     },
-    // Inner, clipped — this is what actually needs overflow:hidden,
-    // to clip BlurView to its own rounded top corners. No border here
-    // anymore — see borderOverlay below.
+    // Clipped — needs overflow:hidden to clip BlurView to its rounded top corners.
     glass: {
         width: '100%',
         overflow: 'hidden',
         borderTopLeftRadius: CORNER_RADIUS,
         borderTopRightRadius: CORNER_RADIUS,
     },
-    // Matches `glass`'s own corner radius exactly, so the visible
-    // border always lines up with the shape the blur is actually
-    // clipped to.
+    // Matches `glass`'s radius exactly so the border lines up with the blur's clip.
     borderOverlay: {
         width: '100%',
         borderTopLeftRadius: CORNER_RADIUS,
@@ -196,11 +155,6 @@ const styles = StyleSheet.create({
         bottom: 0,
         flexDirection: 'row',
         alignItems: 'center',
-        // Horizontal: keeps the leftmost/rightmost icon clear of the
-        // rounded corner instead of sitting flush against where it
-        // curves. Top: breathing room above the icons — went 0 → 4
-        // already, screenshot showed 4 still reads as "almost none",
-        // so this is a real jump instead of another 1-2px nudge.
         paddingHorizontal: Spacing.sm,
         paddingTop: 10,
     },
@@ -227,10 +181,8 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 10,
     },
-    // Absolutely positioned, centered, sibling of the clipped `glass`
-    // bar instead of a child of it — see the `outer`/`glass` comment
-    // above for why. `bottom` is computed inline (needs totalHeight,
-    // a runtime value) so this only sets the parts that don't.
+    // Sibling of the clipped `glass` bar, not a child of it. `bottom`
+    // is set inline since it needs the runtime totalHeight value.
     fabFloating: {
         position: 'absolute',
         left: '50%',

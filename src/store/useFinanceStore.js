@@ -1,30 +1,19 @@
-// custom react hook that groups states related to each other in one place
-// This way all screens get updated when a value shifts.
+// Core financial state: accounts, transactions, credit cards.
+// One hook, so every screen reading it re-renders on any change.
 
 import { useState, useEffect } from 'react';
 import { saveData, loadData, removeData } from './storage';
 import { round2 } from '../utils/formatCurrency';
 
-// storage keys
 const KEYS = {
     accounts: 'accounts',
     transactions: 'transactions',
     creditCards: 'creditCards',
 };
 
-// Initial state (new user)
-// No default debit account anymore — debit accounts are entirely
-// user-created (onboarding, or the "+ Agregar cuenta" flow in Home),
-// same pattern as credit cards starting at zero. Efectivo stays as
-// the one singular, always-present account: useSavings.js's apartados
-// now link directly to a real débito/efectivo account instead of a
-// separate "Ahorros" pot, so that fake account no longer exists here.
-//
-// NOTE for local test data: anyone with an existing saved `accounts`
-// array from before this change will still have the old `type:
-// 'savings'` row (it's undeletable through the UI — see deleteAccount
-// below) sitting around with nothing pointing at it anymore. Settings
-// → reset clears it, same as any other fresh-start case.
+// Efectivo is the one account every user starts with. Debit accounts
+// and credit cards are entirely user-created (onboarding or "+
+// Agregar cuenta").
 const initialAccounts = [
     { id: '1', type: 'cash', name: 'Efectivo', balance: 0 },
 ];
@@ -35,7 +24,6 @@ export function useFinanceStore() {
     const [creditCards, setCreditCards] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // load data on startup
     useEffect(() => {
         const loadAll = async () => {
             const savedAccounts = await loadData(KEYS.accounts);
@@ -50,7 +38,9 @@ export function useFinanceStore() {
         loadAll();
     }, []);
 
-    // Account management
+    // `currentAccounts` lets a caller chain two updates in the same
+    // tick (e.g. a transfer's two legs) without one clobbering the
+    // other — see addTransaction's transfer branch.
     const updateAccountBalance = async (accountId, amount, currentAccounts) => {
         const base = currentAccounts || accounts;
         const updated = base.map(acc =>
@@ -63,20 +53,10 @@ export function useFinanceStore() {
         return updated;
     };
 
-    // Create a new account. Scoped to 'debit' for now — cash and
-    // savings are the two singular accounts other parts of the app
-    // assume exist exactly once (see initialAccounts above), so this
-    // rejects anything else rather than silently allowing a second
-    // one to sneak in through some future screen.
-    //
-    // `initialBalance` defaults to 0 and should almost always stay
-    // that way: a brand new debit account is a real bank account with
-    // no history in this app yet, so — same principle as everywhere
-    // else this conversation — there's no legitimate way to hand it a
-    // starting balance without a real transaction funding it. The one
-    // deliberate exception is onboarding, which is explicitly the
-    // "here's what I already have" declaration moment for every
-    // account, debit included.
+    // Scoped to 'debit' — cash is the only other account type and
+    // it's created once, up front. `initialBalance` is only meant for
+    // onboarding ("here's what I already have"); everywhere else a
+    // balance should come from a real transaction.
     const addAccount = async ({ name, type, color, pattern, initialBalance = 0 }) => {
         if (!name || !name.trim()) {
             return { error: 'Ponle un nombre a la cuenta.' };
@@ -98,22 +78,13 @@ export function useFinanceStore() {
         return newAccount;
     };
 
-    // Batch version of addAccount — same reasoning as
-    // creditInterestBatch below: addAccount reads `accounts` by
-    // closure, so calling it in a loop (e.g. onboarding creating
-    // several debit accounts in one go) would have every call build
-    // off the SAME pre-loop `accounts` snapshot, and the last
-    // setAccounts() call would silently overwrite every account
-    // added earlier in that same loop. This builds the whole array
-    // in one synchronous pass and saves once.
-    // Also sidesteps a second, smaller bug the loop had: addAccount's
-    // id is just Date.now().toString() — fine for a single call, but
-    // several calls back-to-back inside one loop iteration can land
-    // in the same millisecond and collide. The index suffix here
-    // guarantees uniqueness within a batch.
-    // Entries missing a name or with an invalid type are skipped
-    // (not created) and reported in `errors`, same rejection addAccount
-    // would give one at a time — callers that don't care can ignore it.
+    // Batch version of addAccount for onboarding (several debit
+    // accounts at once). addAccount reads `accounts` by closure, so
+    // looping it would have every call build off the same pre-loop
+    // snapshot and lose every account but the last. This builds the
+    // whole array in one pass and saves once. Also gives each account
+    // a unique id (`${Date.now()}_i`) instead of relying on
+    // Date.now() alone, which can collide across fast back-to-back calls.
     const addAccountsBatch = async (list) => {
         if (!list.length) return { accounts: [], errors: [] };
         const errors = [];
@@ -144,9 +115,7 @@ export function useFinanceStore() {
         return { accounts: newAccounts, errors };
     };
 
-    // Rename / recolor / re-pattern an existing debit account. Balance
-    // is never touched here — that only ever moves through a real
-    // transaction.
+    // Balance never changes here — that only happens through a real transaction.
     const updateAccountDetails = async ({ accountId, name, color, pattern }) => {
         const acc = accounts.find(a => a.id === accountId);
         if (!acc) {
@@ -168,9 +137,7 @@ export function useFinanceStore() {
         return { ok: true };
     };
 
-    // Same rule as deleting a named savings account: only when it's
-    // sitting at exactly zero, so deleting one can never make money
-    // disappear along with it.
+    // Only deletable at $0 — otherwise the balance would just vanish.
     const deleteAccount = async (accountId) => {
         const acc = accounts.find(a => a.id === accountId);
         if (!acc) {
@@ -188,28 +155,15 @@ export function useFinanceStore() {
         return { ok: true };
     };
 
-    // Transaction handling 
+    // Transaction handling
     const addTransaction = async (transaction) => {
-        // Every transaction needs a real, positive amount. Without this,
-        // a negative amount would flip every subtraction below into an
-        // addition and sail straight past the "can't go negative" guards
-        // that follow — e.g. an `expense` of -100 turns
-        // `balance - (-100)` into `balance + 100`, quietly fabricating
-        // money instead of spending it. The UI already blocks this, but
-        // the store shouldn't have to trust that blindly.
+        // A negative amount would flip every "can't go negative" check
+        // below into an addition, fabricating money instead of spending it.
         if (!transaction.amount || transaction.amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
         }
-        // Round once, here, and use this rounded copy for everything
-        // below (including what gets saved) — same reason as
-        // updateAccountBalance: floats can carry more than 2 decimals
-        // in from arithmetic even when the UI itself only ever lets
-        // someone type 2.
         transaction = { ...transaction, amount: round2(transaction.amount) };
 
-        // A transfer moves money between two of the user's OWN accounts.
-        // It needs a real, different destination before anything else —
-        // otherwise it's indistinguishable from a plain withdrawal.
         if (transaction.type === 'transfer') {
             if (!transaction.toAccountId) {
                 return { error: 'Selecciona una cuenta destino.' };
@@ -219,9 +173,7 @@ export function useFinanceStore() {
             }
         }
 
-        // An expense, withdrawal or transfer can't take an account below
-        // zero — that's not "spending/moving money you have", that's
-        // creating debt a plain account was never meant to hold.
+        // No expense/withdrawal/transfer can push an account below zero.
         if (
             (transaction.type === 'expense' || transaction.type === 'withdrawal' || transaction.type === 'transfer')
             && transaction.accountId
@@ -232,10 +184,8 @@ export function useFinanceStore() {
             }
         }
 
-        // Same idea for credit: a purchase can't push a card's debt past
-        // its limit. This also covers MSI purchases — those create their
-        // full-amount debt through this same `expense` + creditCardId
-        // path, so this one check protects both.
+        // Same idea for credit — a purchase can't push debt past the limit.
+        // Covers MSI purchases too, since those also go through expense + creditCardId.
         if (transaction.type === 'expense' && transaction.creditCardId) {
             const card = creditCards.find(c => c.id === transaction.creditCardId);
             if (card && card.limit > 0 && card.currentDebt + transaction.amount > card.limit) {
@@ -254,21 +204,13 @@ export function useFinanceStore() {
         setTransactions(updated);
         await saveData(KEYS.transactions, updated);
 
-        // Update acc balance
         if (transaction.type === 'income') {
             await updateAccountBalance(transaction.accountId, transaction.amount);
         } else if (transaction.type === 'expense' || transaction.type === 'withdrawal') {
             await updateAccountBalance(transaction.accountId, -transaction.amount);
         } else if (transaction.type === 'transfer') {
-            // Move the money for real: out of the source, into the
-            // destination. Total balance across all accounts never
-            // changes — unlike an expense/withdrawal, this can't make
-            // money vanish. The second call MUST be chained off the
-            // first call's return value (not the `accounts` state
-            // variable) — both updates touch the same accounts array
-            // in the same tick, and `accounts` in this closure won't
-            // reflect the first update yet, so chaining is what stops
-            // the second write from clobbering the first.
+            // Chained on purpose: both legs touch `accounts` in the same
+            // tick, and the closure won't see the first update yet.
             const afterSource = await updateAccountBalance(transaction.accountId, -transaction.amount);
             await updateAccountBalance(transaction.toAccountId, transaction.amount, afterSource);
         }
@@ -280,25 +222,12 @@ export function useFinanceStore() {
         return newTransaction;
     };
 
-    // Batch version of addTransaction, scoped to what goal redemption
-    // needs: several plain expenses (no credit card, no transfer),
-    // each against its own accountId, applied atomically. Same
-    // reasoning as addAccountsBatch/creditInterestBatch above —
-    // looping addTransaction() (as SavingsScreen's handleRedeemGoal
-    // used to) has every call read the same pre-loop
-    // `accounts`/`transactions` snapshot, so only the LAST account
-    // touched ends up with a correct balance and only the LAST
-    // transaction record survives; every earlier one in the same
-    // loop silently disappears.
-    //
-    // Every entry is validated FIRST, against a running per-account
-    // balance so two entries sharing an account are checked
-    // cumulatively (not each against the same starting balance,
-    // which would let them together overspend it) — and only once
-    // every entry passes does anything actually get applied. If one
-    // entry fails, NONE of them are, instead of leaving a goal
-    // half-redeemed the way the old loop could (stop partway through,
-    // with the first N sources already spent for real).
+    // Batch version of addTransaction for goal redemption (several
+    // plain expenses, one per account, applied together). Looping
+    // addTransaction has every call read the same pre-loop snapshot,
+    // so only the last one sticks. This validates every entry first
+    // (checked cumulatively per account) and only applies anything
+    // once all of them pass — no partial redemption.
     const addTransactionsBatch = async (list) => {
         if (!list.length) return { transactions: [], accounts, error: null };
 
@@ -355,14 +284,9 @@ export function useFinanceStore() {
         const txn = transactions.find(t => t.id === txnId);
         if (!txn) return;
 
-        // Reversing a transaction can itself create a negative balance —
-        // e.g. deleting an old Ingreso after already spending part of
-        // that money on something else, or deleting a Traspaso after
-        // already spending what it sent to the destination account.
-        // Same "never below zero" rule that applies to making a new
-        // movement applies to undoing one. (Reversing an
-        // expense/withdrawal/transfer-source always ADDS money back,
-        // which is always safe — only these two directions subtract.)
+        // Reversing a transaction can itself create a negative balance
+        // (e.g. deleting an old income after already spending it) —
+        // same "never below zero" rule as making a new one.
         if (txn.type === 'income' && txn.accountId) {
             const account = accounts.find(a => a.id === txn.accountId);
             if (account && account.balance - txn.amount < 0) {
@@ -376,12 +300,7 @@ export function useFinanceStore() {
             }
         }
 
-        // reverse balance effect
         if (txn.type === 'transfer') {
-            // Reverse both legs: give the source its money back, take
-            // it back out of the destination — same chaining rule as
-            // in addTransaction (second call must build on the first
-            // call's result, not the stale `accounts` closure).
             const afterSource = await updateAccountBalance(txn.accountId, txn.amount);
             if (txn.toAccountId) {
                 await updateAccountBalance(txn.toAccountId, -txn.amount, afterSource);
@@ -394,15 +313,10 @@ export function useFinanceStore() {
             }
         }
         if (txn.type === 'expense' && txn.creditCardId) {
-            // Reverse a purchase: debt goes back down by what it went up.
             await updateCreditCardDebt(txn.creditCardId, -txn.amount);
         } else if (txn.type === 'withdrawal' && txn.linkedCardId) {
-            // Reverse a card payment / MSI installment (see linkedCardId's
-            // comment in CardsScreen.jsx / HomeScreen.jsx): debt goes back
-            // UP by what this payment had paid down. Without this, deleting
-            // one of these gave the money back to the account while
-            // silently leaving the card's debt wiped out — free debt
-            // forgiveness.
+            // Reverses a card payment/MSI installment: debt goes back up
+            // by what it had paid down (see linkedCardId in CardsScreen/HomeScreen).
             await updateCreditCardDebt(txn.linkedCardId, txn.amount);
         }
         const updated = transactions.filter(t => t.id !== txnId);
@@ -415,23 +329,14 @@ export function useFinanceStore() {
         const txn = transactions.find(t => t.id === txnId);
         if (!txn) return;
 
-        // If amount changed, adjust balances by the delta
         if (changes.amount !== undefined && changes.amount !== txn.amount) {
             if (changes.amount <= 0) {
                 return { error: 'El monto debe ser mayor a cero.' };
             }
-            // Same reasoning as addTransaction: round once, use the
-            // rounded value both for the delta math below and for
-            // what actually gets saved.
             changes = { ...changes, amount: round2(changes.amount) };
             const delta = changes.amount - txn.amount;
 
             if (txn.type === 'transfer') {
-                // Editing a transfer's amount moves the delta on BOTH
-                // ends: the source loses more (or less), the
-                // destination gains more (or less) — same rule as
-                // everywhere else, neither side can be pushed below
-                // zero.
                 const sourceAcc = accounts.find(a => a.id === txn.accountId);
                 if (sourceAcc && sourceAcc.balance - delta < 0) {
                     return { error: `${sourceAcc.name} solo tiene ${sourceAcc.balance.toFixed(2)} disponibles.` };
@@ -444,8 +349,6 @@ export function useFinanceStore() {
                 await updateAccountBalance(txn.toAccountId, delta, afterSource);
             } else if (txn.accountId) {
                 const balanceDelta = txn.type === 'income' ? delta : -delta;
-                // Same rule as a new transaction: an expense/withdrawal
-                // edit can't push the account below zero.
                 if (balanceDelta < 0) {
                     const account = accounts.find(a => a.id === txn.accountId);
                     if (account && account.balance + balanceDelta < 0) {
@@ -455,8 +358,6 @@ export function useFinanceStore() {
                 await updateAccountBalance(txn.accountId, balanceDelta);
             }
             if (txn.type === 'expense' && txn.creditCardId) {
-                // Only a larger amount can push the card over its limit —
-                // a smaller one only pays debt down, always safe.
                 if (delta > 0) {
                     const card = creditCards.find(c => c.id === txn.creditCardId);
                     if (card && card.limit > 0 && card.currentDebt + delta > card.limit) {
@@ -466,13 +367,8 @@ export function useFinanceStore() {
                 }
                 await updateCreditCardDebt(txn.creditCardId, delta);
             } else if (txn.type === 'withdrawal' && txn.linkedCardId) {
-                // A card payment / MSI installment moves debt the OPPOSITE
-                // direction of a purchase: a bigger payment pays MORE debt
-                // down (-delta), a smaller one restores some of what was
-                // already paid (delta is negative, so -delta is positive).
-                // No limit check needed — the most this can push debt back
-                // up to is what it already was right before this payment,
-                // which was already within the limit back then.
+                // A bigger payment pays more debt down (-delta); a smaller
+                // one restores some of it (delta negative → -delta positive).
                 await updateCreditCardDebt(txn.linkedCardId, -delta);
             }
         }
@@ -507,9 +403,7 @@ export function useFinanceStore() {
         return newCard;
     };
 
-    // Rename / recolor / re-limit an existing card. currentDebt is
-    // never touched here — that only ever moves through a real
-    // transaction (a purchase, a payment, or an MSI installment).
+    // currentDebt never changes here — only a real transaction moves it.
     const updateCreditCard = async (cardId, changes) => {
         const card = creditCards.find(c => c.id === cardId);
         if (!card) {
@@ -536,9 +430,7 @@ export function useFinanceStore() {
         return { ok: true };
     };
 
-    // Same rule as everywhere else in the app: only when there's no
-    // debt left, so deleting a card can never make owed money
-    // disappear along with it.
+    // Only deletable at $0 debt.
     const deleteCreditCard = async (cardId) => {
         const card = creditCards.find(c => c.id === cardId);
         if (!card) {
@@ -553,11 +445,8 @@ export function useFinanceStore() {
         return { ok: true };
     };
 
-    // Clamped to >= 0 for the same reason payCreditCard already was:
-    // a reversal (deleteTransaction) or a downward edit
-    // (updateTransaction) subtracts here, and debt going negative
-    // would just mean "the card owes the user money", which isn't a
-    // real state this app models.
+    // Clamped to >= 0 — a reversal or downward edit can subtract here,
+    // and negative debt isn't a state this app models.
     const updateCreditCardDebt = async (cardId, amount) => {
         const updated = creditCards.map(card =>
             card.id === cardId
@@ -578,24 +467,11 @@ export function useFinanceStore() {
         await saveData(KEYS.creditCards, updated);
     };
 
-    // Combines what CardsScreen's PayCardSheet and HomeScreen's
-    // MSIPaySheet both used to do by hand — create the withdrawal
-    // transaction, debit the paying account, then separately call
-    // payCreditCard — into one action, for two real reasons rather
-    // than just tidiness:
-    //  1. A validation the split version never had in the store
-    //     itself, only in CardsScreen's UI-level `canConfirm`:
-    //     payCreditCard alone silently clamps an overpayment to $0
-    //     debt with no feedback, so a caller that (unlike
-    //     PayCardSheet) doesn't already guard the amount could
-    //     "pay" more than a card owes and have the difference just
-    //     vanish. This rejects that up front, before any money moves.
-    //  2. The debt reduction now happens immediately after the
-    //     balance write, inside the same function, instead of the
-    //     screen making a second separate call — as tight a window
-    //     as this storage layer allows between "money left the
-    //     account" and "the card knows it", instead of leaving that
-    //     ordering up to whatever the screen happens to do next.
+    // Combines what a card payment needs — withdrawal transaction,
+    // account debit, debt reduction — into one call instead of a
+    // screen chaining addTransaction + payCreditCard itself. Also
+    // validates the amount against currentDebt, which payCreditCard
+    // alone doesn't do (it just silently clamps an overpayment to $0).
     const payCardWithTransaction = async ({ accountId, amount, reason, category, linkedCardId }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -621,14 +497,7 @@ export function useFinanceStore() {
         return result;
     };
 
-    // Sets initial balances for new users during onboarding
-    // **Does NOT create transactions, just sets the starting point
-    // Clamped to >= 0 here too — the rest of the app has never
-    // allowed a negative account balance since the "no account can be
-    // on negative numbers" guard was added to addTransaction, but
-    // onboarding's free-text amount fields never got the same
-    // protection, so a typo like "-500" would start someone's very
-    // first balance in the red with no warning.
+    // Onboarding only — sets starting balances directly, no transactions.
     const setInitialBalances = async (balances) => {
         const updated = accounts.map(acc => {
             const found = balances.find(b => b.accountId === acc.id);
@@ -638,22 +507,11 @@ export function useFinanceStore() {
         await saveData(KEYS.accounts, updated);
     }
 
-    // Records interest for potentially SEVERAL apartados as real
-    // income transactions in one atomic update — called by
-    // FinanceContext's accrual effect. This can't be a loop of
-    // individual addTransaction calls: each call in a loop would
-    // compute its new balance off the SAME pre-effect `accounts`
-    // closure (a setState call doesn't change what an
-    // already-created closure sees — see the "chaining" comment on
-    // addTransaction's transfer handling above for the same class of
-    // issue), so a second credit landing on an account already
-    // touched earlier in the same run would silently overwrite it
-    // instead of adding to it. Batching applies every credit to one
-    // freshly-derived accounts array before a single setAccounts.
+    // Batch version for crediting interest on several apartados at
+    // once (called by FinanceContext's accrual effect) — same
+    // "looping would lose everything but the last" reasoning as the
+    // other batch functions above.
     const creditInterestBatch = async (credits) => {
-        // credits: [{ accountId, amount, reason }] — every amount is
-        // assumed > 0 (the caller already filters out $0 accruals),
-        // this never subtracts.
         if (!credits.length) return [];
         let updatedAccounts = accounts;
         const newTransactions = credits.map((credit, i) => {
@@ -680,12 +538,7 @@ export function useFinanceStore() {
         return newTransactions;
     };
 
-    // Currency switch (Settings → Moneda): rescales every stored money
-    // value by `rate` (already resolved from the live exchange rate —
-    // see utils/exchangeRate.js) and re-saves. Every field here is a
-    // real amount, never a rate/percentage, so every one of them gets
-    // multiplied — unlike useSavings.js's version of this, which has
-    // to leave interest rate fields alone.
+    // Currency switch (Settings → Moneda): rescales every stored amount by `rate`.
     const convertAllAmounts = async (rate) => {
         const updatedAccounts = accounts.map(acc => ({ ...acc, balance: round2(acc.balance * rate) }));
         const updatedTransactions = transactions.map(t => ({ ...t, amount: round2(t.amount * rate) }));
@@ -711,7 +564,6 @@ export function useFinanceStore() {
         setCreditCards([]);
     }
 
-    // General Computed Values 
     const totalBalance = round2(accounts.reduce((sum, acc) => sum + acc.balance, 0));
     const totalDebt = round2(creditCards.reduce((sum, card) => sum + card.currentDebt, 0));
 

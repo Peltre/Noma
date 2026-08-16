@@ -1,41 +1,26 @@
 // Decoration for Home's hero card ONLY — not a global background.
-// Landscape-proportioned (viewBox is ~2:1) instead of the portrait
-// canvas a full-screen version would use, since this only ever fills
-// the width-heavy hero card.
+// Landscape-proportioned (viewBox ~2:1), sized via measured
+// width/height (HomeScreen passes it in via onLayout, since the hero's
+// height is content-driven, not fixed). preserveAspectRatio="xMidYMid
+// slice" crops the fixed 280×140 design to cover whatever that turns out to be.
 //
-// Sized via measured width/height (same pattern the very first
-// version of this idea used, before a full-screen background was
-// tried and then walked back) rather than a fixed canvas, because the
-// hero's actual height is content-driven (padding + text), not
-// fixed — HomeScreen measures it with onLayout and passes the result
-// in here. `preserveAspectRatio="xMidYMid slice"` then crops the
-// fixed-design 280×140 canvas to cover whatever that turns out to be.
+// Each theme gets its own composition instead of a palette swap of
+// the same shapes, so the five read as different scenes. Shared
+// pieces (the horizon curve, the star field) stay shared below only
+// where it's actually the same idea.
 //
-// Every theme shared one template for a while (sky gradient + glow +
-// a sun/moon circle + one horizon curve, just recolored) — this is
-// the redesign away from that: each theme gets its own composition
-// instead of a palette swap of the same shapes, so they read as five
-// different scenes rather than one scene in five colors. The shared
-// pieces that DIDN'T need to change (the horizon curve's silhouette,
-// the small scattered-dot star field) stay shared constants/
-// components below — only reused where it's actually the same idea,
-// not reused just to save effort.
-//
-// Same platform note as AppBackground: react-native-svg doesn't
-// reliably support <filter> (feGaussianBlur) across iOS/Android/web,
-// so every "soft glow" here is a radial gradient fading to
-// transparent, never a blurred shape.
+// Same as AppBackground: react-native-svg doesn't reliably support
+// <filter> across platforms, so every "glow" here is a radial
+// gradient fading to transparent, never a blur.
 import { StyleSheet } from 'react-native';
 import { Svg, Defs, RadialGradient, LinearGradient, Stop, Circle, Path, Line, ClipPath, Rect, G } from 'react-native-svg';
 
 const VB_W = 280;
 const VB_H = 140;
 
-// Off-center on purpose (peaks left, moon/sun sits right) — a
-// centered peak under a centered composition reads as static, two
-// off-set focal points give the frame some diagonal balance instead.
-// Shared by every theme below except Neón, which trades the organic
-// horizon for a geometric grid instead — see NeonHero.
+// Off-center on purpose — peaks left, moon/sun sits right, giving
+// diagonal balance instead of a static centered composition. Shared
+// by every theme except Neón, which uses a geometric grid instead.
 const HORIZON = "M0,108 C40,90 70,82 100,86 C150,92 220,102 280,110 L280,140 L0,140 Z";
 
 function Stars({ color }) {
@@ -49,10 +34,8 @@ function Stars({ color }) {
     );
 }
 
-// The "classic" scene, unchanged — moon + stars + one horizon curve.
-// Gets a second, subtler hill layer behind the main one now (more
-// depth), which none of the other four copy — the extra layer is
-// Medianoche's own distinguishing touch, not a shared piece.
+// Moon + stars + horizon, with a second subtler hill layer for depth
+// — Medianoche's own distinguishing touch.
 function MedianocheHero() {
     return (
         <>
@@ -76,14 +59,9 @@ function MedianocheHero() {
     );
 }
 
-// No moon at all now — a low, warm glow sitting AT the horizon
-// instead of a colored circle in the sky, plus small embers drifting
-// up out of it. Reads as "the warmth is coming from the ground" (a
-// dying campfire, coals) instead of "the moon happens to be warm-
-// colored", which fits the theme's name (brasa = embers/coals) more
-// literally than the old recolored-moon version did — and reads
-// nothing like Medianoche's scene at a glance, not just a different
-// tint of the same shapes.
+// No moon — a warm glow AT the horizon plus drifting embers, reading
+// as "warmth from the ground" (brasa = embers/coals) instead of a
+// recolored moon.
 function BrasaHero() {
     const embers = [
         [165, 95, 1.3, 0.6], [185, 70, 1, 0.5], [200, 50, 0.8, 0.4], [150, 60, 0.9, 0.45],
@@ -111,9 +89,8 @@ function BrasaHero() {
     );
 }
 
-// Sun rays radiating outward instead of just a soft glow — the
-// classic "desert sun" silhouette, which Amanecer's rings (below)
-// deliberately don't share even though both are daytime scenes.
+// Sun rays radiating outward — the classic desert-sun silhouette,
+// distinct from Amanecer's rings even though both are daytime.
 function ArenaHero() {
     return (
         <>
@@ -144,15 +121,9 @@ function ArenaHero() {
     );
 }
 
-// Just the gradient — no shapes, no particles, nothing decorative at
-// all. Went through a sun with rings, then no-sun-plus-snowballs,
-// then snowballs-plus-sparks; none of it landed. This is the reset:
-// the three colors already established for this theme (pink, cream,
-// lavender), diagonal, doing all the work on their own. Opacity below
-// 1 on purpose — there's nothing else in this scene for it to layer
-// over, so it blends straight into the card's own white surface
-// underneath, landing somewhere lighter/softer than the three raw
-// colors instead of full-strength.
+// Just the gradient — no shapes. The three theme colors (pink, cream,
+// lavender), diagonal, doing all the work. Opacity < 1 so it blends
+// into the card's white surface rather than full-strength.
 function AmanecerHero() {
     return (
         <>
@@ -168,18 +139,11 @@ function AmanecerHero() {
     );
 }
 
-// The one that trades the organic horizon curve every other theme
-// shares for a geometric perspective grid — a synthwave skyline
-// instead of a desert one, the most deliberately different-looking
-// of the five since "cyberpunk" is the one theme that isn't a desert
-// time-of-day to begin with (see themes.js's own comment on it). The
-// glow stays a soft radial circle (ambient light spreads the same way
-// regardless of the source's shape), but the light source itself is
-// a hexagon now, not a circle — every other theme's sun/moon is a
-// plain circle, so this was reading as "the red one" rather than
-// something that actually looks different. A hexagon reads as a
-// signal light or a HUD element instead of a moon, and doesn't
-// compete with any desert theme's shape language.
+// Trades the shared organic horizon for a geometric perspective grid
+// — a synthwave skyline, since "cyberpunk" isn't a desert time-of-day
+// to begin with. Light source is a hexagon (not a circle, unlike
+// every other theme's sun/moon) so it reads as a signal/HUD element,
+// not just "the red moon".
 function NeonHero() {
     const HEX = "M210,26 L196,34 L196,50 L210,58 L224,50 L224,34 Z";
     return (
@@ -219,13 +183,9 @@ function NeonHero() {
     );
 }
 
-// The genre's own signature image: a striped retro sun (a circle
-// clipped by horizontal bands, the classic "outrun" look) over a
-// two-color grid — pink lines on the near side, cyan on the far —
-// instead of Neón's single-color grid. Same grid MECHANIC as Neón
-// (borrowed once it worked well there), but colored and paired with
-// a sun that makes this read as a different genre, not a red reskin
-// of the same scene.
+// The genre's signature image: a striped retro sun (circle clipped by
+// horizontal bands, "outrun" style) over a two-color grid — pink near,
+// cyan far — same grid mechanic as Neón, colored differently.
 function SynthwaveHero() {
     return (
         <>

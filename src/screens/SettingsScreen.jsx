@@ -21,13 +21,10 @@ import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconChev
 import GlassCard from '../components/GlassCard';
 
 // Moneda picker — a real conversion, not just a display preference:
-// picking a different currency here rescales every stored amount in
-// the app (see FinanceContext's changeCurrency) using a live exchange
-// rate, which is the one thing in this fully-offline app that
-// actually needs internet. Modeled after the Apariencia section
-// right below it (radio rows, tap to apply) but gated behind a
-// confirmation — unlike a theme, this can't be undone with a second
-// tap once the amounts have already been rescaled.
+// rescales every stored amount (FinanceContext's changeCurrency)
+// using a live exchange rate, the one thing in this offline app that
+// needs internet. Gated behind a confirmation, unlike a theme choice
+// — this can't be undone with a second tap.
 function CurrencyPickerModal({ visible, onClose }) {
     const { settings, changeCurrency } = useFinance();
     const { theme } = useTheme();
@@ -244,12 +241,8 @@ export default function SettingsScreen() {
                     )}
                 </View>
 
-                {/* Appearance — the 3 themes already fully defined in
-                    constants/themes.js. Tapping one applies it right
-                    away (setTheme persists through the same settings
-                    store as everything else here), so this section
-                    doesn't need its own save button — the whole screen
-                    re-tinting itself is the confirmation. */}
+                {/* Appearance — every theme defined in constants/themes.js.
+                    Tapping one applies it right away, no save button needed. */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Apariencia</Text>
                     <GlassCard style={styles.card}>

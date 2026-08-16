@@ -1,13 +1,9 @@
 // Screen to view, edit, and delete scheduled funds — both recurring
 // income reminders (quincena, renta) AND MSI installments. Purely a
-// list now: creating or editing an income fund happens on its own
-// screen (AddScheduledFundScreen), the same split CardsScreen already
-// has with AddCardScreen. This one used to have the create/edit form
-// built right into the bottom of the list — convenient at first, but
-// it meant there was never a clean "just look at what I've got"
-// view, and every new fund landed on the exact same screen you'd
-// already be looking at, which is the opposite of a dedicated place
-// to check in on things.
+// list now: creating/editing an income fund happens on its own screen
+// (AddScheduledFundScreen), same split CardsScreen has with
+// AddCardScreen — this avoids landing every new fund on the same
+// screen you're already looking at.
 //
 // Neither fund type moves money automatically; the person confirms
 // each payment from Home, which is what actually advances the date.

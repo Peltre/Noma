@@ -1,18 +1,12 @@
-// Fetches a live exchange rate for the "cambiar de moneda" flow in
-// Settings. This is the ONE place in the whole app that touches the
-// network — Noma is otherwise fully offline (AsyncStorage only), so
-// this deliberately fails soft: no internet (or a slow/broken
-// connection) just means "can't convert right now", never a crash.
-//
-// Frankfurter (https://www.frankfurter.app) is used because it's a
-// free, keyless, no-signup exchange rate API (backed by European
-// Central Bank reference rates) — nothing to configure, nothing that
-// can expire.
+// Fetches a live exchange rate for Settings' "cambiar de moneda" flow
+// — the one place in the app that touches the network (otherwise
+// fully offline). Fails soft: no internet just means "can't convert
+// right now", never a crash. Uses Frankfurter (frankfurter.app), a
+// free keyless exchange rate API backed by ECB reference rates.
 const TIMEOUT_MS = 8000;
 
-// `from`/`to` are ISO 4217 codes, e.g. "MXN", "USD".
-// Returns { rate } on success, or { error } with a message already
-// safe to show the user directly in an Alert.
+// `from`/`to` are ISO 4217 codes (e.g. "MXN", "USD"). Returns { rate }
+// on success, or { error } with a message safe to show directly.
 export async function fetchExchangeRate(from, to) {
     if (from === to) return { rate: 1 };
 
@@ -34,10 +28,7 @@ export async function fetchExchangeRate(from, to) {
         }
         return { rate };
     } catch (error) {
-        // Covers both "no network at all" (fetch throws immediately)
-        // and "too slow to matter" (the abort() above throws too) —
-        // from the person's perspective both are just "no internet
-        // right now", so they share one message.
+        // Covers no network and a timed-out abort() alike — both just read as "no internet".
         return { error: 'Cambiar de moneda requiere conexión a internet para consultar el tipo de cambio actual. Verifica tu conexión e intenta de nuevo.' };
     } finally {
         clearTimeout(timeoutId);
