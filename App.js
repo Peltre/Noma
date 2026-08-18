@@ -14,7 +14,7 @@ function RootApp() {
   // brings the onboarding overlay back on its own, no app restart
   // needed.
   const { settings, isLoading } = useFinance();
-  const { theme, themeName } = useTheme();
+  const { theme } = useTheme();
 
   if (isLoading) return null;
 
@@ -47,7 +47,7 @@ function RootApp() {
       {/* Mounted once, here, instead of per-screen — switching tabs
           never remounts it, and every screen's own background just
           needs to stay transparent to let it show through. */}
-      <AppBackground themeName={themeName} />
+      <AppBackground />
       <NavigationContainer theme={navTheme}>
         <AppNavigator />
         <OnboardingOverlay visible={!settings.onboardingCompleted} />

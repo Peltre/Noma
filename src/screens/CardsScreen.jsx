@@ -23,6 +23,9 @@ import { IconCard, IconPencil, IconCash, IconTrash, IconChevronDown, IconCardAdd
 
 // Tiny utilization ring for the Crédito deck's header — how much of
 // the combined limit across all credit cards is currently used up.
+// Uses theme.cardPayment, same identity color card-payment
+// transactions carry in Home/History, so "this is about tarjeta de
+// crédito debt" reads consistently everywhere in the app.
 function MiniRing({ pct, theme }) {
     const size = 22, stroke = 3;
     const r = (size - stroke) / 2;
@@ -33,7 +36,7 @@ function MiniRing({ pct, theme }) {
             <Circle cx={size / 2} cy={size / 2} r={r} stroke={theme.border} strokeWidth={stroke} fill="none" />
             <Circle
                 cx={size / 2} cy={size / 2} r={r}
-                stroke={theme.moneyOut} strokeWidth={stroke} fill="none"
+                stroke={theme.cardPayment} strokeWidth={stroke} fill="none"
                 strokeDasharray={`${dash}, ${circumference}`}
                 strokeLinecap="round"
                 // Start the arc at 12 o'clock instead of svg's default 3 o'clock
@@ -265,7 +268,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                                 </View>
                                 <View style={styles.detailRow}>
                                     <Text style={styles.detailKey}>Fecha de pago</Text>
-                                    <Text style={[styles.detailVal, isSoon && { color: theme.moneyOut }]}>
+                                    <Text style={[styles.detailVal, isSoon && { color: theme.alert, fontWeight: '700' }]}>
                                         Día {card.paymentDay}{isSoon ? '  · pronto' : ''}
                                     </Text>
                                 </View>
@@ -277,7 +280,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                                 </View>
                                 <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
                                     <Text style={styles.detailKey}>Pago total</Text>
-                                    <Text style={[styles.detailVal, { color: theme.moneyOut, fontWeight: '800' }]}>
+                                    <Text style={[styles.detailVal, { color: theme.cardPayment, fontWeight: '800' }]}>
                                         {formatCurrency(card.currentDebt)}
                                     </Text>
                                 </View>
@@ -384,7 +387,7 @@ function AddTypeSheet({ onClose, onPick }) {
                             <Text style={styles.typePickText}>Débito</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.typePickBtn, { backgroundColor: theme.moneyOutSoft, borderColor: theme.moneyOut }]}
+                            style={[styles.typePickBtn, { backgroundColor: theme.cardPaymentSoft, borderColor: theme.cardPayment }]}
                             onPress={() => onPick('credit')}
                         >
                             <Text style={styles.typePickText}>Crédito</Text>
@@ -526,7 +529,7 @@ export default function CardsScreen() {
                         />
                         <DeckSection
                             label="Crédito"
-                            dotColor={theme.moneyOut}
+                            dotColor={theme.cardPayment}
                             total={formatCurrency(totalDebt)}
                             utilPct={creditCardsTagged.length ? utilPct : undefined}
                             cards={creditCardsTagged}

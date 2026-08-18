@@ -39,11 +39,13 @@ const PERIOD_FILTERS = [
 ];
 
 // moneyIn/moneyOut are the only fixed-meaning accents. A plain
-// withdrawal is neither, so it stays neutral. Transfer gets the brand
-// accent (a special flow, not gain/loss). A card payment or MSI
-// installment is a `type: 'withdrawal'` underneath (see HomeScreen's
-// getTxnVisual) but gets its own label/accent instead of sharing
-// moneyOut with a plain Gasto — kept in sync with getTxnVisual there.
+// withdrawal is neither, so it stays neutral. Transfer gets its own
+// `transfer` accent — still your own money, so a darker/more
+// saturated version of moneyIn's teal, never identical to Ingreso. A
+// card payment or MSI installment is a `type: 'withdrawal'` underneath
+// (see HomeScreen's getTxnVisual) but gets its own label/accent
+// instead of sharing moneyOut with a plain Gasto — kept in sync with
+// getTxnVisual there.
 function getTypeConfig(theme, type, category) {
     if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.msiSoft, fg: theme.msi, label: 'Mensualidad' };
     if (category === 'card_payment') return { Icon: IconCash, bg: theme.cardPaymentSoft, fg: theme.cardPayment, label: 'Pago de tarjeta' };
@@ -52,7 +54,7 @@ function getTypeConfig(theme, type, category) {
     if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
-    if (type === 'transfer') return { Icon: IconSwap, bg: theme.brandSoft, fg: theme.brand, label: 'Traspaso' };
+    if (type === 'transfer') return { Icon: IconSwap, bg: theme.transferSoft, fg: theme.transfer, label: 'Traspaso' };
     return { Icon: IconWallet, bg: theme.border, fg: theme.muted, label: 'Retiro' };
 }
 

@@ -36,12 +36,12 @@ export default function AddCardScreen() {
     const [limit, setLimit] = useState(editCard?.limit ? String(editCard.limit) : '');
     const [cutoffDay, setCutoffDay] = useState(editCard?.cutoffDay ? String(editCard.cutoffDay) : '');
     const [paymentDay, setPaymentDay] = useState(editCard?.paymentDay ? String(editCard.paymentDay) : '');
-    // Cycle the default color through the active theme's own card
-    // palette (constants/themes.js) instead of the fixed palette
-    // Ahorros sub-accounts use — a card someone colors on Brasa should
-    // feel like it belongs there, not an arbitrary color wheel that
-    // happens to be the same one savings apartados use. Picked once
-    // at mount, not recalculated on every render.
+    // Cycle the default color through the theme's own card palette
+    // (constants/themes.js) instead of the fixed palette Ahorros
+    // sub-accounts use — a card should feel like it belongs to the
+    // app's night palette, not an arbitrary color wheel that happens
+    // to be the same one savings apartados use. Picked once at mount,
+    // not recalculated on every render.
     const [color, setColor] = useState(() => {
         if (editCard?.color) return editCard.color;
         const count = accounts.filter(a => a.type === 'debit').length + creditCards.length;

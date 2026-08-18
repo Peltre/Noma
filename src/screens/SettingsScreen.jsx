@@ -1,4 +1,4 @@
-// General app config: userName, themes, and other app functionalities
+// General app config: userName, currency, and other app functionalities
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
     View,
@@ -111,7 +111,7 @@ function CurrencyPickerModal({ visible, onClose }) {
 export default function SettingsScreen() {
     const navigation = useNavigation();
     const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings, resetTags } = useFinance();
-    const { theme, themeName, setTheme, themes, themeNames } = useTheme();
+    const { theme } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
     const [userName, setUserName] = useState('');
 
@@ -239,44 +239,6 @@ export default function SettingsScreen() {
                             <Text style={styles.saveBtnText}>Guardar cambios</Text>
                         </TouchableOpacity>
                     )}
-                </View>
-
-                {/* Appearance — every theme defined in constants/themes.js.
-                    Tapping one applies it right away, no save button needed. */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Apariencia</Text>
-                    <GlassCard style={styles.card}>
-                        {themeNames.map((name, i) => {
-                            const t = themes[name];
-                            const isActive = themeName === name;
-                            return (
-                                <TouchableOpacity
-                                    key={name}
-                                    style={[styles.themeRow, i === themeNames.length - 1 && styles.fieldRowLast]}
-                                    onPress={() => setTheme(name)}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={[styles.themeSwatch, { borderColor: t.border }]}>
-                                        <View style={styles.themeSwatchGrid}>
-                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.bg }]} />
-                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.surface }]} />
-                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.brand }]} />
-                                            <View style={[styles.themeSwatchTile, { backgroundColor: t.bg }]}>
-                                                <View style={[styles.themeSwatchTileFill, { backgroundColor: t.brandSoft }]} />
-                                            </View>
-                                        </View>
-                                    </View>
-                                    <View style={styles.fieldInfo}>
-                                        <Text style={styles.themeName}>{t.label}</Text>
-                                        <Text style={styles.themeDesc}>{t.description}</Text>
-                                    </View>
-                                    <View style={[styles.radio, isActive && styles.radioActive]}>
-                                        {isActive && <IconCheck color={theme.brandOn} />}
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </GlassCard>
                 </View>
 
                 {/* Danger zone - reset btn */}

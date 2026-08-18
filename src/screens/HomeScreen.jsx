@@ -44,13 +44,14 @@ function getAccountColor(theme, account) {
 
 // moneyIn/moneyOut are the only two fixed-meaning accents. A plain
 // withdrawal (cajero, or no specific category) is neither, so it
-// stays neutral. Transfer gets the brand accent (a special flow, not
-// gain or loss). A card payment or MSI installment is a
-// `type: 'withdrawal'` under the hood (real money leaving a real
-// account), but isn't a plain retiro either — each gets its own
-// accent (theme.msi / theme.cardPayment) and icon instead of
-// borrowing moneyOut, so Gasto/Mensualidad/Pago de tarjeta don't all
-// read as the same color.
+// stays neutral. Transfer gets its own `transfer` accent — still your
+// own money, so a darker/more saturated version of moneyIn's teal
+// rather than an unrelated hue, but never identical to Ingreso. A
+// card payment or MSI installment is a `type: 'withdrawal'` under the
+// hood (real money leaving a real account), but isn't a plain retiro
+// either — each gets its own accent (theme.msi / theme.cardPayment)
+// and icon instead of borrowing moneyOut, so Gasto/Mensualidad/Pago
+// de tarjeta don't all read as the same color.
 function getTxnVisual(theme, type, category) {
     if (category === 'msi') return { bg: theme.msiSoft, color: theme.msi, Icon: IconCalendarClock };
     if (category === 'card_payment') return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCash };
@@ -59,7 +60,7 @@ function getTxnVisual(theme, type, category) {
     if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
-    if (type === 'transfer') return { bg: theme.brandSoft, color: theme.brand, Icon: IconSwap };
+    if (type === 'transfer') return { bg: theme.transferSoft, color: theme.transfer, Icon: IconSwap };
     return { bg: theme.border, color: theme.muted, Icon: IconWallet };
 }
 
@@ -157,7 +158,7 @@ function MSIPaySheet({ fund, accounts, onClose }) {
 
 export default function HomeScreen() {
     const navigation = useNavigation();
-    const { theme, themeName } = useTheme();
+    const { theme } = useTheme();
     const styles = useMemo(() => createHomeStyles(theme), [theme]);
 
     const {
@@ -229,7 +230,7 @@ export default function HomeScreen() {
                     the blur to show through. */}
                 <View style={styles.heroCard} onLayout={e => setHeroSize(e.nativeEvent.layout)}>
                     {heroSize.width > 0 && heroSize.height > 0 && (
-                        <HeroArt themeName={themeName} width={heroSize.width} height={heroSize.height} />
+                        <HeroArt width={heroSize.width} height={heroSize.height} />
                     )}
                     <View style={styles.heroHeader}>
                         <View>

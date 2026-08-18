@@ -34,15 +34,16 @@ import DecimalInput from '../components/DecimalInput';
 import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
 import GlassCard from '../components/GlassCard';
 
-// Type accents: only the two fixed-meaning colors (moneyOut/moneyIn)
-// plus a neutral for withdrawal. Transfer uses brand — a special flow
-// (money between the user's own accounts), not a money-in/out signal.
+// Type accents: the two fixed-meaning colors (moneyOut/moneyIn) plus
+// a neutral for withdrawal. Transfer uses its own transfer token — a
+// special flow (money between the user's own accounts), not a
+// money-in/out signal, but still visually distinct from Ingreso.
 function getTypes(theme) {
     return {
         expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
         income: { label: 'Ingreso', color: theme.moneyIn, on: theme.brandOn },
         withdrawal: { label: 'Retiro', color: theme.ink, on: theme.bg },
-        transfer: { label: 'Traspaso', color: theme.brand, on: theme.brandOn },
+        transfer: { label: 'Traspaso', color: theme.transfer, on: theme.transferOn },
     };
 }
 
@@ -437,17 +438,18 @@ export default function TransactionScreen() {
                         </>
                     )}
 
-                    {/* MSI toggle — uses brand, the one accent reserved for
-                    primary CTAs, since MSI is a special flow, not a
-                    money-in/money-out signal */}
+                    {/* MSI toggle — uses theme.msi, the same accent MSI
+                    installments show in History/Home once scheduled,
+                    so the color already means "MSI" before the person
+                    even confirms. */}
                     {canUseMSI && (
                         <>
                             <TouchableOpacity
                                 style={styles.toggle}
                                 onPress={() => setIsMSI(!isMSI)}
                             >
-                                <View style={[styles.checkbox, isMSI && { backgroundColor: theme.brand, borderColor: theme.brand }]}>
-                                    {isMSI && <IconCheck color={theme.bg} size={11} />}
+                                <View style={[styles.checkbox, isMSI && { backgroundColor: theme.msi, borderColor: theme.msi }]}>
+                                    {isMSI && <IconCheck color={theme.msiOn} size={11} />}
                                 </View>
                                 <Text style={styles.toggleText}>Meses sin intereses (MSI)</Text>
                             </TouchableOpacity>
@@ -462,14 +464,14 @@ export default function TransactionScreen() {
                                                 style={[
                                                     styles.catPill,
                                                     msiMonths === m
-                                                        ? { backgroundColor: theme.brand, borderColor: theme.brand }
+                                                        ? { backgroundColor: theme.msi, borderColor: theme.msi }
                                                         : { borderColor: theme.border },
                                                 ]}
                                                 onPress={() => setMsiMonths(m)}
                                             >
                                                 <Text style={[
                                                     styles.catPillText,
-                                                    msiMonths === m ? { color: theme.brandOn } : { color: theme.muted },
+                                                    msiMonths === m ? { color: theme.msiOn } : { color: theme.muted },
                                                 ]}>
                                                     {m}m
                                                 </Text>
@@ -483,10 +485,10 @@ export default function TransactionScreen() {
 
                     {/* Confirm button */}
                     <TouchableOpacity
-                        style={[styles.confirmBtn, { backgroundColor: isMSI ? theme.brand : cur.color }]}
+                        style={[styles.confirmBtn, { backgroundColor: isMSI ? theme.msi : cur.color }]}
                         onPress={handleConfirm}
                     >
-                        <Text style={[styles.confirmText, { color: isMSI ? theme.brandOn : cur.on }]}>
+                        <Text style={[styles.confirmText, { color: isMSI ? theme.msiOn : cur.on }]}>
                             {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
                         </Text>
                     </TouchableOpacity>

@@ -1,6 +1,5 @@
-// HomeScreen styles, v3. Now depend on the active theme (Arena,
-// Medianoche, Brasa) instead of fixed colors. Used as
-// createHomeStyles(theme) inside the screen.
+// HomeScreen styles. Driven by theme tokens (Medianoche) instead of
+// fixed colors. Used as createHomeStyles(theme) inside the screen.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius } from '../constants';
 
