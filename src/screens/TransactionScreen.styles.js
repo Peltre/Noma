@@ -298,8 +298,8 @@ export default function createTransactionStyles(theme) {
             letterSpacing: 0.2,
         },
 
-        // "Otro tipo" sheet — Retiro/Traspaso/Programada, opened from
-        // the hero's third pill instead of crowding the type row.
+        // "Otro tipo" sheet — just Traspaso, opened from the hero's
+        // third pill instead of crowding the type row.
         modalBg: {
             flex: 1,
             backgroundColor: 'rgba(0,0,0,0.5)',

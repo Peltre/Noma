@@ -1,4 +1,4 @@
-// Screen to register a new expense, income or withdrawal.
+// Screen to register a new expense, income, or transfer.
 // Hero with amount + type, sheet slides up with the rest.
 //
 // Only Gasto/Ingreso sit in the hero as one-tap pills — the
@@ -35,14 +35,13 @@ import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
 import GlassCard from '../components/GlassCard';
 
 // Type accents: the two fixed-meaning colors (moneyOut/moneyIn) plus
-// a neutral for withdrawal. Transfer uses its own transfer token — a
-// special flow (money between the user's own accounts), not a
-// money-in/out signal, but still visually distinct from Ingreso.
+// transfer's own token. No 'withdrawal' entry here — a plain retiro
+// (no destination account, no category) isn't offered anywhere in
+// this screen on purpose, see SECONDARY_TYPES below.
 function getTypes(theme) {
     return {
         expense: { label: 'Gasto', color: theme.moneyOut, on: theme.brandOn },
         income: { label: 'Ingreso', color: theme.moneyIn, on: theme.brandOn },
-        withdrawal: { label: 'Retiro', color: theme.ink, on: theme.bg },
         transfer: { label: 'Traspaso', color: theme.transfer, on: theme.transferOn },
     };
 }

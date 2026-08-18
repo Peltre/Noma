@@ -5,6 +5,12 @@
 // is its own real type that moves money on both ends atomically —
 // the old category would leave two ways to do the same thing, one of
 // which silently loses money if the second half is forgotten.
+//
+// 'withdrawal' only lists card_payment/msi — those are the only two
+// ways a `type: 'withdrawal'` transaction is ever created (both
+// automatic, from CardsScreen/Home's pay flows). A plain "Retiro" (no
+// category, e.g. cajero) isn't offered anywhere in the app on
+// purpose — see TransactionScreen.jsx's getTypes() for why.
 
 export const CATEGORIES = {
     expense: [
@@ -31,12 +37,10 @@ export const CATEGORIES = {
         { id: 'other', label: 'Otro' },
     ],
     withdrawal: [
-        { id: 'atm', label: 'Cajero' },
         { id: 'card_payment', label: 'Pago de tarjeta' },
         // Monthly MSI installments — kept separate from card_payment
         // (a one-off/full payment) so they're easy to spot on their own.
         { id: 'msi', label: 'Mensualidad' },
-        { id: 'other', label: 'Otro' },
     ],
 };
 

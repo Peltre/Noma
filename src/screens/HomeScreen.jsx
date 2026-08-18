@@ -66,6 +66,10 @@ function getTxnVisual(theme, type, category) {
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
     if (type === 'transfer') return { bg: theme.transferSoft, color: theme.transfer, Icon: IconSwap };
+    // Unreachable in practice — nothing creates a `type: 'withdrawal'`
+    // transaction without card_payment/msi as its category (see
+    // TransactionScreen.jsx's getTypes()). Kept only as a safe
+    // fallback for any type/category combo that doesn't match above.
     return { bg: theme.border, color: theme.muted, Icon: IconWallet };
 }
 

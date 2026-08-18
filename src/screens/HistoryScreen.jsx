@@ -19,9 +19,11 @@ import GlassCard from '../components/GlassCard';
 import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings } from '../components/Icons';
 
 // Type filter. card_payment/msi are `type: 'withdrawal'` underneath
-// (see getTypeConfig above) so they need their own category-based
-// entries here — otherwise, now that 'withdrawal' correctly excludes
-// them, they'd have no filter that reaches them at all.
+// (see getTypeConfig below) so they need their own category-based
+// entries here. No 'withdrawal'/Retiros entry — nothing in the app
+// creates a plain withdrawal (no category), so that filter could
+// never return anything. See getTypeConfig's fallback below and
+// TransactionScreen.jsx's getTypes() for where that's decided.
 const TYPE_FILTERS = [
     { key: 'all', label: 'Todos' },
     { key: 'expense', label: 'Gastos' },
@@ -29,7 +31,6 @@ const TYPE_FILTERS = [
     { key: 'transfer', label: 'Traspasos' },
     { key: 'card_payment', label: 'Pagos de tarjeta' },
     { key: 'msi', label: 'Mensualidades' },
-    { key: 'withdrawal', label: 'Retiros' },
 ];
 // Filter keys that match on category instead of type.
 const CATEGORY_FILTER_KEYS = ['card_payment', 'msi'];
@@ -65,7 +66,11 @@ function getTypeConfig(theme, type, category) {
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
     if (type === 'transfer') return { Icon: IconSwap, bg: theme.transferSoft, fg: theme.transfer, label: 'Traspaso' };
-    return { Icon: IconWallet, bg: theme.border, fg: theme.muted, label: 'Retiro' };
+    // Unreachable in practice — nothing creates a `type: 'withdrawal'`
+    // transaction without card_payment/msi as its category (see
+    // TransactionScreen.jsx's getTypes()). Kept only as a safe
+    // fallback for any type/category combo that doesn't match above.
+    return { Icon: IconWallet, bg: theme.border, fg: theme.muted, label: 'Movimiento' };
 }
 
 // Small colored icon box — no emoji, no text glyph
@@ -252,18 +257,11 @@ export default function HistoryScreen() {
     // Type and period apply together (AND, not OR) — e.g. "Gastos" +
     // "Esta semana" shows only this week's expenses, not every
     // expense plus everything from this week.
-    // 'withdrawal' needs the same exclusion the hero total below
-    // already uses — an MSI installment or a card payment is a
-    // `type: 'withdrawal'` under the hood, but "Retiros" as a filter
-    // means plain withdrawals (cajero, uncategorized), not either of
-    // those, which already have their own filters/labels elsewhere.
     const byType = typeFilter === 'all'
         ? transactions
-        : typeFilter === 'withdrawal'
-            ? transactions.filter(t => t.type === 'withdrawal' && t.category !== 'msi' && t.category !== 'card_payment')
-            : CATEGORY_FILTER_KEYS.includes(typeFilter)
-                ? transactions.filter(t => t.category === typeFilter)
-                : transactions.filter(t => t.type === typeFilter);
+        : CATEGORY_FILTER_KEYS.includes(typeFilter)
+            ? transactions.filter(t => t.category === typeFilter)
+            : transactions.filter(t => t.type === typeFilter);
 
     const filtered = periodFilter === 'all'
         ? byType
@@ -287,13 +285,6 @@ export default function HistoryScreen() {
     // not a live total of whatever's currently filtered.
     const thisMonth = transactions.filter(t => isSameMonth(parseISO(t.date), now));
     const totalExp = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    // Neither an MSI installment nor a manual card payment counts
-    // toward "Retiros" here — that total is meant for plain
-    // withdrawals (cajero and anything uncategorized), not paying
-    // down a card, which both of these are.
-    const totalWd = thisMonth
-        .filter(t => t.type === 'withdrawal' && t.category !== 'msi' && t.category !== 'card_payment')
-        .reduce((s, t) => s + t.amount, 0);
     const totalInc = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
     return (
@@ -315,13 +306,6 @@ export default function HistoryScreen() {
                                 {formatCurrencyShort(totalExp)}
                             </Text>
                             <Text style={styles.statLbl}>Gastos</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statCell}>
-                            <Text style={[styles.statVal, { color: theme.ink }]}>
-                                {formatCurrencyShort(totalWd)}
-                            </Text>
-                            <Text style={styles.statLbl}>Retiros</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statCell}>
