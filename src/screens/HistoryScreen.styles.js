@@ -67,11 +67,11 @@ export default function createHistoryStyles(theme) {
         },
 
         // Filters — two dropdowns (SelectField) side by side, not a
-        // scrolling pill row anymore
+        // scrolling pill row anymore. Transparent, same as the rest
+        // of the screen — AppBackground shows through.
         filterWrap: {
             paddingVertical: Spacing.md,
             paddingHorizontal: Spacing.lg,
-            backgroundColor: theme.bg,
         },
         filterRow: {
             flexDirection: 'row',
@@ -88,7 +88,6 @@ export default function createHistoryStyles(theme) {
             color: theme.muted,
             letterSpacing: 2,
             textTransform: 'uppercase',
-            backgroundColor: theme.bg,
         },
 
         // Transaction card
@@ -137,21 +136,29 @@ export default function createHistoryStyles(theme) {
             letterSpacing: -0.5,
         },
 
-        // Empty state
+        // Empty state — transparent on purpose, so AppBackground's
+        // starfield shows through instead of a flat panel. The text
+        // shadow is what keeps it readable against the stars instead
+        // of the background color doing that job.
         emptyState: {
             alignItems: 'center',
             paddingVertical: 60,
-            backgroundColor: theme.bg,
         },
         emptyText: {
             fontSize: FontSize.md,
             fontWeight: '700',
             color: theme.muted,
+            textShadowColor: 'rgba(0,0,0,0.6)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 6,
         },
         emptySub: {
             fontSize: FontSize.sm,
             color: theme.muted,
             marginTop: Spacing.xs,
+            textShadowColor: 'rgba(0,0,0,0.6)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 6,
         },
     });
 }
