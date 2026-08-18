@@ -17,7 +17,7 @@ import PendingFundCard from '../components/PendingFundCard';
 import GlassCard from '../components/GlassCard';
 import HeroArt from '../components/HeroArt';
 import {
-    IconSwap, IconCash,
+    IconSwap, IconCash, IconSavings,
     IconTrendUp, IconTrendDown, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent,
 } from '../components/Icons';
 
@@ -58,6 +58,11 @@ function getTxnVisual(theme, type, category) {
     // Interest is app-generated, so it gets the same `savings` accent
     // it uses everywhere else instead of blending into a regular Ingreso.
     if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
+    // A goal purchase is really `type: 'expense'` underneath (see
+    // useFinanceStore's addTransactionsBatch), but it's money already
+    // set aside, not a new outflow — same savings accent as Interés,
+    // so it doesn't read as a plain Gasto.
+    if (category === 'goal') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconSavings };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
     if (type === 'transfer') return { bg: theme.transferSoft, color: theme.transfer, Icon: IconSwap };
@@ -461,15 +466,7 @@ export default function HomeScreen() {
                                             </Text>
                                         </View>
                                         <View style={styles.txnRight}>
-                                            <Text style={[
-                                                styles.txnAmount,
-                                                txn.type === 'income' ? styles.amountPos
-                                                    : txn.category === 'goal' ? { color: theme.savings }
-                                                        : txn.category === 'card_payment' ? { color: theme.cardPayment }
-                                                            : txn.category === 'msi' ? { color: theme.msi }
-                                                                : txn.type === 'expense' ? styles.amountExpense
-                                                                    : styles.amountNeg,
-                                            ]}>
+                                            <Text style={[styles.txnAmount, { color: visual.color }]}>
                                                 {txn.type === 'income' ? '+' : txn.type === 'transfer' ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                             </Text>
                                             <Text style={styles.txnDate}>{formatTxnDate(txn.date, now)}</Text>

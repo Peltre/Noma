@@ -11,70 +11,46 @@ export default function createHistoryStyles(theme) {
             backgroundColor: 'transparent',
         },
 
-        // Hero card — same surface/ink language as Home's heroCard,
-        // just without the night art (History doesn't need it).
-        // GlassCard supplies background/border now.
-        hero: {
-            padding: Spacing.lg,
-            paddingTop: Spacing.md,
-            paddingBottom: Spacing.lg,
-            position: 'relative',
+        // Plain header — same language as Tarjetas' title row, no
+        // card wrapper, no decoration. Subtitle sits right under it.
+        header: {
+            paddingHorizontal: Spacing.lg,
+            paddingBottom: Spacing.md,
         },
-        // Diagonal accent bars, now theme-tinted instead of fixed white/violet
-        heroBar1: {
-            position: 'absolute',
-            width: 2, height: 120,
-            backgroundColor: theme.border,
-            top: -10, right: 60,
-            transform: [{ rotate: '20deg' }],
-        },
-        heroBar2: {
-            position: 'absolute',
-            width: 2, height: 180,
-            backgroundColor: theme.border,
-            top: -20, right: 90,
-            transform: [{ rotate: '20deg' }],
-        },
-        heroBar3: {
-            position: 'absolute',
-            width: 3, height: 220,
-            backgroundColor: theme.brandSoft,
-            top: -30, right: 120,
-            transform: [{ rotate: '20deg' }],
-        },
-        heroTitle: {
-            fontSize: FontSize.hero,
+        title: {
+            fontSize: FontSize.xxl,
             fontWeight: '900',
             color: theme.ink,
-            letterSpacing: -1.2,
-            marginBottom: 4,
-            zIndex: 2,
+            letterSpacing: -1,
         },
-        heroSub: {
+        subtitle: {
             fontSize: FontSize.sm,
-            color: theme.inkSoft,
+            color: theme.muted,
             fontWeight: '500',
-            marginBottom: Spacing.lg,
+            marginTop: 2,
             textTransform: 'capitalize',
-            zIndex: 2,
         },
 
-        // Stats row inside hero
+        // Stats card — a plain GlassCard, same content grammar as
+        // Home's txnCard: no borders/boxing per cell, just three
+        // columns separated by thin dividers.
+        statsCard: {
+            marginHorizontal: Spacing.lg,
+            marginBottom: Spacing.md,
+            borderRadius: Radius.sm,
+        },
         statsRow: {
             flexDirection: 'row',
-            gap: Spacing.sm,
-            zIndex: 2,
+            paddingVertical: Spacing.md,
         },
         statCell: {
             flex: 1,
-            backgroundColor: theme.bg,
-            borderWidth: 1,
-            borderColor: theme.border,
-            borderRadius: Radius.sm,
-            padding: Spacing.sm + 2,
+            alignItems: 'center',
         },
-        statCellMid: {
-            // middle cell — no special treatment needed
+        statDivider: {
+            width: 1,
+            backgroundColor: theme.border,
+            marginVertical: 2,
         },
         statVal: {
             fontSize: FontSize.md,
@@ -160,9 +136,6 @@ export default function createHistoryStyles(theme) {
             fontWeight: '800',
             letterSpacing: -0.5,
         },
-        amountPos: { color: theme.moneyIn },
-        amountExpense: { color: theme.moneyOut },
-        amountNeg: { color: theme.ink },
 
         // Empty state
         emptyState: {

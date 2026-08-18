@@ -16,18 +16,23 @@ import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
 import SelectField from '../components/SelectField';
 import GlassCard from '../components/GlassCard';
-import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent } from '../components/Icons';
+import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings } from '../components/Icons';
 
-// Type filter — the same 4 movement types plus 'withdrawal'
-// (Retiros), which the data model already had but was never
-// reachable as its own filter before.
+// Type filter. card_payment/msi are `type: 'withdrawal'` underneath
+// (see getTypeConfig above) so they need their own category-based
+// entries here — otherwise, now that 'withdrawal' correctly excludes
+// them, they'd have no filter that reaches them at all.
 const TYPE_FILTERS = [
     { key: 'all', label: 'Todos' },
     { key: 'expense', label: 'Gastos' },
     { key: 'income', label: 'Ingresos' },
     { key: 'transfer', label: 'Traspasos' },
+    { key: 'card_payment', label: 'Pagos de tarjeta' },
+    { key: 'msi', label: 'Mensualidades' },
     { key: 'withdrawal', label: 'Retiros' },
 ];
+// Filter keys that match on category instead of type.
+const CATEGORY_FILTER_KEYS = ['card_payment', 'msi'];
 
 // Period filter — independent of type, both apply together. 'all' is
 // the default; the other three narrow to the current week/month/year.
@@ -52,6 +57,11 @@ function getTypeConfig(theme, type, category) {
     // Interest is a real income transaction but app-generated, so it
     // gets the same `savings` accent as everywhere else interest shows up.
     if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };
+    // A goal purchase is really `type: 'expense'` underneath (see
+    // useFinanceStore's addTransactionsBatch), but it's money already
+    // set aside, not a new outflow — same savings accent as Interés,
+    // so it doesn't read (icon or amount) as a plain Gasto.
+    if (category === 'goal') return { Icon: IconSavings, bg: theme.savingsSoft, fg: theme.savings, label: 'Objetivo cumplido' };
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
     if (type === 'transfer') return { Icon: IconSwap, bg: theme.transferSoft, fg: theme.transfer, label: 'Traspaso' };
@@ -170,13 +180,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, sh
                         </>
                     ) : (
                         <>
-                            <Text style={[
-                                sheet.amount,
-                                txn.category === 'goal' ? { color: theme.savings }
-                                    : txn.category === 'card_payment' ? { color: theme.cardPayment }
-                                        : txn.category === 'msi' ? { color: theme.msi }
-                                            : txn.type === 'expense' && { color: theme.moneyOut },
-                            ]}>
+                            <Text style={[sheet.amount, { color: cfg.fg }]}>
                                 {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrency(txn.amount)}
                             </Text>
                             <Text style={sheet.reason}>{txn.reason}</Text>
@@ -248,9 +252,18 @@ export default function HistoryScreen() {
     // Type and period apply together (AND, not OR) — e.g. "Gastos" +
     // "Esta semana" shows only this week's expenses, not every
     // expense plus everything from this week.
+    // 'withdrawal' needs the same exclusion the hero total below
+    // already uses — an MSI installment or a card payment is a
+    // `type: 'withdrawal'` under the hood, but "Retiros" as a filter
+    // means plain withdrawals (cajero, uncategorized), not either of
+    // those, which already have their own filters/labels elsewhere.
     const byType = typeFilter === 'all'
         ? transactions
-        : transactions.filter(t => t.type === typeFilter);
+        : typeFilter === 'withdrawal'
+            ? transactions.filter(t => t.type === 'withdrawal' && t.category !== 'msi' && t.category !== 'card_payment')
+            : CATEGORY_FILTER_KEYS.includes(typeFilter)
+                ? transactions.filter(t => t.category === typeFilter)
+                : transactions.filter(t => t.type === typeFilter);
 
     const filtered = periodFilter === 'all'
         ? byType
@@ -287,16 +300,15 @@ export default function HistoryScreen() {
         <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Hero header — paddingTop absorbs status bar */}
-                <GlassCard style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-                    <View style={styles.heroBar1} />
-                    <View style={styles.heroBar2} />
-                    <View style={styles.heroBar3} />
-                    <Text style={styles.heroTitle}>Historial</Text>
-                    <Text style={styles.heroSub}>
+                {/* Plain header — same language as Tarjetas' title row */}
+                <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+                    <Text style={styles.title}>Historial</Text>
+                    <Text style={styles.subtitle}>
                         {format(now, "MMMM yyyy", { locale: es })} · {thisMonth.length} movimientos
                     </Text>
+                </View>
 
+                <GlassCard style={styles.statsCard}>
                     <View style={styles.statsRow}>
                         <View style={styles.statCell}>
                             <Text style={[styles.statVal, { color: theme.moneyOut }]}>
@@ -304,12 +316,14 @@ export default function HistoryScreen() {
                             </Text>
                             <Text style={styles.statLbl}>Gastos</Text>
                         </View>
-                        <View style={[styles.statCell, styles.statCellMid]}>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statCell}>
                             <Text style={[styles.statVal, { color: theme.ink }]}>
                                 {formatCurrencyShort(totalWd)}
                             </Text>
                             <Text style={styles.statLbl}>Retiros</Text>
                         </View>
+                        <View style={styles.statDivider} />
                         <View style={styles.statCell}>
                             <Text style={[styles.statVal, { color: theme.moneyIn }]}>
                                 {formatCurrencyShort(totalInc)}
@@ -356,6 +370,7 @@ export default function HistoryScreen() {
                                     const isIncome = txn.type === 'income';
                                     const isTransfer = txn.type === 'transfer';
                                     const isLast = i === txns.length - 1;
+                                    const cfg = getTypeConfig(theme, txn.type, txn.category);
                                     const accountLabel = isTransfer
                                         ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
                                         : txn.creditCardId
@@ -382,15 +397,7 @@ export default function HistoryScreen() {
                                                 </Text>
                                             </View>
                                             <View style={styles.txnRight}>
-                                                <Text style={[
-                                                    styles.txnAmount,
-                                                    isIncome ? styles.amountPos
-                                                        : txn.category === 'goal' ? { color: theme.savings }
-                                                            : txn.category === 'card_payment' ? { color: theme.cardPayment }
-                                                                : txn.category === 'msi' ? { color: theme.msi }
-                                                                    : txn.type === 'expense' ? styles.amountExpense
-                                                                        : styles.amountNeg,
-                                                ]}>
+                                                <Text style={[styles.txnAmount, { color: cfg.fg }]}>
                                                     {isIncome ? '+' : isTransfer ? '' : '−'}{formatCurrencyShort(txn.amount)}
                                                 </Text>
                                                 <Text style={styles.txnDate}>

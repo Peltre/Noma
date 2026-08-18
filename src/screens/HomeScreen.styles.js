@@ -303,9 +303,6 @@ export default function createHomeStyles(theme) {
             color: theme.muted,
             fontWeight: '500',
         },
-        amountPos: { color: theme.moneyIn },
-        amountExpense: { color: theme.moneyOut },
-        amountNeg: { color: theme.ink },
 
         // Empty state
         emptyState: {
