@@ -5,7 +5,7 @@ import {
     Modal, TextInput, Alert, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { format, parseISO, isSameMonth, isSameWeek, isSameYear } from 'date-fns';
+import { format, parseISO, isSameMonth, isSameWeek, isSameYear, addMonths, addWeeks, addYears, startOfWeek, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, formatCurrencyShort } from '../utils';
 import { useFinance } from '../store/FinanceContext';
@@ -16,7 +16,10 @@ import createSheetStyles from './HistorySheet.styles';
 import DecimalInput from '../components/DecimalInput';
 import SelectField from '../components/SelectField';
 import GlassCard from '../components/GlassCard';
-import { IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings } from '../components/Icons';
+import {
+    IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings,
+    IconChevronLeft, IconChevronRight, IconChevronDown, IconCheck,
+} from '../components/Icons';
 
 // Type filter. card_payment/msi are `type: 'withdrawal'` underneath
 // (see getTypeConfig below) so they need their own category-based
@@ -83,6 +86,70 @@ function TxnIcon({ type, category, theme, sheet, size = 36 }) {
         ]}>
             <cfg.Icon color={cfg.fg} bgColor={theme.surface} size={size * 0.44} />
         </View>
+    );
+}
+
+// Same field box SelectField renders (so Tipo/Periodo still look like
+// a matched pair), but with chevron-left/right fused into the same
+// capsule for quick stepping through the current granularity.
+// Tapping the center label still opens a picker for the granularity
+// itself (Semana/Mes/Año/Todo) — same sheet pattern SelectField uses,
+// just inlined here since it also needs the step buttons on either side.
+function PeriodField({
+    label, options, value, periodLabel,
+    onChangeGranularity, onStepBack, onStepForward, canStep, canStepForward,
+    styles, theme,
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <>
+            <View style={styles.periodField}>
+                {canStep ? (
+                    <TouchableOpacity onPress={onStepBack} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}>
+                        <IconChevronLeft color={theme.muted} size={16} />
+                    </TouchableOpacity>
+                ) : <View style={{ width: 16 }} />}
+
+                <TouchableOpacity style={styles.periodCenter} onPress={() => setOpen(true)} activeOpacity={0.7}>
+                    <Text style={styles.periodLabel}>{label}</Text>
+                    <Text style={styles.periodValue} numberOfLines={1}>{periodLabel}</Text>
+                </TouchableOpacity>
+
+                {canStep ? (
+                    <TouchableOpacity
+                        onPress={onStepForward}
+                        disabled={!canStepForward}
+                        hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                    >
+                        <IconChevronRight color={canStepForward ? theme.muted : theme.border} size={16} />
+                    </TouchableOpacity>
+                ) : <View style={{ width: 16 }} />}
+            </View>
+
+            <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+                <TouchableOpacity style={styles.periodBackdrop} activeOpacity={1} onPress={() => setOpen(false)} />
+                <View style={styles.periodSheet}>
+                    <View style={styles.periodSheetHandle} />
+                    <Text style={styles.periodSheetTitle}>{label}</Text>
+                    {options.map(opt => {
+                        const isSelected = opt.key === value;
+                        return (
+                            <TouchableOpacity
+                                key={opt.key}
+                                style={styles.periodOption}
+                                onPress={() => { onChangeGranularity(opt.key); setOpen(false); }}
+                            >
+                                <Text style={[styles.periodOptionText, isSelected && { color: theme.brand, fontWeight: '800' }]}>
+                                    {opt.label}
+                                </Text>
+                                {isSelected && <IconCheck color={theme.brand} size={14} />}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            </Modal>
+        </>
     );
 }
 
@@ -249,10 +316,38 @@ export default function HistoryScreen() {
     const styles = useMemo(() => createHistoryStyles(theme), [theme]);
     const sheet = useMemo(() => createSheetStyles(theme), [theme]);
     const [typeFilter, setTypeFilter] = useState('all');
-    const [periodFilter, setPeriodFilter] = useState('all');
+    // Defaults to 'month' — Historial opens on the current month, per
+    // the actual intent of this screen (see PERIOD_FILTERS below for
+    // the other granularities reachable from PeriodField's picker).
+    const [periodFilter, setPeriodFilter] = useState('month');
+    // How many units of the CURRENT periodFilter's granularity to go
+    // back from today — 0 is the current week/month/year. Reset to 0
+    // whenever periodFilter itself changes (see PeriodField's
+    // onChangeGranularity below), so switching from Mes to Año
+    // doesn't carry over a "3 months back" offset that means
+    // something different in years.
+    const [periodOffset, setPeriodOffset] = useState(0);
     const [selectedTxn, setSelectedTxn] = useState(null);
     const insets = useSafeAreaInsets();
     const now = new Date();
+    const viewedDate = periodFilter === 'week' ? addWeeks(now, periodOffset)
+        : periodFilter === 'year' ? addYears(now, periodOffset)
+            : addMonths(now, periodOffset); // 'month' and 'all' both just need a reference date
+    const canGoForward = periodOffset < 0;
+
+    // Single place that decides whether a transaction falls in the
+    // currently viewed period — used both for the header stats
+    // (ignores typeFilter) and the scrollable list (applied on top of
+    // typeFilter below), so the two can't disagree about what "this
+    // period" means.
+    const matchesPeriod = (t) => {
+        if (periodFilter === 'all') return true;
+        const d = parseISO(t.date);
+        if (periodFilter === 'week') return isSameWeek(d, viewedDate, { locale: es });
+        if (periodFilter === 'month') return isSameMonth(d, viewedDate);
+        if (periodFilter === 'year') return isSameYear(d, viewedDate);
+        return true;
+    };
 
     // Type and period apply together (AND, not OR) — e.g. "Gastos" +
     // "Esta semana" shows only this week's expenses, not every
@@ -263,15 +358,7 @@ export default function HistoryScreen() {
             ? transactions.filter(t => t.category === typeFilter)
             : transactions.filter(t => t.type === typeFilter);
 
-    const filtered = periodFilter === 'all'
-        ? byType
-        : byType.filter(t => {
-            const d = parseISO(t.date);
-            if (periodFilter === 'week') return isSameWeek(d, now, { locale: es });
-            if (periodFilter === 'month') return isSameMonth(d, now);
-            if (periodFilter === 'year') return isSameYear(d, now);
-            return true;
-        });
+    const filtered = byType.filter(matchesPeriod);
 
     const grouped = filtered.reduce((acc, txn) => {
         const key = format(parseISO(txn.date), 'MMMM yyyy', { locale: es });
@@ -280,23 +367,72 @@ export default function HistoryScreen() {
         return acc;
     }, {});
 
-    // Hero stats stay pinned to "this calendar month" on purpose,
-    // regardless of the filters below — it's a fixed summary card,
-    // not a live total of whatever's currently filtered.
-    const thisMonth = transactions.filter(t => isSameMonth(parseISO(t.date), now));
-    const totalExp = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const totalInc = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    // Stats follow periodFilter/periodOffset directly, same as the
+    // list above — just never narrowed by typeFilter, so Gastos/
+    // Ingresos always summarize the whole period regardless of which
+    // "Tipo" happens to be selected.
+    const periodTxns = transactions.filter(matchesPeriod);
+    const totalExp = periodTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const totalInc = periodTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const netBalance = totalInc - totalExp;
+    const netColor = netBalance > 0 ? theme.moneyIn : netBalance < 0 ? theme.moneyOut : theme.ink;
+
+    // What PeriodField actually displays for the current periodFilter.
+    let periodLabel;
+    if (periodFilter === 'all') {
+        periodLabel = 'Todo el tiempo';
+    } else if (periodFilter === 'year') {
+        periodLabel = format(viewedDate, 'yyyy');
+    } else if (periodFilter === 'week') {
+        const weekStart = startOfWeek(viewedDate, { locale: es });
+        const weekEnd = endOfWeek(viewedDate, { locale: es });
+        periodLabel = isSameMonth(weekStart, weekEnd)
+            ? `${format(weekStart, 'd', { locale: es })}–${format(weekEnd, 'd MMM', { locale: es })}`
+            : `${format(weekStart, 'd MMM', { locale: es })} – ${format(weekEnd, 'd MMM', { locale: es })}`;
+    } else {
+        periodLabel = format(viewedDate, 'MMMM yyyy', { locale: es });
+    }
 
     return (
         <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* Plain header — same language as Tarjetas' title row */}
+                {/* Plain header — just the title. No fixed month
+                    subtitle anymore since PeriodField below already
+                    says which period is active. */}
                 <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
                     <Text style={styles.title}>Historial</Text>
-                    <Text style={styles.subtitle}>
-                        {format(now, "MMMM yyyy", { locale: es })} · {thisMonth.length} movimientos
-                    </Text>
+                </View>
+
+                {/* Filters sit at the top, right under the title —
+                    Tipo and Periodo side by side, same pair as
+                    before. Periodo is now a PeriodField: its fused
+                    arrows step through periodOffset, and periodTxns/
+                    totalExp/totalInc below follow it directly, so the
+                    stats always match whatever period is showing here. */}
+                <View style={styles.filterWrap}>
+                    <View style={styles.filterRow}>
+                        <SelectField
+                            label="Tipo"
+                            value={typeFilter}
+                            options={TYPE_FILTERS}
+                            onChange={setTypeFilter}
+                            style={{ flex: 1 }}
+                        />
+                        <PeriodField
+                            label="Periodo"
+                            options={PERIOD_FILTERS}
+                            value={periodFilter}
+                            periodLabel={periodLabel}
+                            onChangeGranularity={(v) => { setPeriodFilter(v); setPeriodOffset(0); }}
+                            onStepBack={() => setPeriodOffset(o => o - 1)}
+                            onStepForward={() => canGoForward && setPeriodOffset(o => o + 1)}
+                            canStep={periodFilter !== 'all'}
+                            canStepForward={canGoForward}
+                            styles={styles}
+                            theme={theme}
+                        />
+                    </View>
                 </View>
 
                 <GlassCard style={styles.statsCard}>
@@ -314,30 +450,15 @@ export default function HistoryScreen() {
                             </Text>
                             <Text style={styles.statLbl}>Ingresos</Text>
                         </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statCell}>
+                            <Text style={[styles.statVal, { color: netColor }]}>
+                                {netBalance >= 0 ? '+' : '−'}{formatCurrencyShort(Math.abs(netBalance))}
+                            </Text>
+                            <Text style={styles.statLbl}>Balance</Text>
+                        </View>
                     </View>
                 </GlassCard>
-
-                {/* Filters — two independent dropdowns instead of one
-                    pill row, so type and period can narrow the list
-                    together */}
-                <View style={styles.filterWrap}>
-                    <View style={styles.filterRow}>
-                        <SelectField
-                            label="Tipo"
-                            value={typeFilter}
-                            options={TYPE_FILTERS}
-                            onChange={setTypeFilter}
-                            style={{ flex: 1 }}
-                        />
-                        <SelectField
-                            label="Periodo"
-                            value={periodFilter}
-                            options={PERIOD_FILTERS}
-                            onChange={setPeriodFilter}
-                            style={{ flex: 1 }}
-                        />
-                    </View>
-                </View>
 
                 {/* Grouped transactions */}
                 {Object.keys(grouped).length === 0 ? (
@@ -348,7 +469,10 @@ export default function HistoryScreen() {
                 ) : (
                     Object.entries(grouped).map(([month, txns]) => (
                         <View key={month}>
-                            <Text style={styles.monthLabel}>{month}</Text>
+                            <View style={styles.monthLabelRow}>
+                                <Text style={styles.monthLabel}>{month}</Text>
+                                <Text style={styles.monthCount}>{txns.length} movimientos</Text>
+                            </View>
                             <GlassCard style={styles.txnCard}>
                                 {txns.map((txn, i) => {
                                     const isIncome = txn.type === 'income';

@@ -12,7 +12,7 @@ export default function createHistoryStyles(theme) {
         },
 
         // Plain header — same language as Tarjetas' title row, no
-        // card wrapper, no decoration. Subtitle sits right under it.
+        // card wrapper, no decoration.
         header: {
             paddingHorizontal: Spacing.lg,
             paddingBottom: Spacing.md,
@@ -23,20 +23,12 @@ export default function createHistoryStyles(theme) {
             color: theme.ink,
             letterSpacing: -1,
         },
-        subtitle: {
-            fontSize: FontSize.sm,
-            color: theme.muted,
-            fontWeight: '500',
-            marginTop: 2,
-            textTransform: 'capitalize',
-        },
 
         // Stats card — a plain GlassCard, same content grammar as
         // Home's txnCard: no borders/boxing per cell, just three
         // columns separated by thin dividers.
         statsCard: {
             marginHorizontal: Spacing.lg,
-            marginBottom: Spacing.md,
             borderRadius: Radius.sm,
         },
         statsRow: {
@@ -66,9 +58,9 @@ export default function createHistoryStyles(theme) {
             color: theme.muted,
         },
 
-        // Filters — two dropdowns (SelectField) side by side, not a
-        // scrolling pill row anymore. Transparent, same as the rest
-        // of the screen — AppBackground shows through.
+        // Filters — two dropdowns side by side, sitting at the top of
+        // the screen now. Transparent, same as the rest of the screen
+        // — AppBackground shows through.
         filterWrap: {
             paddingVertical: Spacing.md,
             paddingHorizontal: Spacing.lg,
@@ -78,16 +70,98 @@ export default function createHistoryStyles(theme) {
             gap: Spacing.sm,
         },
 
-        // Month label
-        monthLabel: {
+        // PeriodField — same field box SelectField renders (Tipo uses
+        // that one directly), but with room on either side for the
+        // fused step arrows instead of a single trailing chevron.
+        periodField: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: Spacing.xs,
+            backgroundColor: theme.surface,
+            borderRadius: Radius.sm,
+            borderWidth: 1.5,
+            borderColor: theme.border,
+            paddingVertical: Spacing.sm,
+            paddingHorizontal: Spacing.sm,
+        },
+        periodCenter: {
+            flex: 1,
+            alignItems: 'center',
+        },
+        periodLabel: {
+            fontSize: FontSize.xs - 2,
+            fontWeight: '800',
+            color: theme.muted,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+            marginBottom: 1,
+        },
+        periodValue: {
+            fontSize: FontSize.sm,
+            fontWeight: '700',
+            color: theme.ink,
+            textTransform: 'capitalize',
+        },
+        // PeriodField's own granularity-picker sheet — same visual
+        // pattern as SelectField's modal (handle, title, option rows).
+        periodBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+        periodSheet: {
+            backgroundColor: theme.surface,
+            borderTopLeftRadius: Radius.lg,
+            borderTopRightRadius: Radius.lg,
+            padding: Spacing.lg,
+            paddingBottom: Spacing.xl,
+        },
+        periodSheetHandle: {
+            width: 36, height: 4,
+            borderRadius: 2,
+            backgroundColor: theme.border,
+            alignSelf: 'center',
+            marginBottom: Spacing.md,
+        },
+        periodSheetTitle: {
+            fontSize: FontSize.lg,
+            fontWeight: '800',
+            color: theme.ink,
+            marginBottom: Spacing.sm,
+            textAlign: 'center',
+        },
+        periodOption: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: Spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+        },
+        periodOptionText: {
+            fontSize: FontSize.md,
+            color: theme.ink,
+            fontWeight: '600',
+        },
+
+        // Month label — now a row, count sits on the right of it.
+        monthLabelRow: {
+            flexDirection: 'row',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
             paddingHorizontal: Spacing.lg,
             paddingTop: Spacing.md,
             paddingBottom: Spacing.xs,
+        },
+        monthLabel: {
             fontSize: FontSize.xs - 1,
             fontWeight: '900',
             color: theme.muted,
             letterSpacing: 2,
             textTransform: 'uppercase',
+        },
+        monthCount: {
+            fontSize: FontSize.xs - 1,
+            fontWeight: '600',
+            color: theme.muted,
         },
 
         // Transaction card
