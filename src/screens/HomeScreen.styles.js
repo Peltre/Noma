@@ -194,46 +194,13 @@ export default function createHomeStyles(theme) {
         allocValue: { marginTop: 3 },
 
         // Credit card — GlassCard supplies background/border.
-        creditCard: {
-            borderRadius: Radius.md,
-            padding: Spacing.md,
-            marginBottom: Spacing.sm,
-        },
-        creditCardTop: {
+        // Fila de minis bajo la tarjeta principal. flexWrap: con 4+
+        // tarjetas se parte en dos filas en vez de encogerse.
+        creditMinis: {
             flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: Spacing.sm + 2,
-        },
-        creditCardName: {
-            fontSize: FontSize.sm + 0.5,
-            fontWeight: '700',
-            color: theme.ink,
-        },
-        creditCardLimitRow: {
-            flexDirection: 'row',
-            alignItems: 'baseline',
-            marginTop: 2,
-        },
-        creditCardLimit: {
-            fontSize: FontSize.xs,
-            color: theme.inkDim,
-        },
-        progressTrack: {
-            height: 4,
-            backgroundColor: theme.border,
-            borderRadius: 2,
-            overflow: 'hidden',
-            marginBottom: Spacing.xs + 2,
-        },
-        progressFill: {
-            height: '100%',
-            backgroundColor: theme.moneyOut,
-            borderRadius: 2,
-        },
-        creditCardMeta: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: Spacing.xs + 2,
+            marginTop: -Spacing.xs,
         },
         metaText: {
             fontSize: FontSize.xs,

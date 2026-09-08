@@ -7,12 +7,13 @@ import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { format, parseISO, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatCurrency, round2 } from '../utils';
+import { formatCurrency, round2, getCardUrgency } from '../utils';
 import { FontSize } from '../constants';
 import createHomeStyles, { HERO_GLOW } from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
+import CreditCardSummary, { CreditCardMini } from '../components/CreditCardSummary';
 import GlassCard from '../components/GlassCard';
 import HeroArt from '../components/HeroArt';
 import { Money, SectionHeader, EmptyState, Sheet, Pill, Button } from '../components/ui';
@@ -200,6 +201,9 @@ export default function HomeScreen() {
 
     const insets = useSafeAreaInsets();
     const [payingMSI, setPayingMSI] = useState(null);
+    // Tarjeta de crédito al frente en la sección. null = la más
+    // urgente (primera del orden). Tocar una mini la trae al frente.
+    const [featuredCardId, setFeaturedCardId] = useState(null);
     // Medida real de la tarjeta héroe para HeroArt.
     const [heroSize, setHeroSize] = useState({ width: 0, height: 0 });
 
@@ -212,6 +216,16 @@ export default function HomeScreen() {
     }
 
     const recentTransactions = transactions.slice(0, 3);
+    // Urgente primero (corte o pago más cercano), luego por deuda.
+    const sortedCreditCards = [...creditCards].sort((a, b) => {
+        const ua = getCardUrgency(a), ub = getCardUrgency(b);
+        if (ua.urgent !== ub.urgent) return ua.urgent ? -1 : 1;
+        if (ua.urgent && ua.soonest !== ub.soonest) return ua.soonest - ub.soonest;
+        return b.currentDebt - a.currentDebt;
+    });
+    // Si la elegida ya no existe (se borró), se vuelve a la más urgente.
+    const featuredCard = sortedCreditCards.find(c => c.id === featuredCardId) || sortedCreditCards[0] || null;
+    const otherCreditCards = sortedCreditCards.filter(c => c.id !== featuredCard?.id);
     const pendingMSI = pendingFunds.filter((f) => f.type === 'msi');
     const pendingIncome = pendingFunds.filter((f) => f.type !== 'msi');
 
@@ -398,7 +412,10 @@ export default function HomeScreen() {
                     )}
                 </View>
 
-                {/* Credit cards */}
+                {/* Credit cards — una card compacta al frente (la más
+                    urgente, o la que se tocó) y las demás como minis de
+                    una línea debajo. Tocar la principal abre su detalle
+                    en Tarjetas; tocar una mini la trae al frente. */}
                 {creditCards.length > 0 && (
                     <View style={styles.section}>
                         <SectionHeader
@@ -406,39 +423,28 @@ export default function HomeScreen() {
                             actionLabel="Ver todas"
                             onAction={() => navigation.navigate('CardsTab')}
                         />
-                        {creditCards.map((card) => {
-                            const pct = Math.min(Math.round((card.currentDebt / card.limit) * 100), 100);
-                            return (
-                                <GlassCard key={card.id} style={styles.creditCard}>
-                                    <View style={styles.creditCardTop}>
-                                        <Text style={styles.creditCardName}>{card.name}</Text>
-                                        <View style={{ alignItems: 'flex-end' }}>
-                                            <Money
-                                                value={card.currentDebt}
-                                                size={FontSize.md}
-                                                color={theme.moneyOut}
-                                            />
-                                            <View style={styles.creditCardLimitRow}>
-                                                <Text style={styles.creditCardLimit}>de </Text>
-                                                <Money
-                                                    value={card.limit}
-                                                    size={FontSize.xs}
-                                                    color={theme.inkDim}
-                                                    decimals={false}
-                                                />
-                                            </View>
-                                        </View>
-                                    </View>
-                                    <View style={styles.progressTrack}>
-                                        <View style={[styles.progressFill, { width: `${pct}%` }]} />
-                                    </View>
-                                    <View style={styles.creditCardMeta}>
-                                        <Text style={styles.metaText}>Corte día {card.cutoffDay}</Text>
-                                        <Text style={styles.metaText}>{pct}% usado</Text>
-                                    </View>
-                                </GlassCard>
-                            );
-                        })}
+                        <CreditCardSummary
+                            card={featuredCard}
+                            theme={theme}
+                            onPress={() =>
+                                navigation.navigate('CardsTab', {
+                                    screen: 'Cards',
+                                    params: { focusCardId: featuredCard.id, focusNonce: Date.now() },
+                                })
+                            }
+                        />
+                        {otherCreditCards.length > 0 && (
+                            <View style={styles.creditMinis}>
+                                {otherCreditCards.map((card) => (
+                                    <CreditCardMini
+                                        key={card.id}
+                                        card={card}
+                                        theme={theme}
+                                        onPress={() => setFeaturedCardId(card.id)}
+                                    />
+                                ))}
+                            </View>
+                        )}
                     </View>
                 )}
 

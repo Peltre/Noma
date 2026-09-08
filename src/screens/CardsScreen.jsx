@@ -3,9 +3,9 @@
 // stacked behind each other, tap a peeking one to bring it to the
 // front, tap the front one for full detail. Long-press anywhere for
 // a quick Editar/Pagar/Eliminar popover without leaving the screen.
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Dimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { formatCurrency } from '../utils';
 import { FontSize, Spacing } from '../constants';
 import createCardsStyles from './CardsScreen.styles';
@@ -436,6 +436,23 @@ export default function CardsScreen() {
 
     const debitAccounts = accounts.filter(a => a.type === 'debit').map(a => ({ ...a, cardType: 'debit' }));
     const creditCardsTagged = creditCards.map(c => ({ ...c, cardType: 'credit' }));
+
+    // Llegada desde Inicio tocando una tarjeta: se enfoca en la pila y
+    // se abre su detalle. focusNonce cambia en cada toque para que
+    // volver a tocar la misma tarjeta vuelva a abrirla.
+    const route = useRoute();
+    const focusCardId = route.params?.focusCardId;
+    const focusNonce = route.params?.focusNonce;
+    useEffect(() => {
+        if (!focusCardId) return;
+        const card = creditCardsTagged.find(c => c.id === focusCardId);
+        if (!card) return;
+        setFocused(prev => ({ ...prev, credit: card.id }));
+        setCollapsed(prev => ({ ...prev, credit: false }));
+        setSelectedCard(card);
+        navigation.setParams({ focusCardId: undefined, focusNonce: undefined });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [focusCardId, focusNonce]);
     const hasAnyCards = debitAccounts.length + creditCardsTagged.length > 0;
 
     const totalDebit = debitAccounts.reduce((s, a) => s + a.balance, 0);
