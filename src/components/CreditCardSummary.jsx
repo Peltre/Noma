@@ -6,18 +6,26 @@
 // PendingFundCard marca lo vencido.
 //
 // Es tocable: onPress lleva a esa tarjeta en Tarjetas.
-import { useMemo } from 'react';
+//
+// Si recibe `others` (las demás tarjetas), debajo de la barra aparece
+// una línea tenue "N tarjetas más ⌄" dentro del mismo padding: sin
+// banda, sin fondo, sin filo. Tocarla despliega una fila por tarjeta
+// dentro de la misma card; tocar una fila la manda a `onSelectOther`
+// (Inicio la sube a principal) y la lista se cierra. Un solo cuerpo.
+import { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius } from '../constants';
 import { getCardUrgency, inDaysLabel } from '../utils';
 import GlassCard from './GlassCard';
 import Money from './Money';
+import { IconChevronDown, IconChevronUp, IconSize } from './Icons';
 
 const EDGE_RADIUS = 4;
 const EDGE_WIDTH = 2;
 
-export default function CreditCardSummary({ card, theme, onPress }) {
+export default function CreditCardSummary({ card, theme, onPress, others = [], onSelectOther }) {
     const urgency = useMemo(() => getCardUrgency(card), [card]);
+    const [open, setOpen] = useState(false);
     const styles = useMemo(() => createStyles(theme, urgency.urgent), [theme, urgency.urgent]);
 
     const pct = card.limit > 0 ? Math.min(Math.round((card.currentDebt / card.limit) * 100), 100) : 0;
@@ -73,62 +81,68 @@ export default function CreditCardSummary({ card, theme, onPress }) {
                     <View style={[styles.fill, { width: `${pct}%` }]} />
                 </View>
             </TouchableOpacity>
+
+            {others.length > 0 && (
+                <>
+                    <TouchableOpacity
+                        style={styles.footer}
+                        onPress={() => setOpen(o => !o)}
+                        activeOpacity={0.75}
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: open }}
+                        accessibilityLabel={open ? 'Ocultar otras tarjetas' : `Ver ${others.length} tarjetas más`}
+                    >
+                        <Text style={styles.footerText}>
+                            {open
+                                ? 'Otras tarjetas'
+                                : `${others.length} ${others.length === 1 ? 'tarjeta más' : 'tarjetas más'}`}
+                        </Text>
+                        {open
+                            ? <IconChevronUp color={theme.inkDim} size={IconSize.sm} />
+                            : <IconChevronDown color={theme.inkDim} size={IconSize.sm} />}
+                    </TouchableOpacity>
+
+                    {open && others.map((other, i) => (
+                        <OtherCardRow
+                            key={other.id}
+                            card={other}
+                            theme={theme}
+                            styles={styles}
+                            last={i === others.length - 1}
+                            onPress={() => { setOpen(false); onSelectOther?.(other); }}
+                        />
+                    ))}
+                </>
+            )}
         </GlassCard>
     );
 }
 
-// Versión de una línea para las tarjetas que no son la principal:
-// color, nombre y deuda. Va sobre el mismo GlassCard que la principal
-// (blur + glassFill + borde) para que sea el mismo material; pintar
-// glassFill a mano sin el blur debajo se veía de otro color. Si urge,
-// el punto y el borde van en ámbar.
-export function CreditCardMini({ card, theme, onPress }) {
-    const urgency = useMemo(() => getCardUrgency(card), [card]);
-    const styles = useMemo(() => createMiniStyles(theme), [theme]);
+// Fila de la lista desplegada: color, nombre, corte y deuda. Si la
+// tarjeta urge, punto y fecha van en ámbar.
+function OtherCardRow({ card, theme, styles, onPress, last }) {
+    const urgency = getCardUrgency(card);
+    const dateText = urgency.cutoffUrgent
+        ? `corte ${inDaysLabel(urgency.cutoffIn)}`
+        : urgency.paymentUrgent
+            ? `pago ${inDaysLabel(urgency.paymentIn)}`
+            : card.cutoffDay ? `corte día ${card.cutoffDay}` : '';
     return (
-        <GlassCard style={[styles.mini, urgency.urgent && styles.miniUrgent]}>
-            <TouchableOpacity
-                style={styles.miniInner}
-                onPress={onPress}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel={`Ver ${card.name}, deuda ${card.currentDebt}`}
-            >
-                <View style={[styles.dot, { backgroundColor: urgency.urgent ? theme.moneyOut : (card.color || theme.cashTone) }]} />
-                <Text style={styles.name} numberOfLines={1}>{card.name}</Text>
-                <Money value={card.currentDebt} size={FontSize.xs + 1} color={theme.moneyOut} decimals={false} />
-            </TouchableOpacity>
-        </GlassCard>
+        <TouchableOpacity
+            style={[styles.otherRow, last && styles.otherRowLast]}
+            onPress={onPress}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver ${card.name}, deuda ${card.currentDebt}`}
+        >
+            <View style={[styles.dot, { backgroundColor: urgency.urgent ? theme.moneyOut : (card.color || theme.cashTone) }]} />
+            <Text style={styles.otherName} numberOfLines={1}>{card.name}</Text>
+            {!!dateText && (
+                <Text style={[styles.otherDate, urgency.urgent && styles.dateLineUrgent]} numberOfLines={1}>{dateText}</Text>
+            )}
+            <Money value={card.currentDebt} size={FontSize.sm} color={theme.moneyOut} decimals={false} />
+        </TouchableOpacity>
     );
-}
-
-function createMiniStyles(theme) {
-    return StyleSheet.create({
-        // Ancho al contenido, no al reparto de la fila: una mini mide lo
-        // que mide su nombre + su deuda. Si no caben, la fila (flexWrap)
-        // las baja. GlassCard manda el radio a su capa de borde.
-        mini: {
-            alignSelf: 'flex-start',
-            borderRadius: Radius.xs,
-        },
-        // GlassCard trata borderColor como override de su borde.
-        miniUrgent: { borderColor: theme.moneyOut },
-        miniInner: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingVertical: 7,
-            paddingHorizontal: 10,
-        },
-        dot: { width: 7, height: 7, borderRadius: 2 },
-        name: {
-            flexShrink: 1,
-            maxWidth: 140,
-            fontSize: FontSize.xs + 1,
-            fontWeight: '700',
-            color: theme.ink,
-        },
-    });
 }
 
 function createStyles(theme, urgent) {
@@ -189,6 +203,44 @@ function createStyles(theme, urgent) {
             height: '100%',
             backgroundColor: theme.moneyOut,
             borderRadius: 2,
+        },
+
+        // Línea tenue bajo la barra, dentro del mismo padding de la card:
+        // sin banda, sin fondo, sin filo. Mismo material que el resto.
+        footer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            paddingTop: Spacing.xs + 2,
+            paddingBottom: Spacing.sm,
+            paddingHorizontal: Spacing.md,
+            marginTop: -Spacing.xs,
+        },
+        footerText: {
+            fontSize: FontSize.xs,
+            fontWeight: '700',
+            color: theme.inkDim,
+        },
+        // Filas desplegadas: mismo fondo, separadas solo por aire.
+        otherRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingVertical: Spacing.xs + 2,
+            paddingHorizontal: Spacing.md,
+        },
+        otherRowLast: { paddingBottom: Spacing.sm + 2 },
+        otherName: {
+            flex: 1,
+            fontSize: FontSize.sm,
+            fontWeight: '700',
+            color: theme.ink,
+        },
+        otherDate: {
+            fontSize: FontSize.xs,
+            color: theme.inkMid,
+            fontWeight: '500',
         },
     });
 }
