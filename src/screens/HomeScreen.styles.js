@@ -186,14 +186,6 @@ export default function createHomeStyles(theme) {
         allocValue: { marginTop: 3 },
 
         // Credit card — GlassCard supplies background/border.
-        // Fila de minis bajo la tarjeta principal. flexWrap: con 4+
-        // tarjetas se parte en dos filas en vez de encogerse.
-        creditMinis: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: Spacing.xs + 2,
-            marginTop: -Spacing.xs,
-        },
         metaText: {
             fontSize: FontSize.xs,
             color: theme.inkMid,

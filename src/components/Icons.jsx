@@ -211,6 +211,14 @@ export function IconChevronDown({ color, size = IconSize.md }) {
     );
 }
 
+export function IconChevronUp({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M5.2 14.8 12 8l6.8 6.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
 export function IconCheck({ color, size = IconSize.sm }) {
     return (
         <Svg {...svg(size)}>
@@ -407,6 +415,21 @@ export function IconCard({ color, size = IconSize.lg }) {
             <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} {...line(size, color)} />
             <Path d="M2 9.2h20" {...line(size, color)} />
             <Path d="M5.6 15.4h3.6" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+// Pago de tarjeta: la misma tarjeta de IconCardAdd, con una palomita
+// en la esquina en vez del "+". Es el icono de la familia cardPayment
+// en Inicio, Historial y el menú de Tarjetas; IconCash queda para
+// efectivo.
+export function IconCardPayment({ color, size = IconSize.lg }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M2 12.6V7.5a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v3.2" {...line(size, color)} />
+            <Path d="M12.4 19.5H5a3 3 0 0 1-3-3" {...line(size, color)} />
+            <Path d="M2 9.2h20" {...line(size, color)} />
+            <Path d="M14.6 16.8l2.2 2.2 4.4-4.6" {...line(size, color)} />
         </Svg>
     );
 }

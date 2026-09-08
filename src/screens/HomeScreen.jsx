@@ -12,13 +12,13 @@ import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
-import CreditCardSummary, { CreditCardMini } from '../components/CreditCardSummary';
+import CreditCardSummary from '../components/CreditCardSummary';
 import GlassCard from '../components/GlassCard';
 import HeroArt from '../components/HeroArt';
 import { Money, SectionHeader, EmptyState, Sheet, Pill, Button } from '../components/ui';
 import {
     IconSwap,
-    IconCash,
+    IconCardPayment,
     IconSavings,
     IconTrendUp,
     IconTrendDown,
@@ -45,7 +45,7 @@ function formatTxnDate(dateStr, now) {
 function getTxnVisual(theme, type, category) {
     if (category === 'msi') return { bg: theme.msiSoft, color: theme.msi, Icon: IconCalendarClock };
     if (category === 'card_payment')
-        return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCash };
+        return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCardPayment };
     if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
     if (category === 'goal') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconSavings };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
@@ -361,10 +361,11 @@ export default function HomeScreen() {
                     )}
                 </View>
 
-                {/* Credit cards — una card compacta al frente (la más
-                    urgente, o la que se tocó) y las demás como minis de
-                    una línea debajo. Tocar la principal abre su detalle
-                    en Tarjetas; tocar una mini la trae al frente. */}
+                {/* Credit cards — una sola card: al frente la más urgente
+                    (o la que se eligió) y, si hay más, una banda al pie
+                    "N tarjetas más" que despliega las demás dentro de la
+                    misma card. Tocar la principal abre su detalle en
+                    Tarjetas; tocar una de la lista la trae al frente. */}
                 {creditCards.length > 0 && (
                     <View style={styles.section}>
                         <SectionHeader
@@ -375,6 +376,8 @@ export default function HomeScreen() {
                         <CreditCardSummary
                             card={featuredCard}
                             theme={theme}
+                            others={otherCreditCards}
+                            onSelectOther={(card) => setFeaturedCardId(card.id)}
                             onPress={() =>
                                 navigation.navigate('CardsTab', {
                                     screen: 'Cards',
@@ -382,18 +385,6 @@ export default function HomeScreen() {
                                 })
                             }
                         />
-                        {otherCreditCards.length > 0 && (
-                            <View style={styles.creditMinis}>
-                                {otherCreditCards.map((card) => (
-                                    <CreditCardMini
-                                        key={card.id}
-                                        card={card}
-                                        theme={theme}
-                                        onPress={() => setFeaturedCardId(card.id)}
-                                    />
-                                ))}
-                            </View>
-                        )}
                     </View>
                 )}
 

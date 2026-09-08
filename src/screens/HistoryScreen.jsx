@@ -13,7 +13,7 @@ import {
     ScreenHeader, EmptyState, Sheet, Button, Field, FieldLabel, Pill, Money, GlassCard, fieldSurface,
 } from '../components/ui';
 import {
-    IconSwap, IconCash, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings,
+    IconSwap, IconCardPayment, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings,
     IconChevronLeft, IconChevronRight, IconCheck,
 } from '../components/Icons';
 
@@ -53,7 +53,7 @@ const PERIOD_FILTERS = [
 // getTxnVisual there.
 function getTypeConfig(theme, type, category) {
     if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.msiSoft, fg: theme.msi, label: 'Mensualidad' };
-    if (category === 'card_payment') return { Icon: IconCash, bg: theme.cardPaymentSoft, fg: theme.cardPayment, label: 'Pago de tarjeta' };
+    if (category === 'card_payment') return { Icon: IconCardPayment, bg: theme.cardPaymentSoft, fg: theme.cardPayment, label: 'Pago de tarjeta' };
     // Interest is a real income transaction but app-generated, so it
     // gets the same `savings` accent as everywhere else interest shows up.
     if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };

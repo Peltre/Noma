@@ -18,7 +18,7 @@ import Svg, { Circle } from 'react-native-svg';
 import {
     ScreenHeader, EmptyState, Sheet, Pill, Button, FieldLabel, Money, fieldSurface,
 } from '../components/ui';
-import { IconCard, IconPencil, IconCash, IconTrash, IconChevronDown, IconCardAdd } from '../components/Icons';
+import { IconCard, IconPencil, IconCardPayment, IconTrash, IconChevronDown, IconCardAdd } from '../components/Icons';
 
 // Tiny utilization ring for the Crédito deck's header — how much of
 // the combined limit across all credit cards is currently used up.
@@ -330,7 +330,7 @@ function QuickActionsPopover({ card, position, onClose, onEdit, onPay, onDelete 
                 {showPay && (
                     <TouchableOpacity style={styles.popoverBtn} onPress={onPay}>
                         <View style={[styles.popoverIconWrap, { backgroundColor: theme.cardPaymentSoft }]}>
-                            <IconCash color={theme.cardPayment} size={18} />
+                            <IconCardPayment color={theme.cardPayment} size={18} />
                         </View>
                         <Text style={styles.popoverLabel}>Pagar</Text>
                     </TouchableOpacity>
