@@ -173,6 +173,29 @@ export function useFinanceStore() {
             }
         }
 
+        // Ningún movimiento puede quedar "en el aire". Antes, un accountId
+        // null o de una cuenta ya borrada se guardaba igual: el movimiento
+        // aparecía en Historial pero updateAccountBalance no encontraba a
+        // quién sumarle y ningún saldo cambiaba — dinero fantasma. La
+        // pantalla valida antes, pero esta es la regla que manda: se
+        // rechaza aquí sin importar quién llame.
+        const paysWithCredit = transaction.type === 'expense' && !!transaction.creditCardId;
+        if (paysWithCredit) {
+            if (!creditCards.some(c => c.id === transaction.creditCardId)) {
+                return { error: 'Selecciona una tarjeta de crédito válida.' };
+            }
+        } else {
+            if (!transaction.accountId) {
+                return { error: 'Selecciona la cuenta del movimiento.' };
+            }
+            if (!accounts.some(a => a.id === transaction.accountId)) {
+                return { error: 'La cuenta seleccionada ya no existe. Elige otra.' };
+            }
+        }
+        if (transaction.type === 'transfer' && !accounts.some(a => a.id === transaction.toAccountId)) {
+            return { error: 'La cuenta destino ya no existe. Elige otra.' };
+        }
+
         // No expense/withdrawal/transfer can push an account below zero.
         if (
             (transaction.type === 'expense' || transaction.type === 'withdrawal' || transaction.type === 'transfer')

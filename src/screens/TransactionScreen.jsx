@@ -58,7 +58,7 @@ export default function TransactionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const insets = useSafeAreaInsets();
-    const { accounts, creditCards, addTransaction, confirmFund, addMSI, tags, addTag } = useFinance();
+    const { accounts, creditCards, addTransaction, confirmFund, updateScheduledFund, addMSI, tags, addTag } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createTransactionStyles(theme), [theme]);
     const TYPES = useMemo(() => getTypes(theme), [theme]);
@@ -68,7 +68,14 @@ export default function TransactionScreen() {
     const [type, setType] = useState(prefill?.type || 'expense');
     const [amount, setAmount] = useState(prefill?.amount || '');
     const [reason, setReason] = useState(prefill?.reason || '');
-    const [selectedAccount, setAccount] = useState(prefill?.accountId || accounts[0]?.id || null);
+    // La cuenta del fondo se respeta solo si todavía existe. Si el fondo
+    // apuntaba a una cuenta borrada (o nunca tuvo), NO se cae en silencio
+    // a la primera cuenta: se deja vacío para que la persona elija y el
+    // dinero no termine donde no era. Sin prefill sí conviene el default.
+    const prefillAccountMissing = !!prefill && !accounts.some(a => a.id === prefill.accountId);
+    const [selectedAccount, setAccount] = useState(
+        prefill ? (prefillAccountMissing ? null : prefill.accountId) : (accounts[0]?.id || null),
+    );
     const [selectedCard, setCard] = useState(null);
     const [toAccount, setToAccount] = useState(null);
     const [useCredit, setUseCredit] = useState(false);
@@ -123,6 +130,25 @@ export default function TransactionScreen() {
         if (type === 'transfer' && !toAccount) {
             Alert.alert('Falta la cuenta destino', 'Selecciona a dónde va el dinero'); return;
         }
+        // Sin cuenta o sin tarjeta el movimiento no toca ningún saldo:
+        // queda en Historial como dinero fantasma. El store también lo
+        // rechaza, pero aquí el mensaje dice qué falta y dónde.
+        if (type !== 'transfer' && useCredit && !selectedCard) {
+            Alert.alert(
+                'Falta la tarjeta',
+                'Elige con qué tarjeta de crédito pagas, o desmarca "Pagar con tarjeta de crédito".',
+            );
+            return;
+        }
+        if (!useCredit && !selectedAccount) {
+            Alert.alert(
+                'Falta la cuenta',
+                type === 'income'
+                    ? 'Elige a qué cuenta entra el dinero.'
+                    : 'Elige de qué cuenta sale el dinero.',
+            );
+            return;
+        }
         if (isMSI && canUseMSI) {
             // addTransaction first — it's the one that validates the
             // credit limit. Only schedule the MSI installments if the
@@ -166,6 +192,12 @@ export default function TransactionScreen() {
         // longer "that" income and shouldn't silently resolve it.
         if (prefill?.fundId && type === prefill.type) {
             await confirmFund(prefill.fundId);
+            // Si eligió otra cuenta al confirmar, el fondo se queda con
+            // esa: la próxima vez ya viene apuntando a donde realmente
+            // llega el dinero.
+            if (selectedAccount && selectedAccount !== prefill.accountId) {
+                await updateScheduledFund(prefill.fundId, { accountId: selectedAccount });
+            }
         }
         if (result.savingsWarning) {
             Alert.alert(
@@ -345,6 +377,11 @@ export default function TransactionScreen() {
                     ) : (
                         <>
                             <FieldLabel required>Cuenta</FieldLabel>
+                            {prefill?.fundId && prefillAccountMissing && (
+                                <Text style={[styles.fieldHint, styles.fieldHintError, styles.accountWarning]}>
+                                    Este fondo apuntaba a una cuenta que ya no existe. Elige a cuál entra el dinero.
+                                </Text>
+                            )}
                             {type === 'expense' && creditCards.length > 0 && (
                                 <Toggle
                                     on={useCredit}

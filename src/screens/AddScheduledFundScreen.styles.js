@@ -24,6 +24,15 @@ export default function createAddScheduledFundStyles(theme) {
 
         pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
 
+        // Una línea bajo "Cuenta destino" que dice qué pasa con el dinero.
+        hint: {
+            fontSize: FontSize.xs,
+            color: theme.inkDim,
+            marginTop: -Spacing.xs,
+            marginBottom: Spacing.sm,
+        },
+        hintError: { color: theme.moneyOut, fontWeight: '700' },
+
         actions: { flexDirection: 'row', marginTop: Spacing.xl },
         actionsSecondary: { flexDirection: 'row', marginTop: Spacing.sm },
     });

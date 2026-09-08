@@ -135,6 +135,7 @@ export default function createTransactionStyles(theme) {
             fontWeight: '500',
         },
         fieldHintError: { color: theme.moneyOut, fontWeight: '700' },
+        accountWarning: { marginBottom: Spacing.sm },
         hintRow: {
             flexDirection: 'row',
             alignItems: 'center',

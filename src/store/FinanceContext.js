@@ -118,7 +118,15 @@ export function FinanceProvider({ children }) {
         if (linkedApartados.length > 0) {
             return { error: 'Esta cuenta tiene apartados de ahorro ligados. Elimínalos (o quítales el dinero asignado) antes de eliminar la cuenta.' };
         }
-        return financeStore.deleteAccount(accountId);
+        const result = await financeStore.deleteAccount(accountId);
+        if (result?.error) return result;
+
+        // Los fondos que apuntaban a esta cuenta se quedan sin destino
+        // explícitamente (accountId: null). Así "Nuevo movimiento" y
+        // "Editar fondo" piden elegir otra en vez de heredar un id muerto
+        // que ningún saldo reconocería.
+        await scheduledFundsStore.detachAccount(accountId);
+        return result;
     };
 
     // Runs once per app open: credits real interest for every

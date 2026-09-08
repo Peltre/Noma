@@ -83,6 +83,19 @@ export function useScheduledFunds() {
         await saveData(KEY, updated);
     };
 
+    // Cuando se borra una cuenta, todos los fondos que apuntaban a ella
+    // sueltan la referencia de una vez. Va en una sola pasada y no en
+    // un loop de updateScheduledFund: cada llamada lee scheduledFunds
+    // por closure, así que en un loop solo la última sobreviviría.
+    const detachAccount = async (accountId) => {
+        if (!scheduledFunds.some(f => f.accountId === accountId)) return;
+        const updated = scheduledFunds.map(f =>
+            f.accountId === accountId ? { ...f, accountId: null } : f
+        );
+        setScheduledFunds(updated);
+        await saveData(KEY, updated);
+    };
+
     // MSI Installments
 
     const addMSI = async ({ name, totalAmount, months, firstDate, accountId, creditCardId }) => {
@@ -159,6 +172,7 @@ export function useScheduledFunds() {
         pendingFunds,
         addScheduledFund,
         updateScheduledFund,
+        detachAccount,
         confirmFund,
         removeScheduledFund,
         addMSI,

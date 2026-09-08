@@ -10,7 +10,7 @@
 // card) are safe to change after the purchase already happened. See
 // updateScheduledFund's comment in useScheduleFunds.js for why.
 import { useMemo, useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { parseISO } from 'date-fns';
@@ -42,7 +42,12 @@ export default function AddScheduledFundScreen() {
     const [name, setName] = useState(editFund?.name || '');
     const [amount, setAmount] = useState(editFund ? String(editFund.amount) : '');
     const [frequency, setFrequency] = useState(editFund?.frequency || 'biweekly');
-    const [accountId, setAccountId] = useState(editFund?.accountId || accounts[0]?.id || null);
+    // Sin default a la primera cuenta: a dónde llega el dinero es una
+    // decisión, no un detalle, y un default se confirma sin mirarse.
+    // Al editar, la cuenta guardada se respeta solo si todavía existe.
+    const savedAccountExists = !!editFund?.accountId && accounts.some(a => a.id === editFund.accountId);
+    const savedAccountMissing = isEdit && !savedAccountExists;
+    const [accountId, setAccountId] = useState(savedAccountExists ? editFund.accountId : null);
     const [nextDate, setNextDate] = useState(editFund ? parseISO(editFund.nextDate) : null);
     const [loading, setLoading] = useState(false);
 
@@ -59,8 +64,8 @@ export default function AddScheduledFundScreen() {
             Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.');
             return;
         }
-        if (!accountId) {
-            Alert.alert('Falta la cuenta', 'Selecciona una cuenta destino.');
+        if (!accountId || !accounts.some(a => a.id === accountId)) {
+            Alert.alert('Falta la cuenta', 'Elige a qué cuenta va a entrar el dinero cuando confirmes este fondo.');
             return;
         }
 
@@ -154,6 +159,11 @@ export default function AddScheduledFundScreen() {
                     </View>
 
                     <FieldLabel required>Cuenta destino</FieldLabel>
+                    <Text style={[styles.hint, savedAccountMissing && styles.hintError]}>
+                        {savedAccountMissing
+                            ? 'La cuenta a la que apuntaba este fondo ya no existe. Elige otra.'
+                            : 'Cuando confirmes el fondo, el dinero se sumará a esta cuenta.'}
+                    </Text>
                     <View style={styles.pillRow}>
                         {accounts.map(acc => (
                             <Pill
