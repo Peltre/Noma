@@ -1,193 +1,127 @@
-// Stylesheet for onboarding — theme-driven, same pattern as the rest
-// of the app.
+// OnboardingOverlay styles — campos, botones y la tarjeta de vidrio
+// vienen de components/ui. Aquí queda el marco de la bienvenida: el
+// velo, la tarjeta centrada, los puntos de progreso y la fila de
+// tarjeta de débito.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
 export default function createOnboardingStyles(theme) {
     return StyleSheet.create({
-        // Full screen overlay
-        overlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: Spacing.lg,
+
+        overlay: { flex: 1 },
+        // El BlurView de arriba desenfoca la app; esto le baja el
+        // brillo para que la tarjeta blanca no compita con el fondo.
+        backdrop: {
+            ...StyleSheet.absoluteFill,
+            backgroundColor: 'rgba(6,8,12,0.55)',
         },
         kavWrapper: {
-            width: '100%',
-            justifyContent: 'center',
-        },
-        blur: {
             flex: 1,
-        },
-        backdrop: {
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: 'rgba(0,0,0,0.55)',
+            justifyContent: 'center',
+            paddingHorizontal: Spacing.lg,
         },
 
-        // Card that slides up from bottom
         card: {
-            backgroundColor: theme.surface,
             borderRadius: Radius.lg,
             padding: Spacing.lg,
-            paddingBottom: Spacing.lg,
-            width: '100%',
-            borderWidth: 1,
-            borderColor: theme.border,
+            maxHeight: '86%',
             ...Shadow.float,
         },
 
-        // Progress dots
+        // Puntos de progreso
         progressRow: {
             flexDirection: 'row',
-            gap: Spacing.sm,
-            marginBottom: Spacing.lg,
+            gap: 6,
             justifyContent: 'center',
+            marginBottom: Spacing.lg,
         },
         progressDot: {
-            width: 8,
-            height: 8,
+            width: 7, height: 7,
             borderRadius: 4,
             backgroundColor: theme.border,
         },
-        progressDotActive: {
-            backgroundColor: theme.ink,
-            width: 24,
-        },
+        progressDotActive: { backgroundColor: theme.brand, width: 20 },
 
-        // Step content
         iconBadge: {
-            width: 64,
-            height: 64,
+            width: 60, height: 60,
             borderRadius: Radius.md,
             backgroundColor: theme.brandSoft,
-            justifyContent: 'center',
-            alignItems: 'center',
+            alignItems: 'center', justifyContent: 'center',
             alignSelf: 'center',
             marginBottom: Spacing.md,
         },
         title: {
-            fontSize: FontSize.xxl,
-            fontWeight: '700',
+            fontSize: FontSize.xl,
+            fontWeight: '800',
             color: theme.ink,
-            marginBottom: Spacing.sm,
             textAlign: 'center',
+            letterSpacing: -0.4,
         },
         subtitle: {
-            fontSize: FontSize.md,
-            color: theme.muted,
-            lineHeight: 22,
-            marginBottom: Spacing.lg,
+            fontSize: FontSize.sm,
+            color: theme.inkMid,
             textAlign: 'center',
+            marginTop: Spacing.sm,
+            lineHeight: FontSize.sm * 1.5,
+            fontWeight: '500',
         },
 
-        // Input
-        fieldGroup: {
-            gap: Spacing.xs,
-            marginBottom: Spacing.md,
-        },
-        fieldLabel: {
-            fontSize: FontSize.xs,
-            fontWeight: '700',
-            color: theme.muted,
-            textTransform: 'uppercase',
-            letterSpacing: 0.8,
-        },
-        input: {
-            backgroundColor: theme.bg,
-            borderRadius: Radius.sm,
-            padding: Spacing.md,
+        // DecimalInput no puede vivir dentro de <Field>: lleva
+        // fieldSurface y aquí solo lo tipográfico.
+        decimalInput: {
             fontSize: FontSize.md,
             color: theme.ink,
-            borderWidth: 1,
-            borderColor: theme.border,
-            ...Shadow.card,
-        },
-        helperNote: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            marginTop: Spacing.xs,
-            marginBottom: Spacing.sm,
-            lineHeight: 16,
+            letterSpacing: 0.2,
+            paddingVertical: 0,
         },
 
-        // Account cards (debit card list — each becomes a real account)
+        // Bloque de una tarjeta de débito
         accountCard: {
-            backgroundColor: theme.bg,
-            borderRadius: Radius.sm,
+            borderRadius: Radius.md,
+            borderWidth: 1,
+            borderColor: theme.border,
             padding: Spacing.md,
-            marginBottom: Spacing.sm,
-            gap: Spacing.sm,
-            ...Shadow.card,
+            marginTop: Spacing.sm,
         },
         accountCardHeader: {
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.sm,
+            marginBottom: Spacing.xs,
         },
         accountCardTitle: {
-            fontSize: FontSize.md,
-            fontWeight: '600',
-            color: theme.ink,
             flex: 1,
-        },
-        removeBtn: {
-            fontSize: FontSize.xs,
-            color: theme.moneyOut,
-            fontWeight: '600',
-        },
-
-        // Add card button
-        addBtn: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: Spacing.sm,
-            padding: Spacing.md,
-            borderRadius: Radius.sm,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            borderStyle: 'dashed',
-            marginTop: Spacing.xs,
-        },
-        addBtnText: {
             fontSize: FontSize.sm,
-            fontWeight: '600',
-            color: theme.muted,
+            fontWeight: '700',
+            color: theme.inkMid,
+        },
+        removeBtn: { fontSize: FontSize.xs, fontWeight: '700', color: theme.moneyOut },
+        // Field ya trae su propio margen superior vía FieldLabel; sin
+        // etiqueta hay que ponerlo a mano.
+        accountField: { marginTop: Spacing.sm },
+
+        addRow: { flexDirection: 'row', marginTop: Spacing.md },
+
+        helperNote: {
+            fontSize: FontSize.xs,
+            color: theme.inkDim,
+            marginTop: Spacing.sm,
+            lineHeight: FontSize.xs * 1.5,
+            fontWeight: '500',
         },
 
-        // Bottom buttons
         bottomRow: {
             flexDirection: 'row',
             gap: Spacing.sm,
-            marginTop: Spacing.lg,
+            marginTop: Spacing.xl,
         },
+        // Mismo botón de regresar que ScreenHeader.
         backBtn: {
-            width: 52,
-            height: 52,
+            width: 52, height: 52,
             borderRadius: Radius.sm,
-            backgroundColor: theme.border,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        nextBtn: {
-            flex: 1,
-            height: 52,
-            borderRadius: Radius.sm,
-            backgroundColor: theme.ink,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        nextBtnText: {
-            fontSize: FontSize.md,
-            fontWeight: '700',
-            color: theme.bg,
-        },
-        nextBtnDisabled: {
-            backgroundColor: theme.border,
+            backgroundColor: theme.glassFill,
+            borderWidth: 1, borderColor: theme.glassBorder,
+            alignItems: 'center', justifyContent: 'center',
         },
     });
 }

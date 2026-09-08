@@ -10,7 +10,7 @@ export default function createSheetStyles(theme) {
             justifyContent: 'flex-end',
             backgroundColor: 'rgba(0,0,0,0.5)',
         },
-        scrim: { ...StyleSheet.absoluteFillObject },
+        scrim: { ...StyleSheet.absoluteFill },
         panel: {
             backgroundColor: theme.surface,
             borderTopLeftRadius: Radius.lg,

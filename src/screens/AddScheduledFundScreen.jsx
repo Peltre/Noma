@@ -5,21 +5,21 @@
 //
 // MSI installments don't come through here — they're created only
 // from Nuevo Movimiento (paying with credit + MSI), and their own
-// edit surface is a small modal on ScheduledFundsScreen, not this
+// edit surface is a small sheet on ScheduledFundsScreen, not this
 // screen, since almost none of their fields (amount, months, which
 // card) are safe to change after the purchase already happened. See
 // updateScheduledFund's comment in useScheduleFunds.js for why.
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { parseISO } from 'date-fns';
 import { Spacing } from '../constants';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
-import { IconChevronLeft } from '../components/Icons';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
+import { ScreenHeader, Field, FieldLabel, Pill, Button, fieldSurface } from '../components/ui';
 import createAddScheduledFundStyles from './AddScheduledFundScreen.styles';
 
 const FREQUENCIES = [
@@ -109,37 +109,31 @@ export default function AddScheduledFundScreen() {
 
     return (
         <View style={styles.safeArea}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                        <IconChevronLeft color={theme.ink} size={16} />
-                    </TouchableOpacity>
-                    <Text style={styles.title}>{isEdit ? 'Editar fondo' : 'Nuevo fondo'}</Text>
-                </View>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <ScreenHeader
+                    title={isEdit ? 'Editar fondo' : 'Nuevo fondo'}
+                    onBack={() => navigation.goBack()}
+                />
 
                 <View style={styles.form}>
-                    {/* Name */}
-                    <Text style={styles.fieldLabel}>Nombre</Text>
-                    <TextInput
-                        style={styles.input}
+                    <Field
+                        label="Nombre"
+                        required
                         value={name}
                         onChangeText={setName}
                         placeholder="Ej. Quincena, Renta, Freelance..."
-                        placeholderTextColor={theme.muted}
                     />
 
-                    {/* Amount */}
-                    <Text style={styles.fieldLabel}>Monto esperado</Text>
+                    <FieldLabel required>Monto esperado</FieldLabel>
                     <DecimalInput
-                        style={styles.input}
+                        style={[styles.decimalInput, fieldSurface(theme)]}
                         value={amount}
                         onChangeText={setAmount}
                         placeholder="$0.00"
-                        placeholderTextColor={theme.muted}
+                        placeholderTextColor={theme.inkDim}
                     />
 
-                    {/* Next date */}
-                    <Text style={styles.fieldLabel}>Próxima fecha</Text>
+                    <FieldLabel required>Próxima fecha</FieldLabel>
                     <DatePickerField
                         value={nextDate}
                         onChange={setNextDate}
@@ -147,64 +141,43 @@ export default function AddScheduledFundScreen() {
                         minimumDate={isEdit ? undefined : new Date()}
                     />
 
-                    {/* Frequency */}
-                    <Text style={styles.fieldLabel}>Frecuencia</Text>
-                    <View style={styles.frequencyRow}>
+                    <FieldLabel>Frecuencia</FieldLabel>
+                    <View style={styles.pillRow}>
                         {FREQUENCIES.map(f => (
-                            <TouchableOpacity
+                            <Pill
                                 key={f.key}
-                                style={[
-                                    styles.frequencyBtn,
-                                    frequency === f.key && styles.frequencyBtnActive,
-                                ]}
+                                label={f.label}
+                                selected={frequency === f.key}
                                 onPress={() => setFrequency(f.key)}
-                            >
-                                <Text style={[
-                                    styles.frequencyBtnText,
-                                    frequency === f.key && styles.frequencyBtnTextActive,
-                                ]}>
-                                    {f.label}
-                                </Text>
-                            </TouchableOpacity>
+                            />
                         ))}
                     </View>
 
-                    {/* Account */}
-                    <Text style={styles.fieldLabel}>Cuenta destino</Text>
-                    <View style={styles.accountList}>
+                    <FieldLabel required>Cuenta destino</FieldLabel>
+                    <View style={styles.pillRow}>
                         {accounts.map(acc => (
-                            <TouchableOpacity
+                            <Pill
                                 key={acc.id}
-                                style={[
-                                    styles.accountOption,
-                                    accountId === acc.id && styles.accountOptionSelected,
-                                ]}
+                                label={acc.name}
+                                selected={accountId === acc.id}
                                 onPress={() => setAccountId(acc.id)}
-                            >
-                                <Text style={[
-                                    styles.accountOptionText,
-                                    accountId === acc.id && { color: theme.bg },
-                                ]}>
-                                    {acc.name}
-                                </Text>
-                            </TouchableOpacity>
+                            />
                         ))}
                     </View>
 
-                    <TouchableOpacity
-                        style={[styles.confirmBtn, loading && styles.confirmBtnDisabled]}
-                        onPress={handleSubmit}
-                        disabled={loading}
-                    >
-                        <Text style={styles.confirmBtnText}>
-                            {loading ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear fondo'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.actions}>
+                        <Button
+                            label={isEdit ? 'Guardar cambios' : 'Crear fondo'}
+                            loading={loading}
+                            loadingLabel="Guardando…"
+                            onPress={handleSubmit}
+                        />
+                    </View>
 
                     {isEdit && (
-                        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                            <Text style={styles.deleteBtnText}>Eliminar fondo</Text>
-                        </TouchableOpacity>
+                        <View style={styles.actionsSecondary}>
+                            <Button label="Eliminar fondo" variant="danger" onPress={handleDelete} />
+                        </View>
                     )}
                 </View>
 

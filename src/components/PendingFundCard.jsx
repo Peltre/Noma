@@ -1,41 +1,70 @@
-// Alert card shown on Home when a scheduled fund or MSI payment is
-// due — deliberately NOT styled like a transaction row, but also not
-// a loud colored banner: the card itself is neutral/gray, same
-// language as any other card. "Pending, needs attention" now comes
-// through the dashed border and the wording/weight of the date label
-// ("Venció" in bold ink vs. "Próximo" in muted) rather than a warning
-// icon — the calendar glyph already says "this is scheduled", a
-// triangle on top of it read as one signal too many.
+// Se muestra en Inicio cuando un fondo programado o un pago MSI está
+// pendiente.
+//
+// ── Cómo se colorea ──
+// La tarjeta es VIDRIO NORMAL, igual que todas las demás de la app.
+// Ninguna superficie se tiñe: el acento vive en tres sitios chicos —el
+// filo de 2px del canto izquierdo, el icono, y los dígitos del monto—
+// y los tres van SIEMPRE del mismo color.
+//
+// Y ese color solo tiene dos estados:
+//
+//   VIGENTE   el color de su tipo. Turquesa si es un ingreso que va a
+//             llegar, violeta si es una mensualidad que va a salir.
+//   VENCIDO   gris. Todo lo que estaba a color se apaga de golpe:
+//             filo, icono, monto, insignia y fecha.
+//
+// Esa es la idea completa: el color significa "esto todavía está en
+// pie". Un fondo que se le pasó la fecha pierde el color porque perdió
+// vigencia, no porque haya que alarmarse — de ahí que el gris y no el
+// ámbar, que en este tema significa "sale hoy".
+//
+// El gris es theme.alert, que themes.js ya documenta como la familia de
+// lo programado y que casi no se usaba. Si se quiere más hundido,
+// theme.inkDim es un cambio de una palabra; queda más apagado pero deja
+// el monto al mismo nivel que su propio subtítulo.
 import { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatCurrencyShort } from '../utils';
 import { FontSize, Spacing, Radius } from '../constants';
-import { IconCalendarClock, IconChevronRight } from './Icons';
+import { IconCalendarClock, IconChevronRight, IconSize } from './Icons';
 import GlassCard from './GlassCard';
+import Money from './Money';
+
+// Fuera de la escala Radius a propósito: el filo mide 2px y con
+// cualquier radio de la escala (xs son 10) se curvaría hasta leerse
+// como una coma en vez de una pestaña recta. El canto derecho sí usa
+// la escala.
+const EDGE_RADIUS = 4;
+const EDGE_WIDTH = 2;
 
 export default function PendingFundCard({ fund, status, onPress, theme }) {
     const isOverdue = status === 'overdue';
     const isMSI = fund.type === 'msi';
-    const styles = useMemo(() => createStyles(theme), [theme]);
+
+    // Un solo par de valores para toda la tarjeta: el acento y su
+    // versión al 14% para el fondo del icono. Vencido gana sobre el
+    // tipo a propósito — es el punto de la regla.
+    const tone = isOverdue ? theme.alert : isMSI ? theme.msi : theme.moneyIn;
+    const toneSoft = isOverdue
+        ? theme.alertSoft
+        : isMSI ? theme.msiSoft : theme.moneyInSoft;
+    const styles = useMemo(
+        () => createStyles(theme, tone, toneSoft, isOverdue),
+        [theme, tone, toneSoft, isOverdue],
+    );
 
     const dateLabel = isOverdue
         ? `Venció · ${format(parseISO(fund.nextDate), 'd MMM', { locale: es })}`
         : `Próximo · ${format(parseISO(fund.nextDate), 'd MMM', { locale: es })}`;
 
-    // One icon for the whole section — MSI and income pending funds
-    // are both "programado" here; which direction the money goes is
-    // already conveyed by the title, the +/− prefix, and the amount,
-    // so the icon's job is just "this is scheduled", not "this is
-    // MSI vs. income".
-    const Icon = IconCalendarClock;
-
     return (
         <GlassCard style={styles.card}>
+            <View style={styles.edge} pointerEvents="none" />
             <TouchableOpacity style={styles.cardTouchable} onPress={onPress} activeOpacity={0.75}>
                 <View style={styles.iconBox}>
-                    <Icon color={theme.muted} size={15} />
+                    <IconCalendarClock color={tone} size={IconSize.md} />
                 </View>
 
                 <View style={styles.info}>
@@ -49,47 +78,68 @@ export default function PendingFundCard({ fund, status, onPress, theme }) {
                             </View>
                         )}
                     </View>
+                    {/* La fecha vencida sube de peso pero no de color:
+                        el énfasis lo carga el 700, no un tono nuevo. */}
                     <Text style={[styles.subtitle, isOverdue && styles.subtitleOverdue]} numberOfLines={1}>
                         {dateLabel}
                     </Text>
                 </View>
 
                 <View style={styles.right}>
-                    <Text style={styles.amount}>
-                        {isMSI ? '−' : '+'}{formatCurrencyShort(isMSI ? fund.monthlyAmount : fund.amount)}
-                    </Text>
-                    <IconChevronRight color={theme.muted} size={13} />
+                    <Money
+                        value={isMSI ? fund.monthlyAmount : fund.amount}
+                        size={FontSize.sm + 2}
+                        sign={isMSI ? '-' : '+'}
+                        // El signo se queda: sigue diciendo si entra o
+                        // sale aunque el color ya no lo diga.
+                        color={tone}
+                    />
+                    <IconChevronRight color={theme.inkDim} size={IconSize.sm} />
                 </View>
             </TouchableOpacity>
         </GlassCard>
     );
 }
 
-function createStyles(theme) {
+function createStyles(theme, tone, toneSoft, isOverdue) {
     return StyleSheet.create({
-        // GlassCard supplies background/border now — this only keeps
-        // the shape (radius, spacing) and the dashed borderStyle,
-        // which layers fine on top of GlassCard's own themed border
-        // color since they're independent style properties.
+        // Radio asimétrico: casi recto del lado del filo, normal del
+        // otro. GlassCard copia los cuatro radios a su capa de borde,
+        // así que el contorno sigue la misma forma que el recorte.
         card: {
-            borderRadius: Radius.sm,
+            borderTopLeftRadius: EDGE_RADIUS,
+            borderBottomLeftRadius: EDGE_RADIUS,
+            borderTopRightRadius: Radius.sm,
+            borderBottomRightRadius: Radius.sm,
             marginBottom: Spacing.sm,
-            borderStyle: 'dashed',
+        },
+        // Va como capa aparte y no como borderLeftWidth porque GlassCard
+        // solo reenvía borderWidth/borderColor/borderTop* a su capa de
+        // borde; un borde izquierdo acabaría debajo del desenfoque.
+        edge: {
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: EDGE_WIDTH,
+            backgroundColor: tone,
+            borderTopLeftRadius: EDGE_RADIUS,
+            borderBottomLeftRadius: EDGE_RADIUS,
         },
         cardTouchable: {
-            paddingVertical: Spacing.sm + 2,
+            paddingVertical: Spacing.sm + 4,
             paddingHorizontal: Spacing.md,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: Spacing.sm,
+            gap: Spacing.sm + 4,
         },
         iconBox: {
-            width: 32, height: 32,
-            borderRadius: Radius.sm,
+            width: 36, height: 36,
+            borderRadius: Radius.xs,
             justifyContent: 'center',
             alignItems: 'center',
             flexShrink: 0,
-            backgroundColor: theme.border,
+            backgroundColor: toneSoft,
         },
         info: { flex: 1 },
         titleRow: {
@@ -98,43 +148,40 @@ function createStyles(theme) {
             gap: 6,
         },
         title: {
-            fontSize: FontSize.sm,
-            fontWeight: '700',
+            fontSize: FontSize.sm + 1,
+            fontWeight: '600',
             color: theme.ink,
-            flex: 1,
+            flexShrink: 1,
         },
+        // La insignia se apaga con todo lo demás: un 5/12 violeta sobre
+        // una tarjeta gris sería lo único a color y llamaría más
+        // atención que el propio monto.
         msiBadge: {
-            paddingHorizontal: 6,
+            paddingHorizontal: 7,
             paddingVertical: 2,
             borderRadius: Radius.full,
-            backgroundColor: theme.border,
+            backgroundColor: isOverdue ? theme.alertSoft : theme.msiSoft,
         },
         msiBadgeText: {
-            fontSize: FontSize.xs - 1,
+            fontSize: FontSize.xs - 1.5,
             fontWeight: '800',
-            color: theme.muted,
+            color: isOverdue ? theme.alert : theme.msi,
             letterSpacing: 0.3,
         },
         subtitle: {
             fontSize: FontSize.xs,
-            color: theme.muted,
+            color: theme.inkDim,
             fontWeight: '600',
-            marginTop: 1,
+            marginTop: 2,
         },
         subtitleOverdue: {
-            color: theme.ink,
+            color: theme.alert,
             fontWeight: '700',
         },
         right: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 4,
-        },
-        amount: {
-            fontSize: FontSize.sm,
-            fontWeight: '800',
-            color: theme.ink,
-            letterSpacing: -0.4,
+            gap: 6,
         },
     });
 }

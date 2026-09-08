@@ -1,99 +1,40 @@
-// HistoryScreen styles — theme-driven, same pattern as Home
-// (createHistoryStyles(theme), used inside the screen).
+// HistoryScreen styles — header, hojas, vacíos, pastillas y botones
+// vienen de components/ui. Aquí queda lo propio de esta pantalla: el
+// campo de periodo, la tarjeta de KPIs, la fila de movimiento y el
+// detalle dentro de la hoja.
+//
+// HistorySheet.styles.js ya no existe: su marco (backdrop, panel,
+// handle, botones) lo pone Sheet, y lo que quedaba —la lista de
+// detalle y las etiquetas— vive aquí abajo con prefijo sheet*/detail*.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
 export default function createHistoryStyles(theme) {
     return StyleSheet.create({
 
-        safeArea: {
-            flex: 1,
-            backgroundColor: 'transparent',
-        },
+        safeArea: { flex: 1, backgroundColor: 'transparent' },
 
-        // Plain header — same language as Tarjetas' title row, no
-        // card wrapper, no decoration.
-        header: {
-            paddingHorizontal: Spacing.lg,
-            paddingBottom: Spacing.md,
-        },
-        title: {
-            fontSize: FontSize.xxl,
-            fontWeight: '900',
-            color: theme.ink,
-            letterSpacing: -1,
-        },
-
-        // Stats card — a plain GlassCard, same content grammar as
-        // Home's txnCard: no borders/boxing per cell, just three
-        // columns separated by thin dividers.
-        statsCard: {
-            marginHorizontal: Spacing.lg,
-            borderRadius: Radius.sm,
-        },
-        statsRow: {
-            flexDirection: 'row',
-            paddingVertical: Spacing.md,
-        },
-        statCell: {
-            flex: 1,
-            alignItems: 'center',
-        },
-        statDivider: {
-            width: 1,
-            backgroundColor: theme.border,
-            marginVertical: 2,
-        },
-        statVal: {
-            fontSize: FontSize.md,
-            fontWeight: '900',
-            letterSpacing: -0.6,
-            marginBottom: 3,
-        },
-        statLbl: {
-            fontSize: FontSize.xs - 1,
-            fontWeight: '800',
-            letterSpacing: 1,
-            textTransform: 'uppercase',
-            color: theme.muted,
-        },
-
-        // Filters — two dropdowns side by side, sitting at the top of
-        // the screen now. Transparent, same as the rest of the screen
-        // — AppBackground shows through.
-        filterWrap: {
-            paddingVertical: Spacing.md,
-            paddingHorizontal: Spacing.lg,
-        },
+        // Filtros
         filterRow: {
             flexDirection: 'row',
             gap: Spacing.sm,
+            paddingHorizontal: Spacing.lg,
+            paddingBottom: Spacing.md,
         },
-
-        // PeriodField — same field box SelectField renders (Tipo uses
-        // that one directly), but with room on either side for the
-        // fused step arrows instead of a single trailing chevron.
+        // La superficie (alto, radio, borde) la pone fieldSurface para
+        // que Tipo y Periodo se lean como un par.
         periodField: {
-            flex: 1,
+            flex: 1.15,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: Spacing.xs,
-            backgroundColor: theme.surface,
-            borderRadius: Radius.sm,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            paddingVertical: Spacing.sm,
-            paddingHorizontal: Spacing.sm,
         },
-        periodCenter: {
-            flex: 1,
-            alignItems: 'center',
-        },
+        periodCenter: { flex: 1, alignItems: 'center' },
         periodLabel: {
             fontSize: FontSize.xs - 2,
             fontWeight: '800',
-            color: theme.muted,
+            color: theme.inkDim,
             textTransform: 'uppercase',
             letterSpacing: 0.6,
             marginBottom: 1,
@@ -104,31 +45,9 @@ export default function createHistoryStyles(theme) {
             color: theme.ink,
             textTransform: 'capitalize',
         },
-        // PeriodField's own granularity-picker sheet — same visual
-        // pattern as SelectField's modal (handle, title, option rows).
-        periodBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-        periodSheet: {
-            backgroundColor: theme.surface,
-            borderTopLeftRadius: Radius.lg,
-            borderTopRightRadius: Radius.lg,
-            padding: Spacing.lg,
-            paddingBottom: Spacing.xl,
-        },
-        periodSheetHandle: {
-            width: 36, height: 4,
-            borderRadius: 2,
-            backgroundColor: theme.border,
-            alignSelf: 'center',
-            marginBottom: Spacing.md,
-        },
-        periodSheetTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: '800',
-            color: theme.ink,
-            marginBottom: Spacing.sm,
-            textAlign: 'center',
-        },
-        periodOption: {
+
+        // Opción dentro del selector de granularidad
+        pickerOption: {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -136,103 +55,129 @@ export default function createHistoryStyles(theme) {
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
         },
-        periodOptionText: {
-            fontSize: FontSize.md,
-            color: theme.ink,
-            fontWeight: '600',
+        pickerOptionText: { fontSize: FontSize.md, fontWeight: '600', color: theme.ink },
+
+        // KPIs del periodo
+        statsCard: {
+            marginHorizontal: Spacing.lg,
+            marginBottom: Spacing.md,
+            borderRadius: Radius.md,
+            paddingVertical: Spacing.md,
+            ...Shadow.card,
+        },
+        statsRow: { flexDirection: 'row', alignItems: 'center' },
+        statCell: { flex: 1, alignItems: 'center', gap: 4 },
+        statDivider: { width: 1, height: 30, backgroundColor: theme.border },
+        statLbl: {
+            fontSize: FontSize.xs - 1,
+            fontWeight: '700',
+            color: theme.inkDim,
+            textTransform: 'uppercase',
+            letterSpacing: 0.8,
         },
 
-        // Month label — now a row, count sits on the right of it.
+        emptyWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg },
+
+        // Encabezado de mes dentro de la lista
         monthLabelRow: {
             flexDirection: 'row',
             alignItems: 'baseline',
             justifyContent: 'space-between',
             paddingHorizontal: Spacing.lg,
-            paddingTop: Spacing.md,
-            paddingBottom: Spacing.xs,
+            marginTop: Spacing.md,
+            marginBottom: Spacing.sm,
         },
         monthLabel: {
-            fontSize: FontSize.xs - 1,
-            fontWeight: '900',
-            color: theme.muted,
-            letterSpacing: 2,
+            fontSize: FontSize.xs,
+            fontWeight: '800',
+            color: theme.inkDim,
             textTransform: 'uppercase',
+            letterSpacing: 1.6,
         },
-        monthCount: {
-            fontSize: FontSize.xs - 1,
-            fontWeight: '600',
-            color: theme.muted,
-        },
+        monthCount: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '500' },
 
-        // Transaction card
-        // GlassCard supplies background/border now.
+        // Fila de movimiento
         txnCard: {
             marginHorizontal: Spacing.lg,
-            marginBottom: Spacing.sm,
-            borderRadius: Radius.sm,
+            borderRadius: Radius.md,
             ...Shadow.card,
         },
         txnRow: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: Spacing.sm,
-            paddingVertical: Spacing.sm + 2,
-            paddingHorizontal: Spacing.md,
+            gap: Spacing.sm + 2,
+            padding: Spacing.md,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
         },
         txnRowLast: { borderBottomWidth: 0 },
         txnInfo: { flex: 1 },
         txnName: {
-            fontSize: FontSize.sm,
+            fontSize: FontSize.md,
             fontWeight: '600',
             color: theme.ink,
-            marginBottom: 2,
+            letterSpacing: -0.2,
         },
-        txnDate: {
+        txnMeta: { fontSize: FontSize.xs, color: theme.inkDim, marginTop: 2, fontWeight: '500' },
+        txnRight: { alignItems: 'flex-end', gap: 3 },
+        txnDate: { fontSize: FontSize.xs - 1, color: theme.inkDim, fontWeight: '500' },
+
+        // Detalle dentro de la hoja
+        sheetHead: { alignItems: 'center', gap: Spacing.sm },
+        sheetType: {
             fontSize: FontSize.xs,
-            color: theme.muted,
-            fontWeight: '500',
-        },
-        // Subtitle line in the list row — "Cuenta · Etiqueta". Same
-        // look as txnDate (which now lives on the right, next to the
-        // amount), just a second style so each keeps its own name for
-        // what it actually shows.
-        txnMeta: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            fontWeight: '500',
-        },
-        txnRight: { alignItems: 'flex-end', gap: 4 },
-        txnAmount: {
-            fontSize: FontSize.sm,
             fontWeight: '800',
-            letterSpacing: -0.5,
+            textTransform: 'uppercase',
+            letterSpacing: 1.4,
+        },
+        sheetAmount: { alignItems: 'center', marginTop: Spacing.md },
+        sheetReason: {
+            fontSize: FontSize.md,
+            color: theme.inkMid,
+            textAlign: 'center',
+            marginTop: 4,
+            fontWeight: '500',
         },
 
-        // Empty state — transparent on purpose, so AppBackground's
-        // starfield shows through instead of a flat panel. The text
-        // shadow is what keeps it readable against the stars instead
-        // of the background color doing that job.
-        emptyState: {
+        detailList: {
+            marginTop: Spacing.lg,
+            borderRadius: Radius.md,
+            borderWidth: 1,
+            borderColor: theme.border,
+            backgroundColor: theme.inputFill,
+            paddingHorizontal: Spacing.md,
+        },
+        detailRow: {
+            flexDirection: 'row',
             alignItems: 'center',
-            paddingVertical: 60,
+            justifyContent: 'space-between',
+            gap: Spacing.md,
+            paddingVertical: Spacing.sm + 4,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
         },
-        emptyText: {
-            fontSize: FontSize.md,
-            fontWeight: '700',
-            color: theme.muted,
-            textShadowColor: 'rgba(0,0,0,0.6)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 6,
-        },
-        emptySub: {
+        detailKey: { fontSize: FontSize.sm, color: theme.inkDim, fontWeight: '600' },
+        detailVal: {
+            flex: 1,
             fontSize: FontSize.sm,
-            color: theme.muted,
-            marginTop: Spacing.xs,
-            textShadowColor: 'rgba(0,0,0,0.6)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 6,
+            color: theme.ink,
+            fontWeight: '600',
+            textAlign: 'right',
         },
+
+        tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+
+        // DecimalInput no puede vivir dentro de <Field> (necesita su
+        // propio inputAccessoryView), así que lleva fieldSurface y solo
+        // lo tipográfico aquí.
+        decimalInputLarge: {
+            fontSize: FontSize.xl,
+            fontWeight: '700',
+            color: theme.ink,
+            letterSpacing: -0.4,
+            paddingVertical: 0,
+        },
+
+        sheetBtns: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
     });
 }

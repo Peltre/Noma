@@ -16,23 +16,19 @@
 // internal tag for app-generated transactions (MSI, card payments,
 // goal purchases), never something a person picks.
 import { useMemo, useState } from 'react';
-import {
-    View, Text, TouchableOpacity, TextInput,
-    ScrollView, Alert, Modal, KeyboardAvoidingView, Platform,
-} from 'react-native';
-import { BlurView } from 'expo-blur';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Spacing, getTagIcon, TAG_ICON_OPTIONS } from '../constants';
+import { FontSize, Spacing, getTagIcon, TAG_ICON_OPTIONS } from '../constants';
 import { formatCurrency } from '../utils';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
-import GlassCard from '../components/GlassCard';
+import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard } from '../components/ui';
 
 // Type accents: the two fixed-meaning colors (moneyOut/moneyIn) plus
 // transfer's own token. No 'withdrawal' entry here — a plain retiro
@@ -184,6 +180,20 @@ export default function TransactionScreen() {
 
     const isSecondaryType = SECONDARY_TYPES.includes(type);
 
+    // Casilla de verificación — misma anatomía para "pagar con
+    // crédito" y para MSI, solo cambia el acento.
+    const Toggle = ({ on, accent, accentOn, label, onPress }) => (
+        <TouchableOpacity style={styles.toggle} onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
+            <View style={[
+                styles.checkbox,
+                on && { backgroundColor: accent, borderColor: accent },
+            ]}>
+                {on && <IconCheck color={accentOn} size={11} />}
+            </View>
+            <Text style={styles.toggleText}>{label}</Text>
+        </TouchableOpacity>
+    );
+
     return (
         <View style={styles.root}>
 
@@ -194,40 +204,42 @@ export default function TransactionScreen() {
 
                 {/* Back + title */}
                 <View style={styles.heroTop}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity
+                        style={styles.backBtn}
+                        onPress={() => navigation.goBack()}
+                        accessibilityRole="button"
+                        accessibilityLabel="Regresar"
+                    >
                         <IconChevronLeft color={theme.ink} size={16} />
                     </TouchableOpacity>
                     <Text style={styles.heroTitle}>Nuevo movimiento</Text>
-                    <View style={{ width: 36 }} />
+                    <View style={{ width: 38 }} />
                 </View>
 
                 {/* Type pills — only the two everyday ones, plus a
                     single control for everything else */}
                 <View style={styles.typeRow}>
-                    <TouchableOpacity
-                        style={[styles.typePill, type === 'expense' && { backgroundColor: TYPES.expense.color }]}
+                    <Pill
+                        label={TYPES.expense.label}
+                        selected={type === 'expense'}
+                        accent={TYPES.expense.color}
                         onPress={() => handleTypeChange('expense')}
-                    >
-                        <Text style={[styles.typePillText, type === 'expense' && { color: TYPES.expense.on }]}>
-                            {TYPES.expense.label}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.typePill, type === 'income' && { backgroundColor: TYPES.income.color }]}
+                        style={styles.typePill}
+                    />
+                    <Pill
+                        label={TYPES.income.label}
+                        selected={type === 'income'}
+                        accent={TYPES.income.color}
                         onPress={() => handleTypeChange('income')}
-                    >
-                        <Text style={[styles.typePillText, type === 'income' && { color: TYPES.income.on }]}>
-                            {TYPES.income.label}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.typePill, isSecondaryType && { backgroundColor: cur.color }]}
+                        style={styles.typePill}
+                    />
+                    <Pill
+                        label={isSecondaryType ? cur.label : 'Otro ›'}
+                        selected={isSecondaryType}
+                        accent={cur.color}
                         onPress={() => setShowTypeSheet(true)}
-                    >
-                        <Text style={[styles.typePillText, isSecondaryType && { color: cur.on }]}>
-                            {isSecondaryType ? cur.label : 'Otro ›'}
-                        </Text>
-                    </TouchableOpacity>
+                        style={styles.typePill}
+                    />
                 </View>
 
                 {/* Amount input */}
@@ -238,7 +250,7 @@ export default function TransactionScreen() {
                         value={amount}
                         onChangeText={setAmount}
                         placeholder="0.00"
-                        placeholderTextColor={theme.muted}
+                        placeholderTextColor={theme.inkDim}
                         autoFocus
                     />
                 </View>
@@ -246,12 +258,11 @@ export default function TransactionScreen() {
                 {/* MSI preview inline */}
                 {isMSI && totalAmt > 0 && (
                     <View style={[styles.msiBanner, { borderColor: cur.color + '55' }]}>
-                        <Text style={styles.msiBannerText}>
-                            {msiMonths} pagos de{' '}
-                            <Text style={[styles.msiBannerAmt, { color: cur.color }]}>
-                                ${monthly.toFixed(2)}/mes
-                            </Text>
-                        </Text>
+                        <View style={styles.msiBannerRow}>
+                            <Text style={styles.msiBannerText}>{msiMonths} pagos de</Text>
+                            <Money value={monthly} size={FontSize.md} color={theme.msi} />
+                            <Text style={styles.msiBannerText}>/mes</Text>
+                        </View>
                         <Text style={styles.msiBannerSub}>
                             Primer cobro: {format(firstPay, "d 'de' MMMM", { locale: es })}
                         </Text>
@@ -269,154 +280,94 @@ export default function TransactionScreen() {
                 >
                     {/* Reason / name — the only descriptive field now, and
                     what History/Home actually show for this movement */}
-                    <Text style={styles.fieldLabel}>¿EN QUÉ? <Text style={styles.requiredMark}>*</Text></Text>
-                    <TextInput
-                        style={styles.input}
+                    <Field
+                        label="¿En qué?"
+                        required
                         value={reason}
                         onChangeText={setReason}
                         placeholder="Describe el movimiento"
-                        placeholderTextColor={theme.muted}
                     />
 
                     {/* Tags — fully optional, purely for a future
-                    breakdown by tag. Same pillsWrap pattern as
-                    accounts/MSI months below, plus a trailing "+
-                    Nueva" pill that opens the inline creator sheet. */}
-                    <Text style={styles.fieldLabel}>ETIQUETAS <Text style={styles.optionalHint}>(opcional)</Text></Text>
+                    breakdown by tag. Same pill row as accounts/MSI
+                    months below, plus a trailing "+ Nueva" pill that
+                    opens the inline creator sheet. */}
+                    <FieldLabel optional>Etiquetas</FieldLabel>
                     <View style={styles.pillsWrap}>
-                        {tags.map(tag => {
-                            const TagIcon = getTagIcon(tag.icon);
-                            const isSelected = selectedTagIds.includes(tag.id);
-                            return (
-                                <TouchableOpacity
-                                    key={tag.id}
-                                    style={[
-                                        styles.tagPill,
-                                        isSelected
-                                            ? { backgroundColor: theme.brandSoft, borderColor: theme.brand }
-                                            : { borderColor: theme.border },
-                                    ]}
-                                    onPress={() => toggleTag(tag.id)}
-                                >
-                                    <TagIcon color={isSelected ? theme.brand : theme.muted} size={14} />
-                                    <Text style={[styles.tagPillText, { color: isSelected ? theme.brand : theme.muted }]}>
-                                        {tag.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                        <TouchableOpacity style={styles.tagAddPill} onPress={() => setShowNewTag(true)}>
-                            <IconPlus color={theme.muted} size={12} />
-                            <Text style={styles.tagPillText}>Nueva</Text>
-                        </TouchableOpacity>
+                        {tags.map(tag => (
+                            <Pill
+                                key={tag.id}
+                                label={tag.label}
+                                icon={getTagIcon(tag.icon)}
+                                selected={selectedTagIds.includes(tag.id)}
+                                onPress={() => toggleTag(tag.id)}
+                            />
+                        ))}
+                        <Pill label="Nueva" icon={IconPlus} onPress={() => setShowNewTag(true)} />
                     </View>
 
                     {/* Account(s) */}
                     {type === 'transfer' ? (
                         <>
-                            <Text style={styles.fieldLabel}>CUENTA ORIGEN <Text style={styles.requiredMark}>*</Text></Text>
+                            <FieldLabel required>Cuenta origen</FieldLabel>
                             <View style={styles.pillsWrap}>
-                                {accounts.map(item => {
-                                    const isSelected = selectedAccount === item.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={item.id}
-                                            style={[
-                                                styles.catPill,
-                                                isSelected
-                                                    ? { backgroundColor: theme.ink, borderColor: theme.ink }
-                                                    : { borderColor: theme.border },
-                                            ]}
-                                            onPress={() => {
-                                                setAccount(item.id);
-                                                // Origin just changed — if it now
-                                                // matches the destination, clear
-                                                // the destination instead of
-                                                // silently leaving an invalid
-                                                // "same account" pair selected.
-                                                if (toAccount === item.id) setToAccount(null);
-                                            }}
-                                        >
-                                            <Text style={[
-                                                styles.catPillText,
-                                                isSelected ? { color: theme.bg } : { color: theme.muted },
-                                            ]}>
-                                                {item.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                {accounts.map(item => (
+                                    <Pill
+                                        key={item.id}
+                                        label={item.name}
+                                        selected={selectedAccount === item.id}
+                                        onPress={() => {
+                                            setAccount(item.id);
+                                            // Origin just changed — if it now
+                                            // matches the destination, clear
+                                            // the destination instead of
+                                            // silently leaving an invalid
+                                            // "same account" pair selected.
+                                            if (toAccount === item.id) setToAccount(null);
+                                        }}
+                                    />
+                                ))}
                             </View>
 
-                            <Text style={styles.fieldLabel}>CUENTA DESTINO <Text style={styles.requiredMark}>*</Text></Text>
+                            <FieldLabel required>Cuenta destino</FieldLabel>
                             <View style={styles.pillsWrap}>
-                                {accounts.filter(item => item.id !== selectedAccount).map(item => {
-                                    const isSelected = toAccount === item.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={item.id}
-                                            style={[
-                                                styles.catPill,
-                                                isSelected
-                                                    ? { backgroundColor: theme.brand, borderColor: theme.brand }
-                                                    : { borderColor: theme.border },
-                                            ]}
-                                            onPress={() => setToAccount(item.id)}
-                                        >
-                                            <Text style={[
-                                                styles.catPillText,
-                                                isSelected ? { color: theme.brandOn } : { color: theme.muted },
-                                            ]}>
-                                                {item.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                {accounts.filter(item => item.id !== selectedAccount).map(item => (
+                                    <Pill
+                                        key={item.id}
+                                        label={item.name}
+                                        selected={toAccount === item.id}
+                                        accent={theme.transfer}
+                                        onPress={() => setToAccount(item.id)}
+                                    />
+                                ))}
                             </View>
                         </>
                     ) : (
                         <>
-                            <Text style={styles.fieldLabel}>CUENTA <Text style={styles.requiredMark}>*</Text></Text>
+                            <FieldLabel required>Cuenta</FieldLabel>
                             {type === 'expense' && creditCards.length > 0 && (
-                                <TouchableOpacity
-                                    style={styles.toggle}
+                                <Toggle
+                                    on={useCredit}
+                                    accent={theme.cardPayment}
+                                    accentOn={theme.cardPaymentOn}
+                                    label="Pagar con tarjeta de crédito"
                                     onPress={() => { setUseCredit(!useCredit); setIsMSI(false); }}
-                                >
-                                    <View style={[styles.checkbox, useCredit && styles.checkboxOn]}>
-                                        {useCredit && <IconCheck color={theme.bg} size={11} />}
-                                    </View>
-                                    <Text style={styles.toggleText}>Pagar con tarjeta de crédito</Text>
-                                </TouchableOpacity>
+                                />
                             )}
                             {/* One list, never both at once: débito while
                             useCredit is off, tarjetas while it's on —
                             picking a payment method replaces the list
                             instead of adding a second one below it. */}
                             <View style={styles.pillsWrap}>
-                                {(useCredit ? creditCards : accounts).map(item => {
-                                    const isSelected = useCredit
-                                        ? selectedCard === item.id
-                                        : selectedAccount === item.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={item.id}
-                                            style={[
-                                                styles.catPill,
-                                                isSelected
-                                                    ? { backgroundColor: theme.ink, borderColor: theme.ink }
-                                                    : { borderColor: theme.border },
-                                            ]}
-                                            onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
-                                        >
-                                            <Text style={[
-                                                styles.catPillText,
-                                                isSelected ? { color: theme.bg } : { color: theme.muted },
-                                            ]}>
-                                                {item.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                {(useCredit ? creditCards : accounts).map(item => (
+                                    <Pill
+                                        key={item.id}
+                                        label={item.name}
+                                        selected={useCredit ? selectedCard === item.id : selectedAccount === item.id}
+                                        accent={useCredit ? theme.cardPayment : undefined}
+                                        onPress={() => useCredit ? setCard(item.id) : setAccount(item.id)}
+                                    />
+                                ))}
                             </View>
 
                             {/* Credit available — the store enforces the
@@ -429,9 +380,26 @@ export default function TransactionScreen() {
                                 const available = Math.max(0, card.limit - card.currentDebt);
                                 const overLimit = totalAmt > available;
                                 return (
-                                    <Text style={[styles.fieldHint, overLimit && { color: theme.moneyOut, fontWeight: '700' }]}>
-                                        Disponible: {formatCurrency(available)} de {formatCurrency(card.limit)}
-                                    </Text>
+                                    <View style={styles.hintRow}>
+                                        <Text style={[styles.fieldHint, overLimit && styles.fieldHintError]}>
+                                            Disponible:{' '}
+                                        </Text>
+                                        <Money
+                                            value={available}
+                                            size={FontSize.xs + 1}
+                                            color={overLimit ? theme.moneyOut : theme.inkMid}
+                                            decimals={false}
+                                        />
+                                        <Text style={[styles.fieldHint, overLimit && styles.fieldHintError]}>
+                                            {' '}de{' '}
+                                        </Text>
+                                        <Money
+                                            value={card.limit}
+                                            size={FontSize.xs + 1}
+                                            color={theme.inkDim}
+                                            decimals={false}
+                                        />
+                                    </View>
                                 );
                             })()}
                         </>
@@ -443,38 +411,26 @@ export default function TransactionScreen() {
                     even confirms. */}
                     {canUseMSI && (
                         <>
-                            <TouchableOpacity
-                                style={styles.toggle}
+                            <Toggle
+                                on={isMSI}
+                                accent={theme.msi}
+                                accentOn={theme.msiOn}
+                                label="Meses sin intereses (MSI)"
                                 onPress={() => setIsMSI(!isMSI)}
-                            >
-                                <View style={[styles.checkbox, isMSI && { backgroundColor: theme.msi, borderColor: theme.msi }]}>
-                                    {isMSI && <IconCheck color={theme.msiOn} size={11} />}
-                                </View>
-                                <Text style={styles.toggleText}>Meses sin intereses (MSI)</Text>
-                            </TouchableOpacity>
+                            />
 
                             {isMSI && (
                                 <>
-                                    <Text style={[styles.fieldLabel, { marginTop: Spacing.sm }]}>MESES</Text>
+                                    <FieldLabel>Meses</FieldLabel>
                                     <View style={styles.pillsWrap}>
                                         {MSI_OPTIONS.map(m => (
-                                            <TouchableOpacity
+                                            <Pill
                                                 key={m}
-                                                style={[
-                                                    styles.catPill,
-                                                    msiMonths === m
-                                                        ? { backgroundColor: theme.msi, borderColor: theme.msi }
-                                                        : { borderColor: theme.border },
-                                                ]}
+                                                label={`${m}m`}
+                                                selected={msiMonths === m}
+                                                accent={theme.msi}
                                                 onPress={() => setMsiMonths(m)}
-                                            >
-                                                <Text style={[
-                                                    styles.catPillText,
-                                                    msiMonths === m ? { color: theme.msiOn } : { color: theme.muted },
-                                                ]}>
-                                                    {m}m
-                                                </Text>
-                                            </TouchableOpacity>
+                                            />
                                         ))}
                                     </View>
                                 </>
@@ -483,14 +439,14 @@ export default function TransactionScreen() {
                     )}
 
                     {/* Confirm button */}
-                    <TouchableOpacity
-                        style={[styles.confirmBtn, { backgroundColor: isMSI ? theme.msi : cur.color }]}
-                        onPress={handleConfirm}
-                    >
-                        <Text style={[styles.confirmText, { color: isMSI ? theme.msiOn : cur.on }]}>
-                            {isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.actions}>
+                        <Button
+                            label={isMSI ? `Registrar MSI · ${msiMonths} meses` : `Registrar ${cur.label}`}
+                            accent={isMSI ? theme.msi : cur.color}
+                            accentOn={isMSI ? theme.msiOn : cur.on}
+                            onPress={handleConfirm}
+                        />
+                    </View>
 
                     <View style={{ height: Spacing.xl + insets.bottom }} />
                 </ScrollView>
@@ -498,82 +454,72 @@ export default function TransactionScreen() {
 
             {/* "Otro tipo" — just Traspaso now; Fondos programados
                 moved to Home's own section, not reachable from here. */}
-            <Modal visible={showTypeSheet} transparent animationType="slide" onRequestClose={() => setShowTypeSheet(false)}>
-                <View style={styles.modalBg}>
-                    <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowTypeSheet(false)} />
-                    <View style={styles.typeSheet}>
-                        <View style={styles.sheetHandle} />
-                        <Text style={styles.typeSheetTitle}>Otro tipo de movimiento</Text>
-                        {SECONDARY_TYPES.map(key => (
-                            <TouchableOpacity
-                                key={key}
-                                style={styles.typeOption}
-                                onPress={() => handleTypeChange(key)}
-                            >
-                                <View style={[styles.typeOptionDot, { backgroundColor: TYPES[key].color }]} />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.typeOptionLabel}>{TYPES[key].label}</Text>
-                                    <Text style={styles.typeOptionDesc}>{TYPE_DESCRIPTIONS[key]}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            </Modal>
-
-            {/* "+ Nueva" tag — centered card over a blurred backdrop,
-                not a bottom sheet (see tagModalOverlay in the
-                stylesheet for why). Icon picker built from the same
-                TAG_ICON_OPTIONS list every default tag draws from, so
-                there's no separate icon set to maintain. */}
-            <Modal visible={showNewTag} transparent animationType="fade" onRequestClose={() => setShowNewTag(false)}>
-                <BlurView intensity={40} tint="dark" style={styles.tagModalOverlay}>
-                    <TouchableOpacity style={styles.tagModalBackdrop} activeOpacity={1} onPress={() => setShowNewTag(false)} />
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={styles.tagModalKav}
-                    >
-                        <View style={styles.tagModalCard}>
-                            <Text style={styles.typeSheetTitle}>Nueva etiqueta</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={newTagName}
-                                onChangeText={setNewTagName}
-                                placeholder="Nombre de la etiqueta"
-                                placeholderTextColor={theme.muted}
-                                autoFocus
-                            />
-                            <Text style={[styles.fieldLabel, { marginTop: Spacing.md }]}>ÍCONO</Text>
-                            <View style={styles.pillsWrap}>
-                                {TAG_ICON_OPTIONS.map(key => {
-                                    const OptIcon = getTagIcon(key);
-                                    const isSelected = newTagIcon === key;
-                                    return (
-                                        <TouchableOpacity
-                                            key={key}
-                                            style={[
-                                                styles.iconOption,
-                                                isSelected
-                                                    ? { backgroundColor: theme.brand, borderColor: theme.brand }
-                                                    : { borderColor: theme.border },
-                                            ]}
-                                            onPress={() => setNewTagIcon(key)}
-                                        >
-                                            <OptIcon color={isSelected ? theme.brandOn : theme.muted} size={16} />
-                                        </TouchableOpacity>
-                                    );
-                                })}
+            {showTypeSheet && (
+                <Sheet onClose={() => setShowTypeSheet(false)} title="Otro tipo de movimiento">
+                    {SECONDARY_TYPES.map(key => (
+                        <TouchableOpacity
+                            key={key}
+                            style={styles.typeOption}
+                            onPress={() => handleTypeChange(key)}
+                            accessibilityRole="button"
+                        >
+                            <View style={[styles.typeOptionDot, { backgroundColor: TYPES[key].color }]} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.typeOptionLabel}>{TYPES[key].label}</Text>
+                                <Text style={styles.typeOptionDesc}>{TYPE_DESCRIPTIONS[key]}</Text>
                             </View>
-                            <TouchableOpacity
-                                style={[styles.confirmBtn, { backgroundColor: theme.brand, marginTop: Spacing.lg }]}
-                                onPress={handleCreateTag}
-                            >
-                                <Text style={[styles.confirmText, { color: theme.brandOn }]}>Crear etiqueta</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </KeyboardAvoidingView>
-                </BlurView>
-            </Modal>
+                        </TouchableOpacity>
+                    ))}
+                </Sheet>
+            )}
+
+            {/* "+ Nueva" etiqueta — antes era una tarjeta centrada
+                sobre un blur propio; ahora es la misma Sheet que el
+                resto de la app, para no tener dos gramáticas de modal
+                en la misma pantalla. El icono sale del mismo
+                TAG_ICON_OPTIONS del que salen las etiquetas por
+                defecto, así no hay un set aparte que mantener. */}
+            {showNewTag && (
+                <Sheet onClose={() => setShowNewTag(false)} title="Nueva etiqueta">
+                    <Field
+                        label="Nombre"
+                        required
+                        value={newTagName}
+                        onChangeText={setNewTagName}
+                        placeholder="Nombre de la etiqueta"
+                        autoFocus
+                    />
+
+                    <FieldLabel>Ícono</FieldLabel>
+                    <View style={styles.pillsWrap}>
+                        {TAG_ICON_OPTIONS.map(key => {
+                            const OptIcon = getTagIcon(key);
+                            const isSelected = newTagIcon === key;
+                            return (
+                                <TouchableOpacity
+                                    key={key}
+                                    style={[
+                                        styles.iconOption,
+                                        isSelected
+                                            ? { backgroundColor: theme.brand + '29', borderColor: theme.brand }
+                                            : { borderColor: theme.border },
+                                    ]}
+                                    onPress={() => setNewTagIcon(key)}
+                                    accessibilityRole="button"
+                                    accessibilityState={{ selected: isSelected }}
+                                >
+                                    <OptIcon color={isSelected ? theme.brand : theme.muted} size={16} />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    <View style={styles.actions}>
+                        <Button label="Cancelar" variant="secondary" onPress={() => setShowNewTag(false)} />
+                        <Button label="Crear etiqueta" onPress={handleCreateTag} style={{ flex: 2 }} />
+                    </View>
+                </Sheet>
+            )}
         </View>
     );
 }

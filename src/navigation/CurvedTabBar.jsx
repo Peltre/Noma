@@ -7,7 +7,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../store/useTheme';
-import { Shadow, FontSize, Radius, Spacing } from '../constants';
+import { Shadow, FontSize, Spacing } from '../constants';
 import { IconHome, IconHistory, IconSavings, IconCards, IconPlus } from '../components/Icons';
 
 // Tight to icon+label content. Nudged up slightly to make room for
@@ -86,9 +86,9 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
                 <BlurView
                     intensity={theme.glassIntensity}
                     tint={theme.glassTint}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                 />
-                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.glassFill }]} />
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.glassFill }]} />
 
                 <View style={[styles.row, { height: BASE_HEIGHT + insets.bottom, paddingBottom: insets.bottom }]}>
                     <View style={styles.tabGroup}>
@@ -110,7 +110,7 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
                 style (not as a prop), same reason as GlassCard. */}
             <View
                 style={[
-                    StyleSheet.absoluteFillObject,
+                    StyleSheet.absoluteFill,
                     styles.borderOverlay,
                     { height: totalHeight, borderTopColor: theme.glassBorderTop, pointerEvents: 'none' },
                 ]}

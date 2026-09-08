@@ -1,565 +1,371 @@
-// SavingsScreen.styles.js — theme-driven. Savings/goals use
-// theme.brand as their accent (the primary, non money-in/out role).
-// Completed goals reuse moneyIn as a positive/done signal. Savings
-// account dot colors (SAVINGS_COLORS in useSavings.js) stay fixed —
-// user-chosen labels, not theme surfaces.
+// SavingsScreen styles — header, secciones, vacíos, hojas, pastillas,
+// campos y botones vienen de components/ui. Lo que queda aquí es lo
+// propio de Ahorros: la tarjeta de total, la fila de apartado (con su
+// columna de acciones), la tarjeta de objetivo con su barra de
+// progreso, y los campos de interés en porcentaje.
+//
+// De 596 líneas a esto: todo lo que se fue era una segunda versión de
+// algo que el kit ya resolvía.
 import { StyleSheet } from 'react-native';
-import { FontSize, Spacing, Radius, Shadow } from '../constants';
+import { FontSize, Spacing, Radius, Shadow, TabularNums } from '../constants';
 
 export default function createSavingsStyles(theme) {
     return StyleSheet.create({
+        safeArea: { flex: 1, backgroundColor: 'transparent' },
 
-        safeArea: {
-            flex: 1,
-            backgroundColor: 'transparent',
-        },
+        section: { paddingHorizontal: Spacing.lg },
 
-        // Hero — GlassCard supplies background/border now.
-        hero: {
-            paddingHorizontal: Spacing.lg,
-            paddingBottom: Spacing.lg + Spacing.sm,
-            position: 'relative',
-        },
-        // Large arc peeking from bottom-right — like a coin
-        heroArc: {
-            position: 'absolute',
-            width: 200, height: 200,
-            borderRadius: 100,
-            borderWidth: 28,
-            borderColor: theme.brandSoft,
-            backgroundColor: 'transparent',
-            bottom: -80, right: -60,
-        },
-        // Small solid dot top-left — counterpoint
-        heroDot: {
-            position: 'absolute',
-            width: 10, height: 10,
-            borderRadius: 5,
-            backgroundColor: theme.moneyInSoft,
-            top: 20, left: 0,
-        },
-        heroLabel: {
-            fontSize: FontSize.xs,
-            fontWeight: '700',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            color: theme.muted,
-            marginBottom: Spacing.xs,
-            zIndex: 2,
-        },
-        heroAmount: {
-            fontSize: FontSize.hero,
-            fontWeight: '900',
-            color: theme.ink,
-            letterSpacing: -2,
-            zIndex: 2,
-        },
-        breakdownRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-            marginTop: Spacing.sm,
-            zIndex: 2,
-        },
-        breakdownText: {
-            fontSize: FontSize.xs,
-            fontWeight: '700',
-            color: theme.muted,
-        },
-        breakdownSub: {
-            fontSize: FontSize.xs,
-            fontWeight: '700',
-            color: theme.savings,
-        },
-        breakdownRisk: {
-            fontSize: FontSize.xs,
-            fontWeight: '700',
-            color: theme.moneyOut,
-            lineHeight: 16,
-        },
-        inputHint: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            marginTop: 4,
-            fontWeight: '500',
-        },
+        pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
 
-        // Sections
-        section: {
-            padding: Spacing.lg,
-            paddingBottom: 0,
-        },
-        sectionHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+        sheetBtns: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
+
+        // ── Total en ahorros ──
+        totalCard: {
+            marginHorizontal: Spacing.lg,
             marginBottom: Spacing.sm,
+            borderRadius: Radius.md,
+            padding: Spacing.lg,
+            ...Shadow.card,
         },
-        sectionTitle: {
+        totalLabel: {
             fontSize: FontSize.xs,
             fontWeight: '800',
-            color: theme.ink,
-            letterSpacing: 1.2,
+            color: theme.inkDim,
             textTransform: 'uppercase',
-        },
-        sectionAction: {
-            fontSize: FontSize.sm,
-            fontWeight: '700',
-            color: theme.brand,
+            letterSpacing: 1.6,
+            marginBottom: Spacing.sm,
         },
 
-        // Empty state
-        emptyCard: {
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            borderStyle: 'dashed',
-            borderRadius: Radius.sm,
-            padding: Spacing.lg,
+
+
+        // Barra de reparto del total. Mismo azul en dos opacidades a
+        // propósito: es un solo bote de dinero en dos estados, no dos
+        // montones distintos. Dos colores dirían lo contrario.
+        splitBar: {
+            flexDirection: 'row',
+            height: 7,
+            borderRadius: 4,
+            overflow: 'hidden',
+            marginTop: Spacing.md,
+            backgroundColor: theme.border,
+        },
+        splitFree: { backgroundColor: theme.savings },
+        splitCommitted: { backgroundColor: theme.savings, opacity: 0.42 },
+
+        legendRow: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: Spacing.md,
+            marginTop: Spacing.sm + 2,
+        },
+        legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+        legendDot: { width: 7, height: 7, borderRadius: 4 },
+        legendLabel: { fontSize: FontSize.sm, color: theme.inkMid, fontWeight: '500' },
+
+        backingNote: { fontSize: FontSize.xs, color: theme.inkDim, marginTop: 6, fontWeight: '500' },
+
+        // Medidor de lo comprometido, ahora del ancho de una etiqueta y
+        // dentro del subtítulo de la fila. Ancho fijo a propósito: si
+        // fuera flexible, cada apartado tendría una barra de distinto
+        // largo y dejarían de ser comparables entre sí de un vistazo.
+        miniBar: {
+            flexDirection: 'row',
+            width: 62,
+            height: 4,
+            borderRadius: 2,
+            overflow: 'hidden',
+            backgroundColor: theme.border,
+            flexShrink: 0,
+        },
+        // Solo avisa que hay riesgo; la cifra vive en la hoja de acciones.
+        riskDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.moneyOut },
+
+        // Fila de apartado (tocable: abre la hoja de acciones)
+        accountNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+        accountSub: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 5 },
+        accountRight: { alignItems: 'flex-end' },
+        earnedText: { fontSize: FontSize.xs - 1, color: theme.savings, fontWeight: '700', marginTop: 2 },
+
+        // La tasa pasó de una fila propia a una pastilla junto al nombre
+        ratePill: {
+            borderWidth: 1,
+            borderColor: theme.savings + '66',
+            borderRadius: Radius.full,
+            paddingHorizontal: 6,
+            paddingVertical: 1,
+        },
+        ratePillText: { fontSize: FontSize.xs - 2, color: theme.savings, fontWeight: '800' },
+
+        actionsTotal: { alignItems: 'center', marginTop: Spacing.sm, marginBottom: Spacing.xs },
+        sheetBtnsTight: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+
+        // Aviso de riesgo — mismo bloque en la tarjeta de total y en
+        // la de objetivo: triángulo ámbar + una línea que explica.
+        riskRow: {
+            flexDirection: 'row',
             alignItems: 'center',
-            marginBottom: Spacing.sm,
+            gap: Spacing.xs + 2,
+            marginTop: Spacing.md,
+            paddingTop: Spacing.sm + 2,
+            borderTopWidth: 1,
+            borderTopColor: theme.border,
         },
-        emptyCardText: {
-            fontSize: FontSize.sm,
-            fontWeight: '600',
-            color: theme.muted,
-        },
-        emptyCardSub: {
+        riskText: {
+            flex: 1,
             fontSize: FontSize.xs,
-            color: theme.muted,
-            marginTop: Spacing.xs,
+            color: theme.moneyOut,
+            fontWeight: '600',
+            lineHeight: FontSize.xs * 1.4,
         },
 
-        // Accounts group — GlassCard supplies background/border now.
+        // ── Fila de apartado ──
         accountsGroup: {
-            borderRadius: Radius.sm,
-            marginBottom: Spacing.sm,
+            borderRadius: Radius.md,
             ...Shadow.card,
         },
         accountRow: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: Spacing.sm,
+            gap: Spacing.md - 2,
             padding: Spacing.md,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
         },
         accountRowLast: { borderBottomWidth: 0 },
-        accountInfo: { flex: 1 },
+        // 26 en vez de 38: sigue identificando el apartado, deja de ser
+        // el elemento más grande de una fila donde no carga ningún dato.
+        accountDot: { width: 26, height: 26, borderRadius: 13, flexShrink: 0 },
+        accountInfo: { flex: 1, minWidth: 0 },
+        accountsFooter: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm + 2,
+            borderTopWidth: 1,
+            borderTopColor: theme.border,
+        },
+        accountsFooterLabel: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '700' },
         accountName: {
-            fontSize: FontSize.sm,
+            fontSize: FontSize.md,
             fontWeight: '700',
             color: theme.ink,
-            marginBottom: 2,
+            letterSpacing: -0.2,
         },
-        accountLinked: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            fontWeight: '600',
-            marginBottom: 2,
-        },
-        accountBalance: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            fontWeight: '500',
-        },
-        accountRisk: {
-            fontSize: FontSize.xs,
-            color: theme.moneyOut,
-            fontWeight: '700',
-        },
-        accountActions: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.xs,
-        },
-        actionBtn: {
-            width: 30, height: 30,
-            borderRadius: Radius.sm,
-            backgroundColor: theme.brandSoft,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        // Interest toggle button on an apartado row — swaps to the
-        // `savings` accent (same blue used for the badge/rate text
-        // below) once interest is actually on, so the row itself
-        // hints at it before you even read the badge.
-        actionBtnActive: {
-            backgroundColor: theme.savingsSoft,
-        },
-        interestBadgeRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            marginTop: 2,
-        },
-        interestBadgeText: {
-            fontSize: FontSize.xs,
-            color: theme.savings,
-            fontWeight: '700',
-        },
+        accountLinked: { fontSize: FontSize.xs, color: theme.inkDim, marginTop: 1, fontWeight: '500' },
 
-        // Goal card — GlassCard supplies background/border by default;
-        // goalCardComplete (applied alongside, when a goal is done)
-        // still overrides border color/width same as before, since
-        // it's layered after GlassCard's own theme border internally.
+
+
+        // ── Tarjeta de objetivo ──
         goalCard: {
-            borderRadius: Radius.sm,
+            borderRadius: Radius.md,
             padding: Spacing.md,
-            marginBottom: Spacing.sm,
+            marginBottom: Spacing.sm + 2,
             ...Shadow.card,
-        },
-        goalCardComplete: {
-            borderColor: theme.moneyIn,
-            borderWidth: 1.5,
         },
         goalHeader: {
             flexDirection: 'row',
             alignItems: 'flex-start',
-            marginBottom: Spacing.md,
+            justifyContent: 'space-between',
+            gap: Spacing.sm,
         },
         goalInfo: { flex: 1 },
         goalName: {
             fontSize: FontSize.md,
             fontWeight: '700',
             color: theme.ink,
-            marginBottom: 2,
+            letterSpacing: -0.2,
         },
         goalDeadline: {
             fontSize: FontSize.xs,
-            color: theme.muted,
+            color: theme.inkDim,
+            marginTop: 2,
+            fontWeight: '500',
             textTransform: 'capitalize',
         },
 
-        // Progress bar
-        progressBg: {
-            height: 5,
-            backgroundColor: theme.border,
-            borderRadius: 3,
-            overflow: 'hidden',
-            marginBottom: Spacing.xs,
-        },
-        progressFill: {
-            height: '100%',
-            backgroundColor: theme.brand,
-            borderRadius: 3,
-        },
-        progressFillComplete: { backgroundColor: theme.moneyIn },
-
-        goalAmounts: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
+        // Anillo + columna de información. La tarjeta ya no crece por
+        // bloques apilados: el progreso, el porcentaje y el riesgo
+        // caben todos dentro de los mismos 74x74.
+        goalMain: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md - 2 },
+        goalRingWrap: { width: 74, height: 74, flexShrink: 0 },
+        goalRingCenter: {
+            ...StyleSheet.absoluteFill,
             alignItems: 'center',
-            marginBottom: Spacing.sm,
+            justifyContent: 'center',
         },
-        goalSaved: {
-            fontSize: FontSize.sm,
+        goalRingPct: {
+            fontSize: FontSize.xl - 1,
             fontWeight: '800',
-            color: theme.brand,
-            letterSpacing: -0.3,
-        },
-        goalPct: {
-            fontSize: FontSize.sm,
-            fontWeight: '700',
             color: theme.ink,
+            letterSpacing: -0.6,
         },
-        goalTarget: {
-            fontSize: FontSize.sm,
-            color: theme.muted,
-            fontWeight: '500',
+        goalRingLabel: {
+            fontSize: FontSize.xs - 3,
+            fontWeight: '800',
+            color: theme.inkDim,
+            letterSpacing: 1,
+            marginTop: 1,
         },
 
-        suggestionRow: {
-            backgroundColor: theme.brandSoft,
-            borderRadius: Radius.sm - 2,
-            padding: Spacing.sm,
-            marginBottom: Spacing.sm,
+        goalAmountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 7 },
+        // Comparte fila con un <Money> en goalAmountRow, así que necesita
+        // los mismos dígitos: dos importes juntos con juegos distintos se
+        // ven como dos fuentes.
+        goalOf: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '500', ...TabularNums },
+
+        // "Sale de": puntos encimados + los nombres en una línea. Antes
+        // era divisor + etiqueta + fichas, tres elementos para decir lo
+        // que aquí cabe en uno.
+        goalSrcRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 9 },
+        stackDots: { flexDirection: 'row' },
+        stackDot: {
+            width: 13,
+            height: 13,
+            borderRadius: 7,
+            borderWidth: 2,
+            // El borde del color de la superficie es lo que hace que se
+            // lean como fichas encimadas y no como una barra segmentada.
+            borderColor: theme.surface,
+            marginLeft: -4,
         },
-        suggestionText: {
-            fontSize: FontSize.xs,
-            color: theme.brand,
-            fontWeight: '600',
-            textAlign: 'center',
-        },
-        riskRow: {
+        stackDotFirst: { marginLeft: 0 },
+        goalSrcText: { flex: 1, fontSize: FontSize.xs, color: theme.inkMid, fontWeight: '500' },
+
+        // Una sola línea de estado. Con riesgo lleva caja ámbar; sin
+        // riesgo es solo una línea tenue: no hay nada mal, solo hay algo
+        // que decir.
+        statusBox: {
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: Spacing.xs + 2,
+            marginTop: Spacing.md,
+            paddingVertical: Spacing.sm,
+            paddingHorizontal: Spacing.sm + 2,
+            borderRadius: Radius.xs,
             backgroundColor: theme.moneyOutSoft,
-            borderRadius: Radius.sm - 2,
-            padding: Spacing.sm,
-            marginBottom: Spacing.sm,
         },
-        riskText: {
+        statusBoxQuiet: { backgroundColor: 'transparent', paddingHorizontal: 0, paddingVertical: 0, marginTop: Spacing.sm + 2 },
+        statusText: {
+            flex: 1,
             fontSize: FontSize.xs,
             color: theme.moneyOut,
             fontWeight: '600',
-            textAlign: 'center',
+            lineHeight: FontSize.xs * 1.45,
         },
-        completeRow: { alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.sm },
-        completeText: {
-            fontSize: FontSize.sm,
-            fontWeight: '700',
-            color: theme.moneyIn,
-            letterSpacing: 0.3,
-        },
-        goalBtnRedeem: {
-            backgroundColor: theme.savings,
-            borderRadius: Radius.sm - 2,
-            paddingVertical: 10,
-            paddingHorizontal: Spacing.lg,
-        },
-        goalBtnRedeemText: {
-            fontSize: FontSize.sm,
-            fontWeight: '700',
-            color: theme.savingsOn,
-        },
+        statusTextQuiet: { color: theme.inkMid, fontWeight: '500' },
 
-        goalBtns: {
-            flexDirection: 'row',
-            gap: Spacing.sm,
-            marginTop: Spacing.xs,
-        },
-        goalBtnDeposit: {
-            flex: 1,
-            backgroundColor: theme.brand,
-            borderRadius: Radius.sm - 2,
-            paddingVertical: 10,
-            alignItems: 'center',
-        },
-        goalBtnDepositText: {
-            fontSize: FontSize.sm,
-            fontWeight: '700',
-            color: theme.brandOn,
-        },
-        goalBtnWithdraw: {
-            paddingHorizontal: Spacing.md,
-            paddingVertical: 10,
-            borderRadius: Radius.sm - 2,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            alignItems: 'center',
-        },
-        goalBtnWithdrawText: {
-            fontSize: FontSize.sm,
-            fontWeight: '600',
-            color: theme.muted,
-        },
+        // Menú "···" de la tarjeta de objetivo — mismo gesto que el de
+        // Inicio, horizontal porque aquí vive en una fila de título.
+        kebabBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 4, paddingVertical: 6 },
+        kebabDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: theme.inkDim },
 
-        // Bottom sheet
-        modalBg: {
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            justifyContent: 'flex-end',
-        },
-        sheet: {
-            backgroundColor: theme.surface,
-            borderTopLeftRadius: Radius.lg,
-            borderTopRightRadius: Radius.lg,
-            padding: Spacing.lg,
-            paddingBottom: 44,
-            ...Shadow.float,
-            maxHeight: '90%',
-        },
-        sheetHandle: {
-            width: 36, height: 4,
-            backgroundColor: theme.border,
-            borderRadius: 2,
-            alignSelf: 'center',
-            marginBottom: Spacing.lg,
-        },
+        goalBtns: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+
+        // ── Dentro de las hojas ──
+        // Título con punto de color a la izquierda (interés, mover
+        // dinero): Sheet centra su propio `title`, y estos necesitan
+        // el punto pegado al texto.
         sheetTitleRow: {
             flexDirection: 'row',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: Spacing.sm,
             marginBottom: Spacing.xs,
         },
         sheetTitle: {
-            fontSize: FontSize.xl,
+            fontSize: FontSize.lg,
             fontWeight: '800',
             color: theme.ink,
             letterSpacing: -0.3,
-            marginBottom: Spacing.xs,
-        },
-        sheetSubtitle: {
-            fontSize: FontSize.md,
-            color: theme.muted,
-            marginBottom: Spacing.lg,
-            fontWeight: '500',
-        },
-        sheetLabel: {
-            fontSize: FontSize.xs,
-            fontWeight: '800',
-            color: theme.muted,
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-            marginTop: Spacing.md,
-            marginBottom: Spacing.xs,
-        },
-        // Small tappable hint under an amount field (e.g. "Faltan X")
-        sheetHint: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            marginTop: -Spacing.xs,
-            marginBottom: Spacing.xs,
-            textDecorationLine: 'underline',
-        },
-        sheetHintSmall: {
-            fontSize: FontSize.xs,
-            color: theme.muted,
-            fontWeight: '500',
-            lineHeight: 14,
-            marginTop: Spacing.xs,
-            marginBottom: Spacing.xs,
-        },
-        sheetInput: {
-            backgroundColor: theme.bg,
-            borderRadius: Radius.sm,
-            padding: Spacing.md,
-            fontSize: FontSize.md,
-            color: theme.ink,
-            borderWidth: 1,
-            borderColor: theme.border,
-        },
-        sheetInputLarge: {
-            fontSize: FontSize.xxl,
-            fontWeight: '800',
-            textAlign: 'center',
-            letterSpacing: -1,
         },
 
-        // Color picker
-        colorRow: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: Spacing.sm,
-            marginTop: Spacing.xs,
-        },
-        colorDot: {
-            width: 34, height: 34,
-            borderRadius: 17,
-        },
-        colorDotActive: {
-            borderWidth: 3,
-            borderColor: theme.ink,
-        },
-
-        // Account preview (in AddAccountModal)
-        accountPreview: {
+        preview: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: Spacing.sm,
-            backgroundColor: theme.bg,
-            borderRadius: Radius.sm,
-            padding: Spacing.md,
-            marginBottom: Spacing.xs,
-            borderWidth: 1,
-            borderColor: theme.border,
-        },
-        accountPreviewName: {
-            fontSize: FontSize.md,
-            fontWeight: '600',
-            color: theme.ink,
-            flex: 1,
-        },
-
-        // Chips (account picker)
-        chipRow: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: Spacing.sm,
-            marginTop: Spacing.xs,
-        },
-        chip: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.xs,
-            paddingHorizontal: Spacing.md,
-            paddingVertical: Spacing.sm,
-            borderRadius: Radius.full,
-            backgroundColor: theme.bg,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-        },
-        chipActive: {
-            backgroundColor: theme.brandSoft,
-            borderColor: theme.brand,
-        },
-        chipDot: { width: 8, height: 8, borderRadius: 4 },
-        chipText: {
-            fontSize: FontSize.sm,
-            fontWeight: '600',
-            color: theme.muted,
-        },
-        chipTextActive: { color: theme.brand },
-        emptyChipText: {
-            fontSize: FontSize.sm,
-            color: theme.muted,
-            textAlign: 'center',
+            gap: Spacing.md - 2,
             paddingVertical: Spacing.md,
         },
+        previewName: {
+            flex: 1,
+            fontSize: FontSize.lg,
+            fontWeight: '700',
+            color: theme.ink,
+            letterSpacing: -0.3,
+        },
 
-        // Deadline toggle
+        colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+        colorDot: {
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            borderWidth: 2,
+            borderColor: 'transparent',
+        },
+
+        // Casilla (interés, fecha límite) — misma anatomía que en
+        // TransactionScreen.
         toggle: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: Spacing.sm,
-            marginTop: Spacing.md,
-            marginBottom: Spacing.xs,
+            gap: Spacing.sm + 2,
+            paddingVertical: Spacing.sm + 2,
+            marginTop: Spacing.sm,
         },
         checkbox: {
-            width: 22, height: 22, borderRadius: 6,
-            borderWidth: 2, borderColor: theme.border,
-            backgroundColor: theme.bg,
-            justifyContent: 'center', alignItems: 'center',
+            width: 20,
+            height: 20,
+            borderRadius: 6,
+            borderWidth: 1.5,
+            borderColor: theme.border,
+            alignItems: 'center',
+            justifyContent: 'center',
         },
-        checkboxActive: {
-            backgroundColor: theme.brand,
-            borderColor: theme.brand,
-        },
-        toggleText: { fontSize: FontSize.md, color: theme.ink, fontWeight: '500' },
-        dateRow: { flexDirection: 'row', gap: Spacing.sm },
+        toggleText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.inkMid },
 
-        // Interest fields (InterestFields, shared by AddApartadoModal
-        // and EditInterestModal) — a soft-bounded box so the optional
-        // block reads as one clearly-contained unit once expanded,
-        // same idea as suggestionRow/riskRow elsewhere on this screen.
+        // Bloque de interés — sangrado a la izquierda para que se lea
+        // como "esto depende de la casilla de arriba".
         interestBox: {
-            backgroundColor: theme.savingsSoft,
-            borderRadius: Radius.sm,
-            padding: Spacing.md,
+            paddingLeft: Spacing.md,
+            borderLeftWidth: 2,
+            borderLeftColor: theme.savingsSoft,
             marginTop: Spacing.xs,
         },
-        percentInputWrap: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm,
-        },
+        percentRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
         percentInput: { flex: 1 },
-        percentSign: {
-            fontSize: FontSize.sm,
+        percentSign: { fontSize: FontSize.sm, fontWeight: '700', color: theme.inkDim },
+
+        // DecimalInput no puede vivir dentro de <Field> (necesita su
+        // propio inputAccessoryView): lleva fieldSurface y aquí solo lo
+        // tipográfico.
+        decimalInput: {
+            fontSize: FontSize.md,
+            color: theme.ink,
+            letterSpacing: 0.2,
+            paddingVertical: 0,
+        },
+        decimalInputLarge: {
+            fontSize: FontSize.xl,
             fontWeight: '700',
-            color: theme.muted,
+            color: theme.ink,
+            letterSpacing: -0.4,
+            paddingVertical: 0,
         },
 
-        // Sheet buttons
-        sheetBtns: {
-            flexDirection: 'row',
-            gap: Spacing.sm,
-            marginTop: Spacing.lg,
+        hint: {
+            fontSize: FontSize.xs,
+            color: theme.inkDim,
+            fontWeight: '500',
+            marginTop: 6,
+            lineHeight: FontSize.xs * 1.45,
         },
-        btnCancel: {
-            flex: 1, height: 52, borderRadius: Radius.sm,
-            backgroundColor: theme.border,
-            justifyContent: 'center', alignItems: 'center',
-        },
-        btnCancelText: {
-            fontSize: FontSize.md, fontWeight: '600', color: theme.ink,
-        },
-        btnPrimary: {
-            flex: 2, height: 52, borderRadius: Radius.sm,
-            backgroundColor: theme.brand,
-            justifyContent: 'center', alignItems: 'center',
-        },
-        btnDisabled: { backgroundColor: theme.border },
-        btnPrimaryText: {
-            fontSize: FontSize.md, fontWeight: '700', color: theme.brandOn,
+        hintError: { color: theme.moneyOut, fontWeight: '700' },
+        // Igual que hint pero turquesa: avisa que es tocable.
+        hintTappable: {
+            fontSize: FontSize.xs,
+            color: theme.brand,
+            fontWeight: '700',
+            marginTop: 6,
         },
     });
 }

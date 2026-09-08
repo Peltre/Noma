@@ -3,18 +3,17 @@
 // account/card can't switch identity), live CardFace preview that
 // fills in as you type.
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { formatCurrencyShort } from '../utils';
-import { Spacing } from '../constants';
+import { FontSize, Spacing } from '../constants';
 import createAddCardStyles from './AddCardScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
 import ColorPicker from 'react-native-wheel-color-picker';
-import { IconChevronLeft } from '../components/Icons';
+import { ScreenHeader, Field, FieldLabel, Pill, Button, Money, fieldSurface } from '../components/ui';
 
 export default function AddCardScreen() {
     const navigation = useNavigation();
@@ -158,17 +157,27 @@ export default function AddCardScreen() {
         );
     };
 
+    // El motivo por el que no se puede borrar, en el hint del botón:
+    // el disabled explica en vez de solo no responder.
+    const deleteHint = canDeleteNow
+        ? null
+        : typeIsCredit
+            ? 'Paga la deuda antes de eliminar'
+            : hasLinkedApartados
+                ? 'Quita los apartados ligados antes de eliminar'
+                : 'Vacía la cuenta antes de eliminar';
+
     return (
         <View style={styles.safeArea}>
-            <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={!pickerActive}>
-
-                {/* Header */}
-                <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                        <IconChevronLeft color={theme.ink} size={16} />
-                    </TouchableOpacity>
-                    <Text style={styles.title}>{isEdit ? 'Editar tarjeta' : 'Nueva tarjeta'}</Text>
-                </View>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={!pickerActive}
+                keyboardShouldPersistTaps="handled"
+            >
+                <ScreenHeader
+                    title={isEdit ? 'Editar tarjeta' : 'Nueva tarjeta'}
+                    onBack={() => navigation.goBack()}
+                />
 
                 {/* Live card preview — same component the grid and
                     detail sheet use, so what you design here is
@@ -182,7 +191,8 @@ export default function AddCardScreen() {
                         variant="preview"
                         placeholder="Nombre tarjeta"
                         valueLabel={typeIsCredit ? 'LÍMITE' : undefined}
-                        valueText={typeIsCredit ? (limit ? formatCurrencyShort(parseFloat(limit)) : '—') : undefined}
+                        valueAmount={typeIsCredit && limit ? Math.round(parseFloat(limit) || 0) : undefined}
+                        valueText={typeIsCredit && !limit ? '—' : undefined}
                     />
                 </View>
 
@@ -191,76 +201,76 @@ export default function AddCardScreen() {
                     {/* Type — locked once editing */}
                     {!isEdit && (
                         <>
-                            <Text style={styles.fieldLabel}>TIPO DE TARJETA</Text>
-                            <View style={styles.typeRow}>
-                                <TouchableOpacity
-                                    style={[styles.typeBtn, cardType === 'debit' && styles.typeBtnActive]}
+                            <FieldLabel>Tipo de tarjeta</FieldLabel>
+                            <View style={styles.pillRow}>
+                                <Pill
+                                    label="Débito"
+                                    selected={cardType === 'debit'}
                                     onPress={() => setCardType('debit')}
-                                >
-                                    <Text style={[styles.typeBtnText, cardType === 'debit' && styles.typeBtnTextActive]}>
-                                        Débito
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.typeBtn, cardType === 'credit' && styles.typeBtnActive]}
+                                />
+                                <Pill
+                                    label="Crédito"
+                                    selected={cardType === 'credit'}
+                                    accent={theme.msi}
                                     onPress={() => setCardType('credit')}
-                                >
-                                    <Text style={[styles.typeBtnText, cardType === 'credit' && styles.typeBtnTextActive]}>
-                                        Crédito
-                                    </Text>
-                                </TouchableOpacity>
+                                />
                             </View>
                         </>
                     )}
 
-                    <Text style={styles.fieldLabel}>NOMBRE DE LA TARJETA</Text>
-                    <TextInput
-                        style={styles.input}
+                    <Field
+                        label="Nombre de la tarjeta"
+                        required
                         value={name}
                         onChangeText={setName}
                         placeholder="Ej. BBVA Azul, Amex Gold..."
-                        placeholderTextColor={theme.muted}
                     />
 
                     {typeIsCredit && (
                         <>
-                            <Text style={styles.fieldLabel}>LÍMITE DE CRÉDITO</Text>
+                            <FieldLabel required>Límite de crédito</FieldLabel>
                             <DecimalInput
-                                style={styles.input}
+                                style={[styles.decimalInput, fieldSurface(theme)]}
                                 value={limit}
                                 onChangeText={setLimit}
                                 placeholder="$0.00"
-                                placeholderTextColor={theme.muted}
+                                placeholderTextColor={theme.inkDim}
                             />
 
                             <View style={styles.row}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.fieldLabel}>DÍA DE CORTE</Text>
+                                    <FieldLabel required>Día de corte</FieldLabel>
                                     <DecimalInput
-                                        style={styles.input}
+                                        style={[
+                                            styles.decimalInput,
+                                            fieldSurface(theme, { error: !!cutoffOutOfRange }),
+                                        ]}
                                         value={cutoffDay}
                                         onChangeText={setCutoffDay}
                                         placeholder="5"
-                                        placeholderTextColor={theme.muted}
+                                        placeholderTextColor={theme.inkDim}
                                         keyboardType="number-pad"
                                         maxLength={2}
                                     />
-                                    <Text style={[styles.inputHint, cutoffOutOfRange && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                    <Text style={[styles.hint, cutoffOutOfRange && styles.hintError]}>
                                         Día del mes (1–31)
                                     </Text>
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.fieldLabel}>DÍA DE PAGO</Text>
+                                    <FieldLabel required>Día de pago</FieldLabel>
                                     <DecimalInput
-                                        style={styles.input}
+                                        style={[
+                                            styles.decimalInput,
+                                            fieldSurface(theme, { error: !!paymentOutOfRange }),
+                                        ]}
                                         value={paymentDay}
                                         onChangeText={setPaymentDay}
                                         placeholder="25"
-                                        placeholderTextColor={theme.muted}
+                                        placeholderTextColor={theme.inkDim}
                                         keyboardType="number-pad"
                                         maxLength={2}
                                     />
-                                    <Text style={[styles.inputHint, paymentOutOfRange && { color: theme.moneyOut, fontWeight: '700' }]}>
+                                    <Text style={[styles.hint, paymentOutOfRange && styles.hintError]}>
                                         Día del mes (1–31)
                                     </Text>
                                 </View>
@@ -271,7 +281,7 @@ export default function AddCardScreen() {
                                 show the problem before "Guardar", not
                                 only after. */}
                             {sameDayError && (
-                                <Text style={[styles.inputHint, { color: theme.moneyOut, fontWeight: '700' }]}>
+                                <Text style={[styles.hint, styles.hintError]}>
                                     El día de corte y el día de pago no pueden ser el mismo
                                 </Text>
                             )}
@@ -279,12 +289,14 @@ export default function AddCardScreen() {
                     )}
 
                     {!typeIsCredit && isEdit && (
-                        <Text style={styles.inputHint}>
-                            Saldo actual: {formatCurrencyShort(editCard.balance)}. Se mueve con Traspasos o Ingresos — no se edita aquí.
-                        </Text>
+                        <View style={styles.balanceHintRow}>
+                            <Text style={styles.hint}>Saldo actual: </Text>
+                            <Money value={editCard.balance} size={FontSize.xs + 1} color={theme.inkMid} decimals={false} />
+                            <Text style={styles.hint}> · se mueve con Traspasos o Ingresos, no se edita aquí.</Text>
+                        </View>
                     )}
 
-                    <Text style={styles.fieldLabel}>COLOR</Text>
+                    <FieldLabel>Color</FieldLabel>
                     {/* Any color at all, full HSV — no preset row above
                         this anymore. theme.cardColors still picks the
                         DEFAULT color for a brand new card (see the
@@ -302,7 +314,7 @@ export default function AddCardScreen() {
                         disable the ScrollView above for just that
                         duration — see pickerActive's own comment for
                         why. */}
-                    <View style={{ height: 240, marginTop: Spacing.sm }}>
+                    <View style={styles.pickerWrap}>
                         <ColorPicker
                             color={color}
                             onColorChange={setColor}
@@ -318,50 +330,44 @@ export default function AddCardScreen() {
                         />
                     </View>
 
-                    <Text style={styles.fieldLabel}>PATRÓN</Text>
-                    <View style={styles.patternRow}>
+                    <FieldLabel>Patrón</FieldLabel>
+                    <View style={styles.pillRow}>
                         {CARD_PATTERNS.map(p => (
-                            <TouchableOpacity
+                            <Pill
                                 key={p.id}
-                                style={[styles.patternChip, pattern === p.id && styles.patternChipActive]}
+                                label={p.label}
+                                selected={pattern === p.id}
                                 onPress={() => setPattern(p.id)}
-                            >
-                                <Text style={[styles.patternChipText, pattern === p.id && styles.patternChipTextActive]}>
-                                    {p.label}
-                                </Text>
-                            </TouchableOpacity>
+                            />
                         ))}
                     </View>
 
-                    <TouchableOpacity
-                        style={[styles.confirmBtn, loading && styles.confirmBtnDisabled]}
-                        onPress={handleConfirm}
-                        disabled={loading}
-                    >
-                        <Text style={styles.confirmBtnText}>
-                            {loading ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Guardar tarjeta'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.actions}>
+                        <Button
+                            label={isEdit ? 'Guardar cambios' : 'Guardar tarjeta'}
+                            loading={loading}
+                            loadingLabel="Guardando…"
+                            onPress={handleConfirm}
+                        />
+                    </View>
 
                     {isEdit && (
-                        <TouchableOpacity
-                            style={[styles.deleteBtn, !canDeleteNow && styles.deleteBtnDisabled]}
-                            onPress={handleDelete}
-                            disabled={!canDeleteNow}
-                        >
-                            <Text style={[styles.deleteBtnText, !canDeleteNow && styles.deleteBtnTextDisabled]}>
-                                {canDeleteNow
-                                    ? 'Eliminar tarjeta'
-                                    : (typeIsCredit
-                                        ? 'Paga la deuda antes de eliminar'
-                                        : hasLinkedApartados
-                                            ? 'Quita los apartados ligados antes de eliminar'
-                                            : 'Vacía la cuenta antes de eliminar')}
-                            </Text>
-                        </TouchableOpacity>
+                        <>
+                            <View style={styles.actionsSecondary}>
+                                <Button
+                                    label="Eliminar tarjeta"
+                                    variant="danger"
+                                    disabled={!canDeleteNow}
+                                    onPress={handleDelete}
+                                />
+                            </View>
+                            {!!deleteHint && (
+                                <Text style={[styles.hint, styles.hintCentered]}>{deleteHint}</Text>
+                            )}
+                        </>
                     )}
 
-                    <View style={{ height: Spacing.xl + Spacing.lg }} />
+                    <View style={{ height: Spacing.xl + Spacing.lg + insets.bottom }} />
                 </View>
             </ScrollView>
         </View>

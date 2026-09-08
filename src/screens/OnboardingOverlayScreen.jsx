@@ -1,25 +1,25 @@
 // Onboarding screen layout
 // Guides the user through the setup and a quick tour of the app
-import { useMemo, useState } from "react";
+//
+// Es la única superficie de la app que NO es una Sheet: una tarjeta
+// centrada sobre el fondo desenfocado, porque no es "algo que abriste
+// encima de la app" sino la puerta de entrada. Lo de adentro sí es el
+// mismo kit que el resto (Field, Button, GlassCard).
+import { useMemo, useState } from 'react';
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    TextInput,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    Modal,
+    View, Text, TouchableOpacity, ScrollView,
+    KeyboardAvoidingView, Platform, Modal,
 } from 'react-native';
-import { BlurView } from "expo-blur";
-import { useFinance } from "../store/FinanceContext";
-import { useTheme } from "../store/useTheme";
-import DecimalInput from "../components/DecimalInput";
-import { ACCOUNT_LABELS } from "../constants";
-import { SAVINGS_COLORS } from "../store/useSavings";
+import { BlurView } from 'expo-blur';
+import { useFinance } from '../store/FinanceContext';
+import { useTheme } from '../store/useTheme';
+import DecimalInput from '../components/DecimalInput';
+import { ACCOUNT_LABELS } from '../constants';
+import { SAVINGS_COLORS } from '../store/useSavings';
 import {
     IconSparkle, IconWallet, IconPlus, IconDocument, IconCard, IconCash, IconChevronLeft,
 } from '../components/Icons';
+import { Field, FieldLabel, Button, GlassCard, fieldSurface } from '../components/ui';
 import createOnboardingStyles from './OnboardingOverlay.styles';
 
 const TOTAL_STEPS = 3;
@@ -42,12 +42,12 @@ const TOUR_TIPS = [
     {
         Icon: IconPlus,
         title: 'Registra movimientos',
-        subtitle: 'Toca el botón + para registrar un gasto, ingreso o retiro en segundos.',
+        subtitle: 'Toca el botón + para registrar un gasto, ingreso o traspaso en segundos.',
     },
     {
         Icon: IconDocument,
         title: 'Historial completo',
-        subtitle: 'En la pestaña Historial ves todos tus movimientos filtrados por tipo y mes.',
+        subtitle: 'En la pestaña Historial ves todos tus movimientos filtrados por tipo y periodo.',
     },
     {
         Icon: IconCard,
@@ -150,6 +150,19 @@ export default function Onboarding({ visible }) {
         return true;
     };
 
+    // Botón de regresar — el mismo de ScreenHeader, en su versión
+    // suelta para la fila de abajo.
+    const BackButton = ({ onPress }) => (
+        <TouchableOpacity
+            style={styles.backBtn}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel="Regresar"
+        >
+            <IconChevronLeft color={theme.ink} size={16} />
+        </TouchableOpacity>
+    );
+
     // Step content
     const renderStep = () => {
         switch (step) {
@@ -162,32 +175,29 @@ export default function Onboarding({ visible }) {
                         <Text style={styles.subtitle}>
                             Tu app para llevar el control de tu dinero de forma simple
                         </Text>
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.fieldLabel}>Tu nombre</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={userName}
-                                onChangeText={setUserName}
-                                placeholder="Ej. Pablo, Karla..."
-                                placeholderTextColor={theme.muted}
-                                autoFocus
-                                returnKeyType="done"
-                            />
-                        </View>
+
+                        <Field
+                            label="Tu nombre"
+                            required
+                            value={userName}
+                            onChangeText={setUserName}
+                            placeholder="Ej. Pablo, Karla..."
+                            autoFocus
+                            returnKeyType="done"
+                        />
+
                         <View style={styles.bottomRow}>
-                            <TouchableOpacity
-                                style={[styles.nextBtn, !canProceed() && styles.nextBtnDisabled]}
-                                onPress={() => setStep(2)}
+                            <Button
+                                label="Continuar →"
                                 disabled={!canProceed()}
-                            >
-                                <Text style={styles.nextBtnText}>Continuar →</Text>
-                            </TouchableOpacity>
+                                onPress={() => setStep(2)}
+                            />
                         </View>
                     </>
                 );
 
             // Step 2 - Tour
-            case 2:
+            case 2: {
                 const tip = TOUR_TIPS[tourSlide];
                 return (
                     <>
@@ -209,100 +219,95 @@ export default function Onboarding({ visible }) {
                         </View>
 
                         <View style={styles.bottomRow}>
-                            <TouchableOpacity style={styles.backBtn} onPress={prevTourSlide}>
-                                <IconChevronLeft color={theme.ink} size={16} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.nextBtn} onPress={nextTourSlide}>
-                                <Text style={styles.nextBtnText}>
-                                    {tourSlide === TOUR_TIPS.length - 1 ? 'Configurar →' : 'Siguiente →'}
-                                </Text>
-                            </TouchableOpacity>
+                            <BackButton onPress={prevTourSlide} />
+                            <Button
+                                label={tourSlide === TOUR_TIPS.length - 1 ? 'Configurar →' : 'Siguiente →'}
+                                onPress={nextTourSlide}
+                            />
                         </View>
                     </>
                 );
+            }
 
             // Step 3 - Cash & Debit
             case 3:
                 return (
-                    <ScrollView showsVerticalScrollIndicator={false}>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         <View style={styles.iconBadge}><IconCash color={theme.brand} size={30} /></View>
                         <Text style={styles.title}>Tu dinero actual</Text>
                         <Text style={styles.subtitle}>
-                            Ingresa cuanto dinero tienes en este momento para empezar con tu balance real
+                            Ingresa cuánto dinero tienes en este momento para empezar con tu balance real
                         </Text>
 
                         {/* Cash */}
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.fieldLabel}>{ACCOUNT_LABELS.cash}</Text>
-                            <DecimalInput
-                                style={styles.input}
-                                value={cashAmount}
-                                onChangeText={setCashAmount}
-                                placeholder="$0.00"
-                                placeholderTextColor={theme.muted}
-                            />
-                        </View>
+                        <FieldLabel>{ACCOUNT_LABELS.cash}</FieldLabel>
+                        <DecimalInput
+                            style={[styles.decimalInput, fieldSurface(theme)]}
+                            value={cashAmount}
+                            onChangeText={setCashAmount}
+                            placeholder="$0.00"
+                            placeholderTextColor={theme.inkDim}
+                        />
 
                         {/* Debit — each entry becomes its own real
                             account (see handleFinish + addAccountsBatch
                             in useFinanceStore.js), so this can be as
                             many cards as the person actually has. */}
-                        <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>
-                            TARJETAS DE DÉBITO
-                        </Text>
+                        <FieldLabel optional>Tarjetas de débito</FieldLabel>
                         {debitCards.map((card, index) => (
                             <View style={styles.accountCard} key={card.id}>
                                 <View style={styles.accountCardHeader}>
-                                    <IconCard color={theme.muted} size={30} />
-                                    <Text style={styles.accountCardTitle}>
-                                        Tarjeta {index + 1}
-                                    </Text>
+                                    <IconCard color={theme.inkDim} size={20} />
+                                    <Text style={styles.accountCardTitle}>Tarjeta {index + 1}</Text>
                                     {debitCards.length > 1 && (
-                                        <TouchableOpacity onPress={() => removeDebitCard(card.id)}>
+                                        <TouchableOpacity
+                                            onPress={() => removeDebitCard(card.id)}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        >
                                             <Text style={styles.removeBtn}>Quitar</Text>
                                         </TouchableOpacity>
                                     )}
                                 </View>
-                                <TextInput
-                                    style={styles.input}
+                                <Field
                                     value={card.name}
                                     onChangeText={v => updateDebitCard(card.id, 'name', v)}
                                     placeholder="Nombre (Ej. BBVA)"
-                                    placeholderTextColor={theme.muted}
+                                    style={styles.accountField}
                                 />
                                 <DecimalInput
-                                    style={styles.input}
+                                    style={[styles.decimalInput, fieldSurface(theme), styles.accountField]}
                                     value={card.balance}
                                     onChangeText={v => updateDebitCard(card.id, 'balance', v)}
                                     placeholder="Saldo actual $0.00"
-                                    placeholderTextColor={theme.muted}
+                                    placeholderTextColor={theme.inkDim}
                                 />
                             </View>
                         ))}
-                        <TouchableOpacity style={styles.addBtn} onPress={addDebitCard}>
-                            <Text style={styles.addBtnText}>+ Agregar otra tarjeta</Text>
-                        </TouchableOpacity>
+
+                        <View style={styles.addRow}>
+                            <Button
+                                label="+ Agregar otra tarjeta"
+                                variant="secondary"
+                                compact
+                                onPress={addDebitCard}
+                            />
+                        </View>
+
                         <Text style={styles.helperNote}>
-                            Déjala en blanco si no tienes (o no quieres agregar) una tarjeta de débito — puedes agregar más después desde Home.
+                            Déjala en blanco si no tienes (o no quieres agregar) una tarjeta de débito — puedes agregar más después desde Tarjetas.
                         </Text>
 
                         <View style={styles.bottomRow}>
-                            <TouchableOpacity style={styles.backBtn} onPress={() => setStep(2)}>
-                                <IconChevronLeft color={theme.ink} size={16} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.nextBtn}
-                                onPress={handleFinish}
-                            >
-                                <Text style={styles.nextBtnText}>¡Listo, empezar!</Text>
-                            </TouchableOpacity>
+                            <BackButton onPress={() => setStep(2)} />
+                            <Button label="¡Listo, empezar!" onPress={handleFinish} />
                         </View>
                     </ScrollView>
-                )
+                );
             default:
                 return null;
         }
     };
+
     return (
         <Modal visible={visible} transparent animationType="fade">
             <BlurView intensity={40} tint="dark" style={styles.overlay}>
@@ -311,7 +316,7 @@ export default function Onboarding({ visible }) {
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.kavWrapper}
                 >
-                    <View style={styles.card}>
+                    <GlassCard style={styles.card}>
                         {step !== 2 && (
                             <View style={styles.progressRow}>
                                 {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(i => (
@@ -326,7 +331,7 @@ export default function Onboarding({ visible }) {
                             </View>
                         )}
                         {renderStep()}
-                    </View>
+                    </GlassCard>
                 </KeyboardAvoidingView>
             </BlurView>
         </Modal>

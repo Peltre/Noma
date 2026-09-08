@@ -58,8 +58,10 @@ function getTabBarStyle(route) {
 export default function AppNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: false }}
-      sceneContainerStyle={{ backgroundColor: 'transparent' }}
+      // sceneStyle, NO sceneContainerStyle: ese prop era de
+      // react-navigation 6. En la 7 no aparece ni una vez en todo
+      // @react-navigation/bottom-tabs — se ignoraba en silencio.
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: 'transparent' } }}
       tabBar={props => <CurvedTabBar {...props} />}
     >
       <Tab.Screen

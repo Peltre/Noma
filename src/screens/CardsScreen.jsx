@@ -4,14 +4,10 @@
 // front, tap the front one for full detail. Long-press anywhere for
 // a quick Editar/Pagar/Eliminar popover without leaving the screen.
 import { useMemo, useState } from 'react';
-import {
-    View, Text, ScrollView, TouchableOpacity,
-    Modal, KeyboardAvoidingView, Platform, Alert, Dimensions,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { formatCurrency } from '../utils';
-import { Spacing } from '../constants';
+import { FontSize, Spacing } from '../constants';
 import createCardsStyles from './CardsScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
@@ -19,6 +15,9 @@ import DecimalInput from '../components/DecimalInput';
 import CardFace from '../components/CardFace';
 import FocusStack from '../components/FocusStack';
 import Svg, { Circle } from 'react-native-svg';
+import {
+    ScreenHeader, EmptyState, Sheet, Pill, Button, FieldLabel, Money, fieldSurface,
+} from '../components/ui';
 import { IconCard, IconPencil, IconCash, IconTrash, IconChevronDown, IconCardAdd } from '../components/Icons';
 
 // Tiny utilization ring for the Crédito deck's header — how much of
@@ -102,7 +101,8 @@ function PayCardSheet({ card, accounts, onClose }) {
     // against a user-typed amount (also capped at 2 decimals by
     // DecimalInput) can't miss a valid "pay it all off" by a
     // fraction-of-a-cent float artifact.
-    const canConfirm = amt > 0 && amt <= card.currentDebt && accountId && !loading;
+    const overDebt = amt > card.currentDebt;
+    const canConfirm = amt > 0 && !overDebt && accountId && !loading;
 
     const handleConfirm = async () => {
         if (!canConfirm) return;
@@ -139,57 +139,50 @@ function PayCardSheet({ card, accounts, onClose }) {
     };
 
     return (
-        <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-            <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-                <View style={styles.sheet}>
-                    <View style={styles.sheetHandle} />
-                    <Text style={styles.sheetTitle}>Pagar {card.name}</Text>
-                    <Text style={styles.sheetSubtitle}>
-                        Debes {formatCurrency(card.currentDebt)}
-                    </Text>
+        <Sheet
+            onClose={onClose}
+            dismissable={!loading}
+            title={`Pagar ${card.name}`}
+            subtitle={`Debes ${formatCurrency(card.currentDebt)}`}
+        >
+            <FieldLabel required>Cantidad a pagar</FieldLabel>
+            <DecimalInput
+                style={[styles.decimalInputLarge, fieldSurface(theme, { error: overDebt })]}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0.00"
+                placeholderTextColor={theme.inkDim}
+            />
+            {overDebt && (
+                <Text style={styles.inputError}>No puedes pagar más de lo que debes</Text>
+            )}
 
-                    <Text style={styles.sheetLabel}>CANTIDAD A PAGAR</Text>
-                    <DecimalInput
-                        style={[styles.sheetInput, styles.sheetInputLarge]}
-                        value={amount}
-                        onChangeText={setAmount}
-                        placeholder="0.00"
-                        placeholderTextColor={theme.muted}
+            <FieldLabel required>Desde qué cuenta</FieldLabel>
+            <View style={styles.pillRow}>
+                {accounts.map(a => (
+                    <Pill
+                        key={a.id}
+                        label={a.name}
+                        selected={accountId === a.id}
+                        accent={theme.cardPayment}
+                        onPress={() => setAccountId(a.id)}
                     />
+                ))}
+            </View>
 
-                    <Text style={styles.sheetLabel}>DESDE QUÉ CUENTA</Text>
-                    <View style={styles.chipRow}>
-                        {accounts.map(a => (
-                            <TouchableOpacity
-                                key={a.id}
-                                style={[styles.chip, accountId === a.id && styles.chipActive]}
-                                onPress={() => setAccountId(a.id)}
-                            >
-                                <Text style={[styles.chipText, accountId === a.id && styles.chipTextActive]}>
-                                    {a.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <View style={styles.sheetBtns}>
-                        <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
-                            <Text style={styles.btnCancelText}>Cancelar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.btnPrimary, !canConfirm && styles.btnDisabled]}
-                            onPress={handleConfirm}
-                            disabled={!canConfirm}
-                        >
-                            <Text style={styles.btnPrimaryText}>
-                                {loading ? 'Procesando...' : 'Confirmar pago'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </KeyboardAvoidingView>
-        </Modal>
+            <View style={styles.sheetBtns}>
+                <Button label="Cancelar" variant="secondary" onPress={onClose} />
+                <Button
+                    label="Confirmar pago"
+                    accent={theme.cardPayment}
+                    accentOn={theme.cardPaymentOn}
+                    loading={loading}
+                    disabled={!canConfirm}
+                    onPress={handleConfirm}
+                    style={{ flex: 2 }}
+                />
+            </View>
+        </Sheet>
     );
 }
 
@@ -235,87 +228,75 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
         );
     };
 
+    // Fila de detalle: la llave a la izquierda, el monto (o el texto)
+    // a la derecha, siempre con la misma tipografía.
+    const DetailRow = ({ label, value, amount, color, strong, last }) => (
+        <View style={[styles.detailRow, last && { borderBottomWidth: 0 }]}>
+            <Text style={styles.detailKey}>{label}</Text>
+            {amount !== undefined ? (
+                <Money value={amount} size={FontSize.sm + 1} color={color || theme.ink} />
+            ) : (
+                <Text style={[styles.detailVal, strong && { color, fontWeight: '800' }]}>{value}</Text>
+            )}
+        </View>
+    );
+
     return (
-        <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-            <KeyboardAvoidingView style={styles.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-                <View style={styles.sheet}>
-                    <View style={styles.sheetHandle} />
+        <Sheet onClose={onClose}>
+            <View style={styles.detailFace}>
+                <CardFace
+                    name={card.name}
+                    type={card.cardType}
+                    color={card.color}
+                    pattern={card.pattern}
+                    variant="detail"
+                    valueLabel={isCredit ? 'DEUDA ACTUAL' : 'SALDO'}
+                    valueAmount={isCredit ? card.currentDebt : card.balance}
+                    progressPct={pct}
+                />
+            </View>
 
-                    <View style={{ marginBottom: Spacing.md }}>
-                        <CardFace
-                            name={card.name}
-                            type={card.cardType}
-                            color={card.color}
-                            pattern={card.pattern}
-                            variant="detail"
-                            valueLabel={isCredit ? 'DEUDA ACTUAL' : 'SALDO'}
-                            valueText={formatCurrency(isCredit ? card.currentDebt : card.balance)}
-                            progressPct={pct}
+            <View style={styles.detailCard}>
+                {isCredit ? (
+                    <>
+                        <DetailRow label="Límite" amount={card.limit} />
+                        <DetailRow label="Fecha de corte" value={`Día ${card.cutoffDay}`} />
+                        <DetailRow
+                            label="Fecha de pago"
+                            value={`Día ${card.paymentDay}${isSoon ? '  · pronto' : ''}`}
+                            color={theme.alert}
+                            strong={isSoon}
                         />
-                    </View>
+                        <DetailRow label="Pago mínimo" amount={card.currentDebt * 0.05} />
+                        <DetailRow label="Pago total" amount={card.currentDebt} color={theme.cardPayment} last />
+                    </>
+                ) : (
+                    <DetailRow label="Saldo actual" amount={card.balance} last />
+                )}
+            </View>
 
-                    <View style={styles.detailCard}>
-                        {isCredit ? (
-                            <>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailKey}>Límite</Text>
-                                    <Text style={styles.detailVal}>{formatCurrency(card.limit)}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailKey}>Fecha de corte</Text>
-                                    <Text style={styles.detailVal}>Día {card.cutoffDay}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailKey}>Fecha de pago</Text>
-                                    <Text style={[styles.detailVal, isSoon && { color: theme.alert, fontWeight: '700' }]}>
-                                        Día {card.paymentDay}{isSoon ? '  · pronto' : ''}
-                                    </Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailKey}>Pago mínimo</Text>
-                                    <Text style={styles.detailVal}>
-                                        {formatCurrency(card.currentDebt * 0.05)}
-                                    </Text>
-                                </View>
-                                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                                    <Text style={styles.detailKey}>Pago total</Text>
-                                    <Text style={[styles.detailVal, { color: theme.cardPayment, fontWeight: '800' }]}>
-                                        {formatCurrency(card.currentDebt)}
-                                    </Text>
-                                </View>
-                            </>
-                        ) : (
-                            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                                <Text style={styles.detailKey}>Saldo actual</Text>
-                                <Text style={styles.detailVal}>{formatCurrency(card.balance)}</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    {isCredit && card.currentDebt > 0 && (
-                        <TouchableOpacity style={styles.payBtn} onPress={onPay}>
-                            <Text style={styles.payBtnText}>Pagar tarjeta</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    <View style={styles.sheetBtns}>
-                        <TouchableOpacity style={styles.btnCancel} onPress={onEdit}>
-                            <Text style={styles.btnCancelText}>Editar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.btnDelete, !canDelete && styles.btnDisabled]}
-                            onPress={canDelete ? handleDelete : undefined}
-                            disabled={!canDelete}
-                        >
-                            <Text style={styles.btnPrimaryText}>
-                                {canDelete ? 'Eliminar' : (isCredit ? 'Paga la deuda primero' : 'Vacía la cuenta primero')}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+            {isCredit && card.currentDebt > 0 && (
+                <View style={styles.sheetBtns}>
+                    <Button
+                        label="Pagar tarjeta"
+                        accent={theme.cardPayment}
+                        accentOn={theme.cardPaymentOn}
+                        onPress={onPay}
+                    />
                 </View>
-            </KeyboardAvoidingView>
-        </Modal>
+            )}
+
+            <View style={styles.sheetBtns}>
+                <Button label="Editar" variant="secondary" onPress={onEdit} />
+                <Button
+                    label={canDelete ? 'Eliminar' : (isCredit ? 'Paga la deuda primero' : 'Vacía la cuenta primero')}
+                    variant="danger"
+                    disabled={!canDelete}
+                    onPress={handleDelete}
+                    style={{ flex: 1.4 }}
+                />
+            </View>
+        </Sheet>
     );
 }
 
@@ -348,8 +329,8 @@ function QuickActionsPopover({ card, position, onClose, onEdit, onPay, onDelete 
                 </TouchableOpacity>
                 {showPay && (
                     <TouchableOpacity style={styles.popoverBtn} onPress={onPay}>
-                        <View style={[styles.popoverIconWrap, { backgroundColor: theme.moneyInSoft }]}>
-                            <IconCash color={theme.moneyIn} size={18} />
+                        <View style={[styles.popoverIconWrap, { backgroundColor: theme.cardPaymentSoft }]}>
+                            <IconCash color={theme.cardPayment} size={18} />
                         </View>
                         <Text style={styles.popoverLabel}>Pagar</Text>
                     </TouchableOpacity>
@@ -372,30 +353,22 @@ function AddTypeSheet({ onClose, onPick }) {
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
     return (
-        <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-            <View style={styles.modalBg}>
-                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-                <View style={styles.sheet}>
-                    <View style={styles.sheetHandle} />
-                    <Text style={styles.sheetTitle}>Nueva tarjeta</Text>
-                    <Text style={styles.sheetSubtitle}>¿Qué tipo vas a agregar?</Text>
-                    <View style={styles.typePickRow}>
-                        <TouchableOpacity
-                            style={[styles.typePickBtn, { backgroundColor: theme.moneyInSoft, borderColor: theme.moneyIn }]}
-                            onPress={() => onPick('debit')}
-                        >
-                            <Text style={styles.typePickText}>Débito</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.typePickBtn, { backgroundColor: theme.cardPaymentSoft, borderColor: theme.cardPayment }]}
-                            onPress={() => onPick('credit')}
-                        >
-                            <Text style={styles.typePickText}>Crédito</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+        <Sheet onClose={onClose} title="Nueva tarjeta" subtitle="¿Qué tipo vas a agregar?">
+            <View style={styles.sheetBtns}>
+                <Button
+                    label="Débito"
+                    accent={theme.moneyIn}
+                    accentOn={theme.brandOn}
+                    onPress={() => onPick('debit')}
+                />
+                <Button
+                    label="Crédito"
+                    accent={theme.cardPayment}
+                    accentOn={theme.cardPaymentOn}
+                    onPress={() => onPick('credit')}
+                />
             </View>
-        </Modal>
+        </Sheet>
     );
 }
 
@@ -410,8 +383,8 @@ function DeckSection({
 }) {
     if (cards.length === 0) {
         return (
-            <TouchableOpacity style={styles.emptyTypeRow} onPress={onAddEmpty} activeOpacity={0.7}>
-                <Text style={styles.emptyTypeText}>+ Agrega tu primera tarjeta de {label.toLowerCase()}</Text>
+            <TouchableOpacity style={styles.emptyDeckRow} onPress={onAddEmpty} activeOpacity={0.7}>
+                <Text style={styles.emptyDeckText}>+ Agrega tu primera tarjeta de {label.toLowerCase()}</Text>
             </TouchableOpacity>
         );
     }
@@ -425,9 +398,9 @@ function DeckSection({
                 </View>
                 <View style={styles.deckHeadRight}>
                     {utilPct !== undefined && <MiniRing pct={utilPct} theme={theme} />}
-                    <Text style={styles.deckTotal}>{total}</Text>
+                    <Money value={total} size={FontSize.md} color={theme.ink} decimals={false} compact />
                     <View style={collapsed && styles.chevCollapsed}>
-                        <IconChevronDown color={theme.muted} size={13} />
+                        <IconChevronDown color={theme.inkDim} size={13} />
                     </View>
                 </View>
             </TouchableOpacity>
@@ -449,7 +422,6 @@ function DeckSection({
 
 export default function CardsScreen() {
     const navigation = useNavigation();
-    const insets = useSafeAreaInsets();
     const { creditCards, accounts, deleteAccount, deleteCreditCard, savingsAccounts } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
@@ -482,39 +454,31 @@ export default function CardsScreen() {
         <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* ── Header ── */}
-                <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-                    <Text style={styles.title}>Tarjetas</Text>
-                    {/* Hidden when there's nothing yet — the empty state
-                        below already has its own big centered "+ Agregar
-                        tarjeta" button, so this one would just be a
-                        second entry point to the exact same action. */}
-                    {hasAnyCards && (
-                        <TouchableOpacity style={styles.addBtn} onPress={() => setShowTypePicker(true)}>
-                            <IconCardAdd color={theme.brandOn} bgColor={theme.brand} size={20} />
-                        </TouchableOpacity>
-                    )}
-                </View>
+                {/* La acción del header se esconde cuando no hay nada:
+                    el estado vacío de abajo ya tiene su propio botón
+                    grande, y este sería una segunda puerta a lo mismo. */}
+                <ScreenHeader
+                    title="Tarjetas"
+                    actionIcon={hasAnyCards ? IconCardAdd : undefined}
+                    onAction={() => setShowTypePicker(true)}
+                />
 
                 {!hasAnyCards ? (
-                    <View style={styles.emptyState}>
-                        <View style={styles.emptyIconWrap}>
-                            <IconCard color={theme.muted} size={20} />
-                        </View>
-                        <Text style={styles.emptyTitle}>Sin tarjetas</Text>
-                        <Text style={styles.emptySub}>
-                            Agrega una tarjeta de débito o crédito para llevar el control de tu dinero y tu deuda
-                        </Text>
-                        <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowTypePicker(true)}>
-                            <Text style={styles.emptyBtnText}>+ Agregar tarjeta</Text>
-                        </TouchableOpacity>
+                    <View style={styles.emptyWrap}>
+                        <EmptyState
+                            icon={IconCard}
+                            title="Sin tarjetas"
+                            description="Agrega una tarjeta de débito o crédito para llevar el control de tu dinero y tu deuda."
+                            actionLabel="Agregar tarjeta"
+                            onAction={() => setShowTypePicker(true)}
+                        />
                     </View>
                 ) : (
                     <>
                         <DeckSection
                             label="Débito"
                             dotColor={theme.moneyIn}
-                            total={formatCurrency(totalDebit)}
+                            total={totalDebit}
                             cards={debitAccounts}
                             collapsed={collapsed.debit}
                             onToggle={() => setCollapsed(c => ({ ...c, debit: !c.debit }))}
@@ -530,7 +494,7 @@ export default function CardsScreen() {
                         <DeckSection
                             label="Crédito"
                             dotColor={theme.cardPayment}
-                            total={formatCurrency(totalDebt)}
+                            total={totalDebt}
                             utilPct={creditCardsTagged.length ? utilPct : undefined}
                             cards={creditCardsTagged}
                             collapsed={collapsed.credit}

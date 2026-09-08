@@ -86,11 +86,11 @@ export default function GlassCard({ style, children, ...rest }) {
                 <BlurView
                     intensity={theme.glassIntensity}
                     tint={theme.glassTint}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                 />
                 {/* Ties the glass to each theme's own surface hue —
                     BlurView's tint only picks a light/dark algorithm, not a color. */}
-                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.glassFill }]} />
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.glassFill }]} />
                 {children}
             </View>
 
@@ -100,7 +100,7 @@ export default function GlassCard({ style, children, ...rest }) {
                     // <Svg> directly — react-native-svg's root <Svg> doesn't
                     // reliably forward that prop, which was swallowing
                     // touches meant for the content underneath.
-                    <View style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
+                    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
                         <Svg width={size.width} height={size.height}>
                             <Rect
                                 x={borderWidth / 2}
@@ -123,7 +123,7 @@ export default function GlassCard({ style, children, ...rest }) {
                 // prop) for the same forwarding reason as the dashed branch.
                 <View
                     style={[
-                        StyleSheet.absoluteFillObject,
+                        StyleSheet.absoluteFill,
                         localStyles.borderOverlay,
                         radiusStyle,
                         { borderColor: theme.glassBorder, borderTopColor: theme.glassBorderTop, pointerEvents: 'none' },
@@ -137,10 +137,28 @@ export default function GlassCard({ style, children, ...rest }) {
 
 const localStyles = StyleSheet.create({
     inner: {
-        // flex:1 fills whatever size the outer wrapper resolves to —
-        // needed for cards passing flex:1 themselves (e.g.
-        // TransactionScreen's sheetWrap), harmless otherwise.
-        flex: 1,
+        // OJO: esto era `flex: 1` y rompió la app entera al pasar a SDK 57.
+        //
+        // `flex: 1` equivale a flexBasis:'0%'. El View EXTERIOR no lleva
+        // alto: OUTER_KEYS solo se queda con sombra, márgenes y flex/width/
+        // height si la tarjeta los pidió. Una tarjeta normal —solo padding,
+        // radio y margen— deja el exterior en alto automático, y un hijo con
+        // base 0 dentro de un padre de alto automático mide 0. Es lo que dice
+        // la doc de RN: si el padre no tiene alto fijo ni flex, mide 0 y los
+        // hijos con flex no se ven.
+        //
+        // Hasta RN 0.81 Yoga lo resolvía por contenido de todos modos, así que
+        // el `flex: 1` parecía inofensivo. RN 0.86 trae correcciones de layout
+        // y ahora colapsa de verdad: 6 de las 7 tarjetas de la app quedaron en
+        // cero de alto y solo se veía AppBackground.
+        //
+        // flexBasis:'auto' resuelve los dos casos con una línea: si el exterior
+        // no tiene alto, la base es el contenido y la tarjeta lo abraza; si la
+        // tarjeta sí pasó flex o height (sheetWrap de TransactionScreen), el
+        // flexGrow lo estira para llenarlo.
+        flexGrow: 1,
+        flexShrink: 1,
+        flexBasis: 'auto',
         overflow: 'hidden',
     },
     borderOverlay: {

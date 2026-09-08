@@ -9,7 +9,8 @@
 import { useState } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Line } from 'react-native-svg';
-import { FontSize, Spacing, Radius } from '../constants';
+import { FontSize, Spacing, Radius, TabularNums } from '../constants';
+import Money from './Money';
 import { IconLock } from './Icons';
 
 // Shared with FocusStack.jsx so the stack's slot math matches the
@@ -102,6 +103,19 @@ export default function CardFace({
     color,
     pattern,
     valueLabel,
+    // Number, opcional — el importe. Se pinta con <Money> para que
+    // el signo, los enteros y los centavos guarden las mismas
+    // proporciones que en toda la app.
+    //
+    // Antes esto era solo `valueText`, un string ya formateado, y la
+    // tarjeta era el único importe de la app que no pasaba por
+    // <Money>. La diferencia no era sutil: el $ salía 2.2 veces más
+    // grande y los centavos opacos y a tamaño completo, cuando en el
+    // resto van al 52% y a media opacidad. Parecía otra tipografía.
+    valueAmount,
+    // String, opcional — para lo que no es un número, como el "—" de
+    // AddCardScreen cuando aún no hay límite escrito. Si viene
+    // valueAmount, este se ignora.
     valueText,
     progressPct,
     variant = 'grid',
@@ -159,9 +173,25 @@ export default function CardFace({
                     <Text style={[styles.valueLabel, isCompact && styles.valueLabelCompact]}>
                         {valueLabel}
                     </Text>
-                    <Text style={[styles.valueText, isCompact && styles.valueTextCompact]} numberOfLines={1}>
-                        {valueText}
-                    </Text>
+                    {typeof valueAmount === 'number' ? (
+                        <Money
+                            value={valueAmount}
+                            size={isCompact ? FontSize.md : FontSize.xl}
+                            color="#FFFFFF"
+                            // El $ a blanco tenue en vez de inkDim: la cara
+                            // trae su propio color de fondo y el gris de la
+                            // app se pierde encima.
+                            currencyColor="rgba(255,255,255,0.55)"
+                            // auto, no "none": formatCurrency ponía "−" en los
+                            // negativos y un saldo de débito puede irse abajo.
+                            // Con "none" se vería positivo.
+                            sign="auto"
+                        />
+                    ) : (
+                        <Text style={[styles.valueText, isCompact && styles.valueTextCompact]} numberOfLines={1}>
+                            {valueText}
+                        </Text>
+                    )}
                     {progressPct !== undefined && (
                         <View style={styles.progressTrack}>
                             <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
@@ -258,9 +288,18 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase', marginBottom: 2,
     },
     valueLabelCompact: { fontSize: 9 },
+    // TabularNums no es cosmético: sin él este importe usaba los
+    // dígitos proporcionales de Bricolage mientras el resto de la app
+    // usaba los tabulares de <Money>. Mismo archivo y mismo peso, pero
+    // el '1' medía 360 unidades aquí y 629 en todas las demás
+    // pantallas, así que el saldo de la tarjeta parecía escrito en
+    // otra fuente. Es el único importe suelto de la app que no pasa
+    // por <Money> —a propósito: aquí el monto es parte del arte de
+    // una tarjeta física, sin el signo elevado ni los centavos
+    // atenuados— y por eso era el único que se había quedado fuera.
     valueText: {
         fontSize: FontSize.xl, fontWeight: '800',
-        color: '#FFFFFF', letterSpacing: -0.5,
+        color: '#FFFFFF', letterSpacing: -0.5, ...TabularNums,
     },
     valueTextCompact: { fontSize: FontSize.md },
     progressTrack: {

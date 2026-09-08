@@ -1,529 +1,642 @@
-// Unified icon set for the whole app — one SVG library
-// (react-native-svg) replacing the old mix of hand-rolled SVGs,
-// Unicode-as-text, and emoji, so every icon shares stroke weight,
-// viewBox, and line caps ("gruesecito" on purpose: SW below is
-// thicker than the ~1.6 the old hand-rolled icons used).
+// Set de iconos de toda la app — una sola librería (react-native-svg).
 //
-// Every icon takes `color` (required) and `size` (optional). Nav-bar
-// icons also take `focused` (solid fill) and, where they draw a light
-// "cutout" on top of that fill, `bgColor` (so the cutout reads
-// correctly against whatever surface it sits on).
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
+// ── El problema que resuelve este archivo ──
+// Antes todos los iconos compartían `SW = 2`, pero eso son unidades del
+// viewBox, no píxeles: el trazo REAL que se pinta es SW × (size / 24).
+// Con tamaños por defecto que iban de 12 a 22, el trazo en pantalla iba
+// de 1.0px a 2.2px. Los iconos estaban bien dibujados; lo que no
+// cuadraba era el peso, y por eso no se leían como un set.
+//
+// Aquí el grosor se calcula al revés: se declara cuánto debe MEDIR el
+// trazo en pantalla y se despeja el valor de viewBox que hace falta
+// para ese tamaño. Un icono a 12 y uno a 30 pesan lo mismo.
+//
+// ── La rejilla ──
+// Caja de 24 con área viva de 20 (2 de aire por lado). Todo se apoya en
+// cuatro plantillas para que dos iconos del mismo `size` se vean del
+// mismo tamaño:
+//
+//   cuadrado    18×18   (3 → 21)      casa, historial, calendario
+//   círculo     ø19     (r 9.5)       moneda, usuario, porcentaje
+//   horizontal  20×15   (2,4.5)       tarjetas, billete, documento
+//   vertical    15×20   (4.5,2)       recibo, candado
+//
+// Antes IconCards ocupaba 22×15 (x=1) y IconHistory 18×18 (x=3): al
+// mismo `size`, la tarjeta se veía notoriamente más grande que todo lo
+// demás. Ahora nada sale del área viva.
+//
+// Cada icono recibe `color` (obligatorio) y `size` (opcional, del
+// IconSize de abajo). Los de la barra de tabs reciben además `focused`
+// (relleno sólido) y, cuando dibujan un hueco claro encima de ese
+// relleno, `bgColor`.
+import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
 
-const SW = 2;
+// ── Escala ──────────────────────────────────────────────────────
+// Seis pasos, no once. Cada uno tiene un trabajo; si un icono no cabe
+// en ninguno, casi siempre el que está mal es el layout, no el icono.
+export const IconSize = {
+    xs: 12,   // dentro de una pastilla o pegado a texto de FontSize.xs
+    sm: 14,   // metadatos, chevrons dentro de una fila
+    md: 16,   // acción de fila, chevron de navegación, casillas
+    lg: 18,   // encabezados de sección, icono dentro de una tarjeta
+    xl: 22,   // barra de tabs
+    hero: 30, // estados vacíos y el "+" flotante
+};
 
-const vb = (size) => ({ width: size, height: size, viewBox: '0 0 24 24', fill: 'none' });
+// ── Peso óptico ─────────────────────────────────────────────────
+// OPTICAL es lo que mide el trazo en pantalla. Los topes evitan los dos
+// extremos: sin MAX, un icono a 12 pediría 3.0 unidades de viewBox y el
+// dibujo se empastaría; sin MIN, uno a 30 bajaría a 1.2 y se vería
+// desvanecido. Entre 14 y 24 —donde vive casi todo— el trazo sale
+// exactamente en OPTICAL.
+const OPTICAL = 1.5;
+const MIN_VB = 1.5;
+const MAX_VB = 2.6;
+const sw = (size) => Math.min(MAX_VB, Math.max(MIN_VB, (OPTICAL * 24) / size));
 
-// ── Tab bar ─────────────────────────────────────────────────────
-export function IconHome({ color, bgColor, size = 21, focused }) {
-    const d = 'M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-9.5z';
+// Props de trazo compartidos. Todo va con remate y unión redondos, sin
+// excepción: mezclar caps redondos y rectos es lo que hace que un set
+// se sienta de dos manos distintas.
+const line = (size, color) => ({
+    stroke: color,
+    strokeWidth: sw(size),
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+});
+
+const svg = (size) => ({ width: size, height: size, viewBox: '0 0 24 24', fill: 'none' });
+
+// Radios de esquina de la rejilla: uno para cajas grandes, uno para
+// chicas. Antes convivían rx 2, 2.5, 3, 3.5 y 4 sin criterio.
+const R_BOX = 5;
+const R_SMALL = 3;
+
+// ── Barra de tabs ───────────────────────────────────────────────
+export function IconHome({ color, bgColor, size = IconSize.xl, focused }) {
+    const d = 'M3.6 10.4 12 3.4l8.4 7v9.2a1.4 1.4 0 0 1-1.4 1.4h-4.3v-6.2H9.3V21H5a1.4 1.4 0 0 1-1.4-1.4v-9.2Z';
     return (
-        <Svg {...vb(size)}>
+        <Svg {...svg(size)}>
             {focused
                 ? <Path d={d} fill={color} />
-                : <Path d={d} stroke={color} strokeWidth={SW} strokeLinejoin="round" />}
+                : <Path d={d} {...line(size, color)} />}
         </Svg>
     );
 }
 
-export function IconHistory({ color, bgColor, size = 21, focused }) {
+export function IconHistory({ color, bgColor, size = IconSize.xl, focused }) {
+    const rows = 'M7.6 9.4h8.8M7.6 12.8h8.8M7.6 16.2h5.4';
     return (
-        <Svg {...vb(size)}>
+        <Svg {...svg(size)}>
             {focused ? (
                 <>
-                    <Rect x="3" y="3" width="18" height="18" rx="4" fill={color} />
-                    <Path d="M7.5 9h9M7.5 12.5h9M7.5 16h6" stroke={bgColor} strokeWidth={SW} strokeLinecap="round" />
+                    <Rect x="3" y="3" width="18" height="18" rx={R_BOX} fill={color} />
+                    <Path d={rows} {...line(size, bgColor)} />
                 </>
             ) : (
                 <>
-                    <Rect x="3" y="3" width="18" height="18" rx="3" stroke={color} strokeWidth={SW} />
-                    <Path d="M7.5 9h9M7.5 12.5h9M7.5 16h6" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+                    <Rect x="3" y="3" width="18" height="18" rx={R_BOX} {...line(size, color)} />
+                    <Path d={rows} {...line(size, color)} />
                 </>
             )}
         </Svg>
     );
 }
 
-export function IconSavings({ color, size = 21, focused }) {
-    return (
-        <Svg {...vb(size)}>
-            {focused
-                ? <Circle cx="12" cy="12" r="5.5" fill={color} />
-                : <Path d="M6.5 12a5.5 5.5 0 1011 0 5.5 5.5 0 00-11 0z" stroke={color} strokeWidth={SW} />}
-            <Path d="M6.5 12C6.5 7.5 3.7 4 1 4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M12 4V2" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M17.5 20.5L19 22" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-        </Svg>
-    );
-}
+// Monedas apiladas. Antes era un círculo con una cola y dos marcas
+// sueltas que no terminaba de leerse como nada; y compartía forma
+// redonda con IconPercent. Tres elipses son inconfundibles y no se
+// parecen a ningún otro icono del set.
+// Ahorros: una bolsa de dinero. Antes eran tres elipses apiladas —una
+// pila de monedas— que se leía abstracta al lado de las otras tres
+// pestañas.
+//
+// ── El $ no se dibuja siempre ──
+// Este icono sale a cuatro tamaños: 16 en las filas de "Objetivo
+// cumplido" de Inicio e Historial, 20 en los estados vacíos, 22 en la
+// barra de tabs y 30 si algún día va a un hero. La 'S' del símbolo no
+// sobrevive a los chicos: cada bucle mide 3.9 unidades, así que a 16
+// son 2.6px con un trazo de 1.5 encima — contraforma de 1.1px, que se
+// rellena de sólido y queda una mancha. A 20 sube a 1.75px y respira.
+//
+// Por eso debajo de 20 se dibuja solo la bolsa. Una silueta limpia se
+// lee mejor que un símbolo empastado, y a ese tamaño la bolsa sola ya
+// dice lo suficiente: el símbolo es el detalle, la forma es el mensaje.
+const SAVINGS_SYMBOL_MIN_SIZE = 20;
+const BAG_TIE = 'M9.4 3.4h5.2l-1.3 3h-2.6z';
+const BAG_BODY =
+    'M10.7 6.4C7.2 8.6 4.4 12.3 4.4 15.8A5.6 5.6 0 0 0 10 21.4h4a5.6 5.6 0 0 0 5.6-5.6c0-3.5-2.8-7.2-6.3-9.4z';
+const BAG_SYMBOL_BAR = 'M12 10v8.6';
+const BAG_SYMBOL_S =
+    'M14.4 12.6c0-1-1.1-1.8-2.4-1.8s-2.4.7-2.4 1.7 1.1 1.6 2.4 1.9 2.4.9 2.4 1.9-1.1 1.8-2.4 1.8-2.4-.8-2.4-1.8';
 
-export function IconCards({ color, bgColor, size = 21, focused }) {
+export function IconSavings({ color, bgColor, size = IconSize.xl, focused }) {
+    const showSymbol = size >= SAVINGS_SYMBOL_MIN_SIZE;
+    // En el estado activo la bolsa va maciza y el símbolo se cala en
+    // bgColor. Sale mejor que en contorno: un hueco de 1.5px sobre un
+    // relleno se lee más limpio que un trazo dentro de otro trazo.
+    const symbolTone = focused ? bgColor : color;
     return (
-        <Svg {...vb(size)}>
+        <Svg {...svg(size)}>
             {focused ? (
                 <>
-                    <Rect x="1" y="5" width="22" height="15" rx="3" fill={color} />
-                    <Rect x="1" y="8.5" width="22" height="2.6" fill={bgColor} />
-                    <Path d="M5 15h3.5" stroke={bgColor} strokeWidth={SW} strokeLinecap="round" />
+                    <Path d={BAG_TIE} fill={color} />
+                    <Path d={BAG_BODY} fill={color} />
                 </>
             ) : (
                 <>
-                    <Rect x="1" y="5" width="22" height="15" rx="2.5" stroke={color} strokeWidth={SW} />
-                    <Path d="M1 9.5h22" stroke={color} strokeWidth={SW} />
-                    <Path d="M5 15h3.5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+                    <Path d={BAG_TIE} {...line(size, color)} />
+                    <Path d={BAG_BODY} {...line(size, color)} />
+                </>
+            )}
+            {showSymbol && (
+                <>
+                    <Path d={BAG_SYMBOL_BAR} {...line(size, symbolTone)} />
+                    <Path d={BAG_SYMBOL_S} {...line(size, symbolTone)} />
                 </>
             )}
         </Svg>
     );
 }
 
-export function IconSettings({ color, size = 19 }) {
+export function IconCards({ color, bgColor, size = IconSize.xl, focused }) {
     return (
-        <Svg {...vb(size)}>
-            <Circle cx="12" cy="12" r="3.4" stroke={color} strokeWidth={SW} />
+        <Svg {...svg(size)}>
+            {focused ? (
+                <>
+                    <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} fill={color} />
+                    <Rect x="2" y="8" width="20" height="2.6" fill={bgColor} />
+                    <Path d="M5.6 15.4h3.6" {...line(size, bgColor)} />
+                </>
+            ) : (
+                <>
+                    <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} {...line(size, color)} />
+                    <Path d="M2 9.2h20" {...line(size, color)} />
+                    <Path d="M5.6 15.4h3.6" {...line(size, color)} />
+                </>
+            )}
+        </Svg>
+    );
+}
+
+// ── Chrome / estructura ─────────────────────────────────────────
+export function IconPlus({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M12 4.4v15.2M4.4 12h15.2" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconMinus({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M4.4 12h15.2" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconChevronLeft({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M14.8 5.2 8 12l6.8 6.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconChevronRight({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M9.2 5.2 16 12l-6.8 6.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconChevronDown({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M5.2 9.2 12 16l6.8-6.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconCheck({ color, size = IconSize.sm }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M4.6 12.4 9.6 17.4 19.4 6.6" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconClose({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M6.2 6.2 17.8 17.8M17.8 6.2 6.2 17.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconPencil({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M15.6 4.6 19.4 8.4 8.8 19H5v-3.8L15.6 4.6Z" {...line(size, color)} />
+            <Path d="M13.4 6.8 17.2 10.6" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconTrash({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M4.6 6.8h14.8" {...line(size, color)} />
+            <Path d="M9.4 6.8V4.6h5.2v2.2" {...line(size, color)} />
+            <Path d="M6.4 6.8 7.3 19a1.4 1.4 0 0 0 1.4 1.3h6.6a1.4 1.4 0 0 0 1.4-1.3l.9-12.2" {...line(size, color)} />
+            <Path d="M10.4 10.4v6M13.6 10.4v6" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconSettings({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Circle cx="12" cy="12" r="3.4" {...line(size, color)} />
             <Path
-                d="M12 2.5v2.6M12 18.9v2.6M4.6 12H2M22 12h-2.6M6 6l1.8 1.8M16.2 16.2L18 18M18 6l-1.8 1.8M7.8 16.2L6 18"
-                stroke={color} strokeWidth={SW} strokeLinecap="round"
+                d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"
+                {...line(size, color)}
             />
         </Svg>
     );
 }
 
-export function IconPlus({ color, size = 22 }) {
+export function IconUser({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M12 4.5v15M4.5 12h15" stroke={color} strokeWidth={SW + 0.4} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Circle cx="12" cy="8.4" r="3.8" {...line(size, color)} />
+            <Path d="M4.6 20.4a7.4 7.4 0 0 1 14.8 0" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconMinus({ color, size = 22 }) {
+export function IconLock({ color, size = IconSize.xs }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M4.5 12h15" stroke={color} strokeWidth={SW + 0.4} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Rect x="4.6" y="10.4" width="14.8" height="10" rx={R_SMALL} {...line(size, color)} />
+            <Path d="M8.2 10.4V7.8a3.8 3.8 0 0 1 7.6 0v2.6" {...line(size, color)} />
         </Svg>
     );
 }
 
-// ── Chrome / structural ─────────────────────────────────────────
-export function IconChevronLeft({ color, size = 18 }) {
+export function IconSparkle({ color, size = IconSize.lg }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M15 5l-7 7 7 7" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M12 3.2c0 4.8 2.4 7.2 7.2 7.2-4.8 0-7.2 2.4-7.2 7.2 0-4.8-2.4-7.2-7.2-7.2 4.8 0 7.2-2.4 7.2-7.2Z" {...line(size, color)} />
+            <Path d="M18.4 16.4c0 2-1 3-3 3 2 0 3 1 3 3 0-2 1-3 3-3-2 0-3-1-3-3Z" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconChevronDown({ color, size = 15 }) {
+// ── Movimiento de dinero ────────────────────────────────────────
+export function IconArrowUp({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M5 9l7 7 7-7" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M12 19.4V4.6M5.6 11 12 4.6 18.4 11" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconChevronRight({ color, size = 15 }) {
+export function IconArrowDown({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M9 5l7 7-7 7" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M12 4.6v14.8M5.6 13l6.4 6.4L18.4 13" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconCheck({ color, size = 13 }) {
+export function IconArrowRight({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M5 13l4.5 4.5L19 7" stroke={color} strokeWidth={SW + 0.4} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M4.6 12h14.8M13 5.6 19.4 12 13 18.4" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconClose({ color, size = 15 }) {
+export function IconSwap({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M6 6l12 12M18 6L6 18" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M4.6 8.6h14.8M15.4 4.6l4 4" {...line(size, color)} />
+            <Path d="M19.4 15.4H4.6M8.6 19.4l-4-4" {...line(size, color)} />
         </Svg>
     );
 }
 
-// ── Actions ──────────────────────────────────────────────────────
-export function IconPencil({ color, size = 18 }) {
+export function IconRepeat({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
+        <Svg {...svg(size)}>
+            <Path d="M4.6 10.4V9a2.8 2.8 0 0 1 2.8-2.8h12M16 3l3.4 3.2L16 9.4" {...line(size, color)} />
+            <Path d="M19.4 13.6V15a2.8 2.8 0 0 1-2.8 2.8h-12M8 21l-3.4-3.2L8 14.6" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconTrendUp({ color, size = IconSize.xs }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M4.6 16.6 9.6 11l3.4 3.4 6.4-6.8" {...line(size, color)} />
+            <Path d="M14.6 7.6h4.8v4.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconTrendDown({ color, size = IconSize.xs }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M4.6 7.4 9.6 13l3.4-3.4 6.4 6.8" {...line(size, color)} />
+            <Path d="M14.6 16.4h4.8v-4.8" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconPercent({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path d="M18.4 5.6 5.6 18.4" {...line(size, color)} />
+            <Circle cx="8" cy="8" r="2.6" {...line(size, color)} />
+            <Circle cx="16" cy="16" r="2.6" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+export function IconCurrency({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Circle cx="12" cy="12" r="9" {...line(size, color)} />
+            <Path d="M14.8 9.2a3 3 0 0 0-2.8-1.8c-1.7 0-3 1-3 2.4 0 3.2 6 1.6 6 4.8 0 1.4-1.3 2.4-3 2.4a3 3 0 0 1-2.8-1.8" {...line(size, color)} />
+            <Path d="M12 6v12" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+// ── Instrumentos ────────────────────────────────────────────────
+export function IconCash({ color, size = IconSize.lg }) {
+    return (
+        <Svg {...svg(size)}>
+            <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} {...line(size, color)} />
+            <Circle cx="12" cy="12" r="3" {...line(size, color)} />
+            <Path d="M5.6 8.4h.1M18.4 15.6h.1" {...line(size, color)} />
+        </Svg>
+    );
+}
+
+// Ingreso. Billete a plantilla completa (20×15) con una insignia sólida
+// montada en la esquina inferior derecha.
+//
+// ── Historia, para no repetir los dos intentos malos ──
+// 1. El "+" iba DENTRO del rectángulo. No significa nada: un billete no
+//    lleva un más impreso.
+// 2. Se probó encogerlo a 14.5×11 para sacar el "+" fuera. Funcionaba,
+//    pero dejaba el billete un 27% más corto que el de IconCash, y en el
+//    Historial un Ingreso y un Pago TDC quedan en filas contiguas: se
+//    notaba el desajuste.
+// La insignia resuelve las dos cosas. Al ser OPACA puede montarse sobre
+// la esquina del billete, así que el billete no tiene que ceder espacio
+// y vuelve a medir lo mismo que todos los demás de su plantilla.
+//
+// ── bgColor es OBLIGATORIO aquí ──
+// Se usa dos veces: el círculo de r 5.5 es el anillo de separación que
+// impide que la insignia se funda con el trazo del billete (los dos son
+// del mismo color), y el "+" va calado en bgColor sobre el relleno.
+// Sin bgColor, el "+" desaparece y la insignia queda como un punto
+// macizo. HomeScreen e HistoryScreen ya pasan theme.surface, que queda
+// a 23/765 del color real del chip — indistinguible a este tamaño.
+//
+// El billete se dibuja COMPLETO y simétrico, y la insignia se estampa
+// encima: el círculo va en el centro exacto (10.35, 11.3) y los dos
+// puntos de esquina guardan la misma sangría proporcional que en
+// IconCash. Nada se corre para esquivar la insignia.
+//
+// Consecuencia buscada: el anillo tapa el punto inferior derecho y toda
+// la esquina redondeada del billete. Se dibujan igual. Un dibujo que se
+// deforma para dejarle sitio a lo que tiene encima se ve deforme; uno
+// que sigue derecho y queda tapado se lee como profundidad. Del borde
+// inferior sobrevive de x 2 a 13.8 y del derecho de y 8.1 a 12.6, que es
+// suficiente para que el rectángulo se siga leyendo por detrás.
+//
+// Ojo: el círculo centrado vuelve a acercarse al patrón de cámara. Lo
+// que lo evita ahora son los puntos de esquina y la propia insignia —
+// una cámara no lleva insignia. Si algún día se quitan los puntos,
+// vuelve el problema.
+//
+// Para un interior sin círculo —cero riesgo de cámara— cambia el Circle
+// y el Path del punto por: <Path d="M5.6 9h9.4M5.6 13h5.8" />
+// Ingreso: un fajo. Un billete al frente y otro asomando por detrás.
+//
+// La caja envolvente es 20×15 EXACTA, la misma que IconCash — el pago de
+// tarjeta, con el que comparte fila en Inicio e Historial. No por
+// casualidad: el billete de atrás va de y 4.5 a 15.5 y el de adelante de
+// 8.5 a 19.5, así que la unión da justo 15 de alto; y de x 2 a 22 entre
+// los dos, justo 20 de ancho. Si se mueve cualquiera de los dos, hay que
+// rehacer la cuenta o los dos iconos dejan de medir lo mismo.
+//
+// El billete de atrás es un trazo PARCIAL, no un rectángulo completo:
+// arranca en (6.6, 8.5) —sobre el borde superior del de adelante— y
+// termina en (17.6, 15.5), justo antes de su borde derecho. Como aquí
+// nada lleva relleno, un rectángulo entero se vería a través del otro y
+// el fajo parecería dos marcos superpuestos en vez de dos billetes.
+//
+// El círculo y los dos puntos son los de IconCash con la sangría
+// proporcional al billete más chico. Los puntos no son adorno: un
+// rectángulo redondeado con un círculo centrado se lee como CÁMARA, y
+// las marcas de esquina son lo que lo devuelve a billete.
+//
+// bgColor ya no se usa —la versión con insignia calada quedó atrás— pero
+// se deja en la firma porque HomeScreen e HistoryScreen aún lo pasan.
+export function IconBanknotePlus({ color, bgColor, size = IconSize.lg }) {
+    return (
+        <Svg {...svg(size)}>
             <Path
-                d="M14.5 4.5l5 5L8 21H3v-5L14.5 4.5z"
-                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
+                d="M6.6 8.5V7.1a2.6 2.6 0 0 1 2.6-2.6h10.2a2.6 2.6 0 0 1 2.6 2.6v5.8a2.6 2.6 0 0 1-2.6 2.6h-1.8"
+                {...line(size, color)}
             />
-            <Path d="M12.5 6.5l5 5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+            <Rect x="2" y="8.5" width="15.4" height="11" rx={R_SMALL} {...line(size, color)} />
+            <Circle cx="9.7" cy="14" r="2.3" {...line(size, color)} />
+            <Path d="M4.8 11.4h.1M14.6 16.6h.1" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconTrash({ color, size = 17 }) {
+export function IconCard({ color, size = IconSize.lg }) {
     return (
-        <Svg {...vb(size)}>
-            <Path
-                d="M4.5 6.5h15M9 6.5V4.3a1 1 0 011-1h4a1 1 0 011 1v2.2M6.7 6.5l.9 13.3a1.7 1.7 0 001.7 1.6h5.4a1.7 1.7 0 001.7-1.6l.9-13.3"
-                stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round"
-            />
-            <Path d="M10.2 10.5v6.5M13.8 10.5v6.5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} {...line(size, color)} />
+            <Path d="M2 9.2h20" {...line(size, color)} />
+            <Path d="M5.6 15.4h3.6" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconCash({ color, size = 20 }) {
+export function IconCardAdd({ color, bgColor, size = IconSize.lg }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="2" y="6" width="20" height="12" rx="2" stroke={color} strokeWidth={SW} />
-            <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={SW} />
-            <Path d="M5.5 9v.01M18.5 15v.01" stroke={color} strokeWidth={SW + 0.4} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M2 12.6V7.5a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v3.2" {...line(size, color)} />
+            <Path d="M12.4 19.5H5a3 3 0 0 1-3-3" {...line(size, color)} />
+            <Path d="M2 9.2h20" {...line(size, color)} />
+            <Path d="M17.6 13.4v6.4M14.4 16.6h6.4" {...line(size, color)} />
         </Svg>
     );
 }
 
-// ── Transaction types ────────────────────────────────────────────
-export function IconArrowDown({ color, size = 18 }) {
+export function IconWallet({ color, size = IconSize.lg }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M12 4.5v14" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M6.5 13l5.5 5.5L17.5 13" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M2 8.5a3 3 0 0 1 3-3h11.6a3 3 0 0 1 3 3" {...line(size, color)} />
+            <Rect x="2" y="8.5" width="20" height="11" rx={R_SMALL} {...line(size, color)} />
+            <Path d="M22 12.4h-4a1.8 1.8 0 0 0 0 3.6h4" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconArrowUp({ color, size = 18 }) {
+export function IconReceipt({ color, size = IconSize.lg }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M12 19.5v-14" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M6.5 11l5.5-5.5L17.5 11" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M4.5 3.4h15v17.2l-2.5-1.6-2.5 1.6-2.5-1.6-2.5 1.6-2.5-1.6-2.5 1.6V3.4Z" {...line(size, color)} />
+            <Path d="M8.6 8.4h6.8M8.6 12.4h4.6" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconArrowRight({ color, size = 18 }) {
+export function IconDocument({ color, size = IconSize.lg }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M4.5 12h14" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M13 6.5l5.5 5.5-5.5 5.5" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M13.4 2.6H7a2.4 2.4 0 0 0-2.4 2.4v14a2.4 2.4 0 0 0 2.4 2.4h10a2.4 2.4 0 0 0 2.4-2.4V8.6l-6-6Z" {...line(size, color)} />
+            <Path d="M13.4 2.6v6h6" {...line(size, color)} />
+            <Path d="M8.6 13.4h6.8M8.6 17h4.6" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconSwap({ color, size = 18 }) {
+export function IconCalendar({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M3.5 8h14" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M13.5 4l4 4-4 4" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M20.5 16h-14" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M10.5 12l-4 4 4 4" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Rect x="3" y="5.4" width="18" height="15.6" rx={R_SMALL} {...line(size, color)} />
+            <Path d="M3 10.2h18" {...line(size, color)} />
+            <Path d="M8.2 3v4.4M15.8 3v4.4" {...line(size, color)} />
         </Svg>
     );
 }
 
-// Recurring "mensualidad" (an MSI installment) — a repeat/refresh
-// loop reads as "this happens again", the one thing that separates
-// it from a one-off card payment or expense.
-export function IconRepeat({ color, size = 18 }) {
+export function IconCalendarClock({ color, size = IconSize.md }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M4 12a8 8 0 0113.66-5.66L20 8" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M20 4v4h-4" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M20 12a8 8 0 01-13.66 5.66L4 16" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M4 20v-4h4" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M21 11.4V8.4a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v9.6a3 3 0 0 0 3 3h5.4" {...line(size, color)} />
+            <Path d="M3 10.2h18" {...line(size, color)} />
+            <Path d="M8.2 3v4.4M15.8 3v4.4" {...line(size, color)} />
+            <Circle cx="17.4" cy="17.4" r="4.2" {...line(size, color)} />
+            <Path d="M17.4 15.6v1.9l1.3.9" {...line(size, color)} />
         </Svg>
     );
 }
 
-// ── Status / info ─────────────────────────────────────────────────
-export function IconWarningTriangle({ color, size = 15 }) {
+export function IconWarningTriangle({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Path d="M12 4l9 15.5H3L12 4z" stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round" />
-            <Path d="M12 10.5v4" stroke={color} strokeWidth={SW + 0.2} strokeLinecap="round" />
-            <Circle cx="12" cy="17.3" r="1" fill={color} stroke="none" />
+        <Svg {...svg(size)}>
+            <Path d="M12 3.8 21.4 20H2.6L12 3.8Z" {...line(size, color)} />
+            <Path d="M12 10v4.2M12 17.4h.1" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconLock({ color, size = 12 }) {
+// ── Etiquetas ───────────────────────────────────────────────────
+// Las diez viven en el mismo paso (IconSize.sm por defecto, porque
+// siempre salen dentro de una pastilla) y respetan la misma rejilla que
+// el resto. Antes tenían su propio tamaño por defecto de 18 y quedaban
+// más grandes que los chevrons que las acompañaban en la misma fila.
+export function IconTagFood({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke={color} strokeWidth={SW} />
-            <Path d="M8 10.5V7.5a4 4 0 018 0v3" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M6.4 3v8.4a2.6 2.6 0 0 0 5.2 0V3" {...line(size, color)} />
+            <Path d="M9 3v18" {...line(size, color)} />
+            <Path d="M17.6 3c-1.6 1.6-2.4 3.6-2.4 6s.8 3.4 2.4 3.4V21" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconCalendar({ color, size = 18 }) {
+export function IconTagTransport({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="3" y="5" width="18" height="16" rx="2" stroke={color} strokeWidth={SW} />
-            <Path d="M3 9.5h18" stroke={color} strokeWidth={SW} />
-            <Path d="M8 3v4M16 3v4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M3.4 14.4 5 8.6a2.6 2.6 0 0 1 2.5-1.9h9a2.6 2.6 0 0 1 2.5 1.9l1.6 5.8" {...line(size, color)} />
+            <Rect x="2.6" y="14.4" width="18.8" height="4.6" rx={R_SMALL} {...line(size, color)} />
+            <Path d="M6.6 21v-2M17.4 21v-2" {...line(size, color)} />
         </Svg>
     );
 }
 
-// Calendar + clock — "Programado" (a scheduled/recurring MSI
-// payment), distinct from DatePickerField's plain calendar ("pick a
-// date"). Calendar body+tabs are centered at (12,12); clock is a
-// corner badge on top.
-export function IconCalendarClock({ color, size = 18 }) {
+export function IconTagCart({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="5" y="7" width="14" height="12" rx="2" stroke={color} strokeWidth={SW} />
-            <Path d="M5 10.5h14" stroke={color} strokeWidth={SW} />
-            <Path d="M9 5v4M15 5v4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Circle cx="19" cy="19" r="3.8" stroke={color} strokeWidth={SW} fill="none" />
-            <Path d="M19 16.8v2.2l1.5,0.9" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M2.6 3.6h2.6l2.6 11.2a1.6 1.6 0 0 0 1.6 1.2h7.8a1.6 1.6 0 0 0 1.6-1.2l1.6-6.6H6.2" {...line(size, color)} />
+            <Circle cx="9.4" cy="20" r="1.4" {...line(size, color)} />
+            <Circle cx="17.4" cy="20" r="1.4" {...line(size, color)} />
         </Svg>
     );
 }
 
-// Banknote + plus — "Ingreso". The "+" badge is painted in `bgColor`
-// (the icon's container background) rather than cut out transparent,
-// so it always reads clean regardless of what's underneath — same
-// trick PendingFundCard's badges use. `bgColor` must be OPAQUE
-// (theme.surface, not a low-alpha tint like visual.bg) or it barely shows.
-export function IconBanknotePlus({ color, bgColor = '#FFFFFF', size = 18 }) {
+export function IconTagHealth({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="2" y="6" width="20" height="12" rx="2" stroke={color} strokeWidth={SW} />
-            <Circle cx="12" cy="12" r="2.8" stroke={color} strokeWidth={SW} />
-            <Circle cx="20.5" cy="18.5" r="4.7" fill={color} stroke={bgColor} strokeWidth={1.4} />
-            <Path d="M20.5 15.2v6.6M17.2 18.5h6.6" stroke={bgColor} strokeWidth={1.3} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M12 20.4S3.6 15.4 3.6 9.6a4.6 4.6 0 0 1 8.4-2.6 4.6 4.6 0 0 1 8.4 2.6c0 5.8-8.4 10.8-8.4 10.8Z" {...line(size, color)} />
         </Svg>
     );
 }
 
-// Receipt — "Gasto". A torn-edge slip reads more specifically as
-// "money spent on something" than a bare arrow did.
-export function IconReceipt({ color, size = 18 }) {
+export function IconTagEntertainment({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Path
-                d="M5 3h14v14.5l-1.75,3 -1.75,-3 -1.75,3 -1.75,-3 -1.75,3 -1.75,-3 -1.75,3 -1.75,-3V3z"
-                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
-            />
-            <Path d="M8 7.5h8M8 11h8M8 14h5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M9.4 18.6V5.4l10 3.2v6.8" {...line(size, color)} />
+            <Circle cx="6.4" cy="18.6" r="3" {...line(size, color)} />
+            <Circle cx="16.4" cy="15.4" r="3" {...line(size, color)} />
         </Svg>
     );
 }
 
-// ── Onboarding / Settings ─────────────────────────────────────────
-export function IconUser({ color, size = 17 }) {
+export function IconTagClothing({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Circle cx="12" cy="8.5" r="3.6" stroke={color} strokeWidth={SW} />
-            <Path d="M4.8 20c1-4.4 4.1-6.7 7.2-6.7s6.2 2.3 7.2 6.7" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
+        <Svg {...svg(size)}>
+            <Path d="M9 3.4 3.4 6.6l2 4.2 2-.9V20.6h9.2V9.9l2 .9 2-4.2L15 3.4a3 3 0 0 1-6 0Z" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconCurrency({ color, size = 17 }) {
+export function IconTagHome({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Circle cx="12" cy="12" r="8.2" stroke={color} strokeWidth={SW} />
-            <Path
-                d="M12 7v10M9 9.2c0-1.2 1.3-2.1 3-2.1s3 .9 3 1.9-1.3 1.5-3 1.8-3 .7-3 1.9 1.3 2 3 2 3-.8 3-2"
-                stroke={color} strokeWidth={SW - 0.4} strokeLinecap="round" strokeLinejoin="round"
-            />
+        <Svg {...svg(size)}>
+            <Path d="M3.6 10.4 12 3.4l8.4 7v9.2a1.4 1.4 0 0 1-1.4 1.4H5a1.4 1.4 0 0 1-1.4-1.4v-9.2Z" {...line(size, color)} />
+            <Path d="M9.3 21v-6.2h5.4V21" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconCard({ color, size = 20 }) {
+export function IconTagServices({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="1.5" y="5" width="21" height="15" rx="2.2" stroke={color} strokeWidth={SW} />
-            <Path d="M1.5 9.8h21" stroke={color} strokeWidth={SW} />
-            <Path d="M5.5 15h4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M13 3.4 5.6 13h5.4l-2 7.6L16.4 11H11l2-7.6Z" {...line(size, color)} />
         </Svg>
     );
 }
 
-// One piece, not "IconPlus next to IconCard" — a single shape lines
-// up the badge against the card exactly. `bgColor` punches a clean
-// hole so the card's stripe doesn't cut through the badge.
-export function IconCardAdd({ color, bgColor, size = 20 }) {
+export function IconTagEducation({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="1" y="7" width="18" height="13" rx="2.4" stroke={color} strokeWidth={SW} />
-            <Path d="M1 11.3h18" stroke={color} strokeWidth={SW} />
-            <Path d="M4.5 16.2h4" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Circle cx="18" cy="7" r="5.4" fill={bgColor} />
-            <Circle cx="18" cy="7" r="5.4" stroke={color} strokeWidth={SW} fill="none" />
-            <Path d="M18 4.5v5M15.5 7h5" stroke={color} strokeWidth={SW + 0.3} strokeLinecap="round" />
+        <Svg {...svg(size)}>
+            <Path d="M12 4 2.6 8.6 12 13.2l9.4-4.6L12 4Z" {...line(size, color)} />
+            <Path d="M6.4 10.8v5.4c0 1.8 2.5 3.2 5.6 3.2s5.6-1.4 5.6-3.2v-5.4" {...line(size, color)} />
         </Svg>
     );
 }
 
-export function IconDocument({ color, size = 20 }) {
+export function IconTagOther({ color, size = IconSize.sm }) {
     return (
-        <Svg {...vb(size)}>
-            <Rect x="4" y="3" width="16" height="18" rx="2.4" stroke={color} strokeWidth={SW} />
-            <Path d="M7.5 8.5h9M7.5 12.5h9M7.5 16h5.5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
-// Distinct from IconCurrency on purpose (a wallet, not a coin) — used
-// for "your total balance" in the onboarding tour, a different idea
-// from the currency field in Settings even though both are money-ish.
-export function IconWallet({ color, size = 20 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M3 7.5a2 2 0 012-2h12.5a2 2 0 012 2V18a2 2 0 01-2 2H5a2 2 0 01-2-2V7.5z" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-            <Path d="M3 9.3h16.5" stroke={color} strokeWidth={SW} />
-            <Path d="M14.5 12.2a1.9 1.9 0 100 3.8h5v-3.8h-5z" fill={color} stroke="none" />
-        </Svg>
-    );
-}
-
-export function IconSparkle({ color, size = 20 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path
-                d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"
-                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
-            />
-        </Svg>
-    );
-}
-
-// ── Trend (Home's balance indicator) ───────────────────────────────
-// Diagonal on purpose — distinct from IconArrowUp/Down above, which
-// already mean expense/income elsewhere in the app.
-export function IconPercent({ color, size = 16 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Circle cx="6.5" cy="6.5" r="3" stroke={color} strokeWidth={SW} />
-            <Circle cx="17.5" cy="17.5" r="3" stroke={color} strokeWidth={SW} />
-            <Path d="M18 6L6 18" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
-export function IconTrendUp({ color, size = 14 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M5 16L16 5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M8 5h8v8" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-    );
-}
-
-export function IconTrendDown({ color, size = 14 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M5 5l11 11" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-            <Path d="M16 8v8H8" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-    );
-}
-
-// ── Tags (constants/tagIcons.js) ───────────────────────────────────
-// One glyph per default tag, plus IconTagOther as the generic
-// fallback/"other" choice — same set doubles as the icon palette
-// offered when a person creates their own tag.
-export function IconTagFood({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M6 2.5v8a2 2 0 002 2 2 2 0 002-2v-8M8 12.5V21.5" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M16.5 2.5c-1.4 0-2.5 1.8-2.5 4.5s1.1 4.5 2.5 4.5M16.5 2.5v19" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-    );
-}
-
-export function IconTagTransport({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M4 16V10.5a2 2 0 011.4-1.9l1.4-.4 1.6-3.2A2 2 0 0110.2 4h3.6a2 2 0 011.8 1L17.2 8.2l1.4.4A2 2 0 0120 10.5V16" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M4 16h16M4 16v2.5a1 1 0 001 1h1.5a1 1 0 001-1V16M15.5 16v2.5a1 1 0 001 1H18a1 1 0 001-1V16" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Circle cx="8" cy="13" r="1" fill={color} stroke="none" />
-            <Circle cx="16" cy="13" r="1" fill={color} stroke="none" />
-        </Svg>
-    );
-}
-
-export function IconTagCart({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M3 4h2l2.2 11.2a1.8 1.8 0 001.8 1.4h7.6a1.8 1.8 0 001.8-1.5L20 8H6" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Circle cx="10" cy="20" r="1.3" fill={color} stroke="none" />
-            <Circle cx="17" cy="20" r="1.3" fill={color} stroke="none" />
-        </Svg>
-    );
-}
-
-export function IconTagHealth({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={SW} />
-            <Path d="M12 8v8M8 12h8" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
-export function IconTagEntertainment({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M3 8.5l2-4.5h14l2 4.5v10a1.3 1.3 0 01-1.3 1.3H4.3A1.3 1.3 0 013 18.5v-10z" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-            <Path d="M3 8.5h18M8.5 4v4.5M15.5 4v4.5" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-        </Svg>
-    );
-}
-
-export function IconTagClothing({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path
-                d="M8.5 3.5L4 6.5l1.8 3 2.2-1.3V20a1 1 0 001 1h6a1 1 0 001-1V8.2l2.2 1.3 1.8-3-4.5-3a3 3 0 01-6 0z"
-                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
-            />
-        </Svg>
-    );
-}
-
-export function IconTagHome({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M4 11l8-7.5L20 11" stroke={color} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M6 9.5V20a1 1 0 001 1h10a1 1 0 001-1V9.5" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-            <Path d="M10 21v-6h4v6" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-        </Svg>
-    );
-}
-
-export function IconTagServices({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path
-                d="M14.5 3.5a4.5 4.5 0 00-5.9 5.9L3 15v3.5a2.5 2.5 0 002.5 2.5H9v-3h3v-3l4.6-4.6a4.5 4.5 0 005.9-5.9L18 9 15 6l3.5-3.5z"
-                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
-            />
-        </Svg>
-    );
-}
-
-export function IconTagEducation({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path d="M2 8l10-4.5L22 8l-10 4.5L2 8z" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-            <Path d="M6.5 10.2V15c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-4.8" stroke={color} strokeWidth={SW} strokeLinejoin="round" />
-            <Path d="M22 8v6.5" stroke={color} strokeWidth={SW} strokeLinecap="round" />
-        </Svg>
-    );
-}
-
-export function IconTagOther({ color, size = 18 }) {
-    return (
-        <Svg {...vb(size)}>
-            <Path
-                d="M11.5 3H5a2 2 0 00-2 2v6.5a2 2 0 00.6 1.4l9 9a2 2 0 002.8 0l6.5-6.5a2 2 0 000-2.8l-9-9A2 2 0 0011.5 3z"
-                stroke={color} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round"
-            />
-            <Circle cx="8" cy="8" r="1.4" fill={color} stroke="none" />
+        <Svg {...svg(size)}>
+            <Circle cx="5.6" cy="12" r="1.7" {...line(size, color)} />
+            <Circle cx="12" cy="12" r="1.7" {...line(size, color)} />
+            <Circle cx="18.4" cy="12" r="1.7" {...line(size, color)} />
         </Svg>
     );
 }

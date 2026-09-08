@@ -1,59 +1,37 @@
-// Decoration for Home's hero card ONLY — not a global background.
-// Landscape-proportioned (viewBox ~2:1), sized via measured
-// width/height (HomeScreen passes it in via onLayout, since the hero's
-// height is content-driven, not fixed). preserveAspectRatio="xMidYMid
-// slice" crops the fixed 280×140 design to cover whatever that turns out to be.
+// Decoración de la tarjeta héroe de Inicio. El fondo global es
+// AppBackground.jsx.
 //
-// Same as AppBackground: react-native-svg doesn't reliably support
-// <filter> across platforms, so every "glow" here is a radial
-// gradient fading to transparent, never a blur.
+// ── Por qué cambió ──
+// Antes esta pieza pintaba un cielo OPACO con siete colores horneados
+// a mano (#1D2534, #5FCDBE, #ECEEE7…) que imitaban el tema sin serlo:
+// su turquesa era #5FCDBE y theme.brand es #47BEAE, así que ya estaban
+// desincronizados. Al ser opaca, además, obligaba a que el héroe fuera
+// la única tarjeta de la app SIN el material de vidrio: no había nada
+// detrás que desenfocar.
+//
+// Ahora todo es translúcido y todo sale de `theme`. El BlurView de
+// GlassCard sigue trabajando por debajo, así que el héroe usa el mismo
+// material que el resto y el cielo de AppBackground se ve a través.
+// Cambiar la paleta ya mueve esta tarjeta con las demás.
+//
+// react-native-svg no soporta <filter> de forma confiable en todas las
+// plataformas, así que cada resplandor es un gradiente radial, no un blur.
 import { StyleSheet } from 'react-native';
-import { Svg, Defs, RadialGradient, LinearGradient, Stop, Circle, Path, Line, ClipPath, Rect, G } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, LinearGradient, Stop, Circle, Path, G } from 'react-native-svg';
 
 const VB_W = 280;
-const VB_H = 140;
+const VB_H = 150;
 
-// Off-center on purpose — peaks left, moon sits right, giving
-// diagonal balance instead of a static centered composition.
-const HORIZON = "M0,108 C40,90 70,82 100,86 C150,92 220,102 280,110 L280,140 L0,140 Z";
+// Coordenadas fijas, nunca aleatorias por render: el layout tiene que
+// ser el mismo en cada pintada.
+const STARS = [
+    [34, 26, 0.9, 0.32], [96, 16, 1.0, 0.26], [142, 34, 0.85, 0.36],
+    [196, 14, 0.75, 0.28], [246, 66, 1.1, 0.22], [158, 78, 0.8, 0.28],
+    [20, 62, 0.9, 0.24], [68, 48, 0.7, 0.22], [118, 60, 0.75, 0.2],
+];
 
-function Stars({ color }) {
-    return (
-        <G fill={color}>
-            <Circle cx="40" cy="20" r="0.9" opacity="0.35" /><Circle cx="75" cy="35" r="0.7" opacity="0.28" />
-            <Circle cx="15" cy="45" r="0.7" opacity="0.26" /><Circle cx="100" cy="18" r="0.8" opacity="0.32" />
-            <Circle cx="130" cy="50" r="0.7" opacity="0.26" /><Circle cx="55" cy="60" r="0.7" opacity="0.24" />
-            <Circle cx="160" cy="25" r="0.7" opacity="0.26" /><Circle cx="25" cy="70" r="0.6" opacity="0.22" />
-        </G>
-    );
-}
-
-// Moon + stars + horizon, with a second subtler hill layer for depth.
-function MedianocheHero() {
-    return (
-        <>
-            <Defs>
-                <LinearGradient id="hmnSky" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0%" stopColor="#0A0D14" />
-                    <Stop offset="100%" stopColor="#11151D" />
-                </LinearGradient>
-                <RadialGradient id="hmnGlow" cx="50%" cy="50%" r="50%">
-                    <Stop offset="0%" stopColor="#5FC9BD" stopOpacity="0.4" />
-                    <Stop offset="100%" stopColor="#5FC9BD" stopOpacity="0" />
-                </RadialGradient>
-            </Defs>
-            <Path d={`M0,0 H${VB_W} V${VB_H} H0 Z`} fill="url(#hmnSky)" />
-            <Stars color="#ECEEE7" />
-            <Circle cx="210" cy="42" r="42" fill="url(#hmnGlow)" />
-            <Circle cx="210" cy="42" r="13" fill="#ECEEE7" />
-            <Path d="M0,98 C50,80 90,92 140,84 C190,76 230,90 280,80 L280,140 L0,140 Z" fill="#161B24" opacity="0.6" />
-            <Path d={HORIZON} fill="#0A0C10" opacity="0.92" />
-        </>
-    );
-}
-
-export default function HeroArt({ width, height }) {
-    if (!width || !height) return null;
+export default function HeroArt({ width, height, theme }) {
+    if (!width || !height || !theme) return null;
 
     return (
         <Svg
@@ -61,9 +39,59 @@ export default function HeroArt({ width, height }) {
             height={height}
             viewBox={`0 0 ${VB_W} ${VB_H}`}
             preserveAspectRatio="xMidYMid slice"
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
         >
-            <MedianocheHero />
+            <Defs>
+                {/* Halo de la luna: el único lugar del héroe donde el
+                    turquesa de marca aparece como luz y no como dato. */}
+                <RadialGradient id="heroHalo" cx="50%" cy="50%" r="50%">
+                    <Stop offset="0%" stopColor={theme.brand} stopOpacity="0.20" />
+                    <Stop offset="60%" stopColor={theme.brand} stopOpacity="0.06" />
+                    <Stop offset="100%" stopColor={theme.brand} stopOpacity="0" />
+                </RadialGradient>
+
+                {/* Las dunas se apoyan en bgBottom con alfa, no en un
+                    color sólido: así el desenfoque del vidrio sigue
+                    leyéndose a través de ellas. */}
+                <LinearGradient id="heroDuneFar" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor={theme.bgTop} stopOpacity="0.34" />
+                    <Stop offset="100%" stopColor={theme.bgBottom} stopOpacity="0.42" />
+                </LinearGradient>
+                <LinearGradient id="heroDuneNear" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor={theme.bgBottom} stopOpacity="0.46" />
+                    <Stop offset="100%" stopColor={theme.bgBottom} stopOpacity="0.66" />
+                </LinearGradient>
+            </Defs>
+
+            {/* Arriba a la derecha: donde no están ni el saludo ni el balance.
+                La luna es un disco SÓLIDO, no un degradado. El borde
+                desvanecido la hacía leer como mancha, y de paso se fundía
+                con el halo: no se distinguía dónde acababa el cuerpo y
+                empezaba la luz. Con canto duro, el halo por fin se lee
+                como resplandor alrededor de algo.
+                cy pasó de 22 a 36 porque a r=11 quedaba pegada al borde
+                superior. Ojo si se sube de nuevo: el kebab de ajustes vive
+                por ahí (~x 250 en estas coordenadas) y es ink a 0.85, así
+                que sobre la luna desaparecería. */}
+            <Circle cx="224" cy="34" r="74" fill="url(#heroHalo)" />
+            <Circle cx="226" cy="36" r="11" fill={theme.ink} opacity={0.82} />
+
+            <G fill={theme.ink}>
+                {STARS.map(([cx, cy, r, op], i) => (
+                    <Circle key={i} cx={cx} cy={cy} r={r} opacity={op} />
+                ))}
+            </G>
+
+            {/* Dos crestas, no una: la separación entre ambas es lo que
+                da sensación de profundidad sin necesitar sombra. */}
+            <Path
+                d="M0,116 C46,102 86,110 130,104 C176,98 226,108 280,100 L280,150 L0,150 Z"
+                fill="url(#heroDuneFar)"
+            />
+            <Path
+                d="M0,128 Q48,113 96,123 T196,117 T280,130 L280,150 L0,150 Z"
+                fill="url(#heroDuneNear)"
+            />
         </Svg>
     );
 }

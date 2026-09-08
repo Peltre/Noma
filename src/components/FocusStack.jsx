@@ -10,7 +10,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { View, Animated, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import CardFace, { CARD_LARGE_HEIGHT } from './CardFace';
-import { formatCurrency, formatCurrencyShort } from '../utils';
+import { formatCurrencyShort } from '../utils';
 import { Radius, Shadow } from '../constants';
 
 // How much of a covered card peeks above the one in front of it.
@@ -132,7 +132,7 @@ export default function FocusStack({ cards, focusedId, onFocusChange, onOpenDeta
                                     pattern={card.pattern}
                                     variant="preview"
                                     valueLabel={isCredit ? 'DEUDA' : 'SALDO'}
-                                    valueText={formatCurrency(isCredit ? card.currentDebt : card.balance)}
+                                    valueAmount={isCredit ? card.currentDebt : card.balance}
                                     progressPct={pct}
                                     amountOpacity={opacityAnims.current.get(card.id)}
                                     headerOffsetY={isFocused ? undefined : PEEK_HEADER_OFFSET}

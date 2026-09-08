@@ -1,31 +1,21 @@
 // General app config: userName, currency, and other app functionalities
-import { useMemo, useState, useEffect, useRef } from "react";
-import {
-    View,
-    Text,
-    ScrollView,
-    TouchableOpacity,
-    TextInput,
-    Alert,
-    Modal,
-    ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import createSettingsStyles from './SettingsScreen.styles';
 
-import { useFinance } from "../store/FinanceContext";
-import { useTheme } from "../store/useTheme";
-import { CURRENCIES } from "../constants";
-import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronLeft, IconChevronRight, IconPencil } from '../components/Icons';
-import GlassCard from '../components/GlassCard';
+import { useFinance } from '../store/FinanceContext';
+import { useTheme } from '../store/useTheme';
+import { CURRENCIES } from '../constants';
+import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronRight, IconPencil } from '../components/Icons';
+import { ScreenHeader, SectionHeader, Sheet, Button, GlassCard } from '../components/ui';
 
 // Moneda picker — a real conversion, not just a display preference:
 // rescales every stored amount (FinanceContext's changeCurrency)
 // using a live exchange rate, the one thing in this offline app that
 // needs internet. Gated behind a confirmation, unlike a theme choice
 // — this can't be undone with a second tap.
-function CurrencyPickerModal({ visible, onClose }) {
+function CurrencyPickerSheet({ onClose }) {
     const { settings, changeCurrency } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
@@ -61,50 +51,44 @@ function CurrencyPickerModal({ visible, onClose }) {
     };
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={styles.modalBg}>
-                <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={converting ? undefined : onClose} />
-                <View style={styles.sheet}>
-                    <View style={styles.sheetHandle} />
-                    <Text style={styles.sheetTitle}>Moneda</Text>
-                    <Text style={styles.sheetSubtitle}>
-                        Cambiar de moneda convierte automáticamente todo tu dinero — cuentas, tarjetas, ahorros y movimientos — al tipo de cambio del momento.
-                    </Text>
-
-                    <View style={styles.sheetCard}>
-                        {CURRENCIES.map((c, i) => {
-                            const isActive = settings.currency === c.code;
-                            return (
-                                <TouchableOpacity
-                                    key={c.code}
-                                    style={[styles.themeRow, i === CURRENCIES.length - 1 && styles.fieldRowLast]}
-                                    onPress={() => handlePick(c.code)}
-                                    activeOpacity={0.7}
-                                    disabled={converting}
-                                >
-                                    <View style={styles.fieldInfo}>
-                                        <Text style={styles.themeName}>{c.code}</Text>
-                                        <Text style={styles.themeDesc}>{c.label}</Text>
-                                    </View>
-                                    {converting && !isActive ? null : (
-                                        <View style={[styles.radio, isActive && styles.radioActive]}>
-                                            {isActive && <IconCheck color={theme.brandOn} />}
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-
-                    {converting && (
-                        <View style={styles.convertingRow}>
-                            <ActivityIndicator color={theme.brand} />
-                            <Text style={styles.convertingText}>Convirtiendo tus montos…</Text>
-                        </View>
-                    )}
-                </View>
+        <Sheet
+            onClose={onClose}
+            dismissable={!converting}
+            title="Moneda"
+            subtitle="Cambiar de moneda convierte automáticamente todo tu dinero — cuentas, tarjetas, ahorros y movimientos — al tipo de cambio del momento."
+        >
+            <View style={styles.pickerList}>
+                {CURRENCIES.map((c, i) => {
+                    const isActive = settings.currency === c.code;
+                    return (
+                        <TouchableOpacity
+                            key={c.code}
+                            style={[styles.pickerRow, i === CURRENCIES.length - 1 && styles.rowLast]}
+                            onPress={() => handlePick(c.code)}
+                            activeOpacity={0.7}
+                            disabled={converting}
+                        >
+                            <View style={styles.rowInfo}>
+                                <Text style={styles.pickerName}>{c.code}</Text>
+                                <Text style={styles.pickerDesc}>{c.label}</Text>
+                            </View>
+                            {converting && !isActive ? null : (
+                                <View style={[styles.radio, isActive && styles.radioActive]}>
+                                    {isActive && <IconCheck color={theme.brandOn} />}
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
-        </Modal>
+
+            {converting && (
+                <View style={styles.convertingRow}>
+                    <ActivityIndicator color={theme.brand} />
+                    <Text style={styles.convertingText}>Convirtiendo tus montos…</Text>
+                </View>
+            )}
+        </Sheet>
     );
 }
 
@@ -136,7 +120,7 @@ export default function SettingsScreen() {
 
     const handleSave = async () => {
         if (!userName.trim()) {
-            Alert.alert('Nombre invalido', 'Ingresa tu nombre');
+            Alert.alert('Nombre inválido', 'Ingresa tu nombre');
             return;
         }
         await updateSettings({ userName: userName.trim() });
@@ -168,91 +152,86 @@ export default function SettingsScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-            <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.safeArea}>
+            <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                            <IconChevronLeft color={theme.ink} size={16} />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>Configuración</Text>
-                    </View>
-                </View>
+                <ScreenHeader title="Configuración" onBack={() => navigation.goBack()} />
 
                 {/* Profile */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Perfil</Text>
+                    <SectionHeader title="Perfil" />
                     <GlassCard style={styles.card}>
-                        <View style={styles.fieldRow}>
-                            <View style={styles.fieldIcon}>
-                                <IconUser color={theme.ink} />
+                        <View style={styles.row}>
+                            <View style={styles.rowIcon}>
+                                <IconUser color={theme.brand} />
                             </View>
-                            <View style={styles.fieldInfo}>
-                                <Text style={styles.fieldLabel}>Tu nombre</Text>
+                            <View style={styles.rowInfo}>
+                                <Text style={styles.rowLabel}>Tu nombre</Text>
                                 {isEditingName ? (
                                     <TextInput
                                         ref={nameInputRef}
-                                        style={styles.fieldInput}
+                                        style={styles.rowInput}
                                         value={userName}
                                         onChangeText={setUserName}
-                                        placeholder="Como te llamas?"
-                                        placeholderTextColor={theme.muted}
+                                        placeholder="¿Cómo te llamas?"
+                                        placeholderTextColor={theme.inkDim}
                                         returnKeyType="done"
                                         onSubmitEditing={handleSave}
                                     />
                                 ) : (
-                                    <Text style={styles.fieldValue}>{userName}</Text>
+                                    <Text style={styles.rowValue}>{userName}</Text>
                                 )}
                             </View>
                             <TouchableOpacity
-                                style={styles.editNameBtn}
+                                style={styles.rowAction}
                                 onPress={() => setIsEditingName(true)}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Editar nombre"
                             >
                                 <IconPencil color={theme.brand} size={16} />
                             </TouchableOpacity>
                         </View>
                         <TouchableOpacity
-                            style={[styles.fieldRow, styles.fieldRowLast]}
+                            style={[styles.row, styles.rowLast]}
                             onPress={() => setShowCurrencyPicker(true)}
                             activeOpacity={0.7}
                         >
-                            <View style={styles.fieldIcon}>
-                                <IconCurrency color={theme.ink} />
+                            <View style={styles.rowIcon}>
+                                <IconCurrency color={theme.brand} />
                             </View>
-                            <View style={styles.fieldInfo}>
-                                <Text style={styles.fieldLabel}>Moneda</Text>
-                                <Text style={styles.fieldValue}>
-                                    {settings.currency} - {CURRENCIES.find(c => c.code === settings.currency)?.label ?? settings.currency}
+                            <View style={styles.rowInfo}>
+                                <Text style={styles.rowLabel}>Moneda</Text>
+                                <Text style={styles.rowValue}>
+                                    {settings.currency} · {CURRENCIES.find(c => c.code === settings.currency)?.label ?? settings.currency}
                                 </Text>
                             </View>
-                            <IconChevronRight color={theme.muted} size={14} />
+                            <IconChevronRight color={theme.inkDim} size={14} />
                         </TouchableOpacity>
                     </GlassCard>
                     {isEditingName && (
-                        <TouchableOpacity
-                            style={styles.saveBtn}
-                            onPress={handleSave}
-                        >
-                            <Text style={styles.saveBtnText}>Guardar cambios</Text>
-                        </TouchableOpacity>
+                        <View style={styles.actions}>
+                            <Button label="Guardar cambios" onPress={handleSave} />
+                        </View>
                     )}
                 </View>
 
                 {/* Danger zone - reset btn */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Zona de peligro</Text>
-                    <GlassCard style={styles.dangerCard}>
+                    <SectionHeader title="Zona de peligro" />
+                    <GlassCard style={styles.card}>
                         <TouchableOpacity
-                            style={styles.dangerRow}
+                            style={[styles.row, styles.rowLast]}
                             onPress={handleReset}
+                            activeOpacity={0.7}
                         >
                             <View style={styles.dangerIcon}>
                                 <IconTrash color={theme.moneyOut} />
                             </View>
-                            <Text style={styles.dangerLabel}>Borrar todos los datos</Text>
+                            <View style={styles.rowInfo}>
+                                <Text style={styles.dangerLabel}>Borrar todos los datos</Text>
+                                <Text style={styles.rowLabel}>Cuentas, tarjetas, ahorros y movimientos</Text>
+                            </View>
                         </TouchableOpacity>
                     </GlassCard>
                 </View>
@@ -261,10 +240,9 @@ export default function SettingsScreen() {
                 <View style={styles.bottomPadding} />
             </ScrollView>
 
-            <CurrencyPickerModal
-                visible={showCurrencyPicker}
-                onClose={() => setShowCurrencyPicker(false)}
-            />
-        </SafeAreaView>
-    )
+            {showCurrencyPicker && (
+                <CurrencyPickerSheet onClose={() => setShowCurrencyPicker(false)} />
+            )}
+        </View>
+    );
 }
