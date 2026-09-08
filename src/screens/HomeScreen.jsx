@@ -1,7 +1,6 @@
 // Main screen. General overview of finances.
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
-import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -9,7 +8,7 @@ import { format, parseISO, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency, round2, getCardUrgency } from '../utils';
 import { FontSize } from '../constants';
-import createHomeStyles, { HERO_GLOW } from './HomeScreen.styles';
+import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
@@ -38,17 +37,6 @@ function formatTxnDate(dateStr, now) {
     return `${day} · ${format(d, 'HH:mm')}`;
 }
 
-// Which color each account gets in the allocation bar. A debit
-// account's own custom `color` (set in Tarjetas) always wins;
-// otherwise falls back to a fixed per-type color.
-function getAccountColor(theme, account) {
-    if (account.color) return account.color;
-    if (account.type === 'cash') return theme.cashTone;
-    if (account.type === 'debit') return theme.moneyIn;
-    if (account.type === 'savings') return theme.savings;
-    return theme.muted;
-}
-
 // moneyIn/moneyOut are the only two fixed-meaning accents. A plain
 // withdrawal (cajero, or no specific category) is neither, so it
 // stays neutral. See themes.js for the four-family rule: teal is your
@@ -64,38 +52,6 @@ function getTxnVisual(theme, type, category) {
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
     if (type === 'transfer') return { bg: theme.transferSoft, color: theme.transfer, Icon: IconSwap };
     return { bg: theme.border, color: theme.muted, Icon: IconWallet };
-}
-
-// Toda la decoración del héroe: un resplandor de marca entrando por la
-// esquina superior derecha, con el CENTRO FUERA de la tarjeta. Eso es
-// lo que hace que se lea como luz y no como un círculo pegado encima —
-// solo entra el faldón, que es la parte suave del degradado.
-//
-// Tamaño fijo y anclado a la esquina, así que no hace falta medir la
-// tarjeta con onLayout como hacía el HeroArt anterior: no depende del
-// ancho, solo de dónde empieza.
-//
-// El pico es 13% de opacidad, pero el centro cae fuera del recorte, así
-// que lo que de verdad se ve ronda el 5%. Si se llega a notar de
-// inmediato al abrir la app, está de más.
-// SIN USAR desde que el héroe pasó a HeroArt. Se deja a propósito: es
-// la decoración anterior y volver a ella es cambiar el bloque del
-// render por <View style={styles.heroGlow}><HeroGlow theme={theme} /></View>.
-// Si tras probar HeroArt te quedas con él, bórrala junto con el estilo
-// heroGlow y la constante HERO_GLOW.
-function HeroGlow({ theme }) {
-    return (
-        <Svg width={HERO_GLOW} height={HERO_GLOW}>
-            <Defs>
-                <RadialGradient id="heroGlow" cx="50%" cy="50%" r="50%">
-                    <Stop offset="0%" stopColor={theme.brand} stopOpacity="0.13" />
-                    <Stop offset="55%" stopColor={theme.brand} stopOpacity="0.05" />
-                    <Stop offset="100%" stopColor={theme.brand} stopOpacity="0" />
-                </RadialGradient>
-            </Defs>
-            <Circle cx={HERO_GLOW / 2} cy={HERO_GLOW / 2} r={HERO_GLOW / 2} fill="url(#heroGlow)" />
-        </Svg>
-    );
 }
 
 // Confirm-and-pay sheet for one MSI installment — a withdrawal from a
@@ -191,11 +147,9 @@ export default function HomeScreen() {
         transactions,
         creditCards,
         totalBalance,
-        totalDebt,
         isLoading,
         pendingFunds,
         getFundStatus,
-        confirmFund,
         tags,
     } = useFinance();
 
@@ -228,11 +182,6 @@ export default function HomeScreen() {
     const otherCreditCards = sortedCreditCards.filter(c => c.id !== featuredCard?.id);
     const pendingMSI = pendingFunds.filter((f) => f.type === 'msi');
     const pendingIncome = pendingFunds.filter((f) => f.type !== 'msi');
-
-    // Credit card debt gets its own slice of the same bar — money you
-    // owe is part of the full picture, not just what you have.
-    const positiveTotal = accounts.reduce((sum, a) => sum + Math.max(a.balance, 0), 0);
-    const allocTotal = positiveTotal + totalDebt;
 
     // Balance trend: current total vs. what it was at the start of
     // this calendar month. Transfers don't change the total, so excluded.

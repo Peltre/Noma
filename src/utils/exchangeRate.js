@@ -27,7 +27,7 @@ export async function fetchExchangeRate(from, to) {
             return { error: 'No se pudo obtener el tipo de cambio. Intenta de nuevo en unos minutos.' };
         }
         return { rate };
-    } catch (error) {
+    } catch {
         // Covers no network and a timed-out abort() alike — both just read as "no internet".
         return { error: 'Cambiar de moneda requiere conexión a internet para consultar el tipo de cambio actual. Verifica tu conexión e intenta de nuevo.' };
     } finally {

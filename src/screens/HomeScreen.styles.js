@@ -4,7 +4,6 @@ import { displayFont } from '../setup/Typography';
 
 // Diámetro del resplandor del héroe. Vive aquí y no en el .jsx porque
 // el estilo lo necesita para posicionarlo, y el SVG para dibujarlo.
-export const HERO_GLOW = 200;
 
 export default function createHomeStyles(theme) {
     return StyleSheet.create({
@@ -31,13 +30,6 @@ export default function createHomeStyles(theme) {
         // Capa del resplandor: va detrás del contenido pero delante del
         // tinte del vidrio. Anclada a la esquina, con el centro fuera de
         // la tarjeta — GlassCard ya recorta al radio.
-        heroGlow: {
-            position: 'absolute',
-            top: -HERO_GLOW * 0.56,
-            right: -HERO_GLOW * 0.30,
-            width: HERO_GLOW,
-            height: HERO_GLOW,
-        },
         heroCard: {
             marginHorizontal: Spacing.lg,
             marginBottom: Spacing.md,

@@ -29,7 +29,7 @@
 // IconSize de abajo). Los de la barra de tabs reciben además `focused`
 // (relleno sólido) y, cuando dibujan un hueco claro encima de ese
 // relleno, `bgColor`.
-import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 // ── Escala ──────────────────────────────────────────────────────
 // Seis pasos, no once. Cada uno tiene un trabajo; si un icono no cabe
@@ -187,14 +187,6 @@ export function IconPlus({ color, size = IconSize.md }) {
     );
 }
 
-export function IconMinus({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M4.4 12h15.2" {...line(size, color)} />
-        </Svg>
-    );
-}
-
 export function IconChevronLeft({ color, size = IconSize.md }) {
     return (
         <Svg {...svg(size)}>
@@ -227,14 +219,6 @@ export function IconCheck({ color, size = IconSize.sm }) {
     );
 }
 
-export function IconClose({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M6.2 6.2 17.8 17.8M17.8 6.2 6.2 17.8" {...line(size, color)} />
-        </Svg>
-    );
-}
-
 export function IconPencil({ color, size = IconSize.md }) {
     return (
         <Svg {...svg(size)}>
@@ -251,18 +235,6 @@ export function IconTrash({ color, size = IconSize.md }) {
             <Path d="M9.4 6.8V4.6h5.2v2.2" {...line(size, color)} />
             <Path d="M6.4 6.8 7.3 19a1.4 1.4 0 0 0 1.4 1.3h6.6a1.4 1.4 0 0 0 1.4-1.3l.9-12.2" {...line(size, color)} />
             <Path d="M10.4 10.4v6M13.6 10.4v6" {...line(size, color)} />
-        </Svg>
-    );
-}
-
-export function IconSettings({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Circle cx="12" cy="12" r="3.4" {...line(size, color)} />
-            <Path
-                d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"
-                {...line(size, color)}
-            />
         </Svg>
     );
 }
@@ -294,45 +266,11 @@ export function IconSparkle({ color, size = IconSize.lg }) {
     );
 }
 
-// ── Movimiento de dinero ────────────────────────────────────────
-export function IconArrowUp({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M12 19.4V4.6M5.6 11 12 4.6 18.4 11" {...line(size, color)} />
-        </Svg>
-    );
-}
-
-export function IconArrowDown({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M12 4.6v14.8M5.6 13l6.4 6.4L18.4 13" {...line(size, color)} />
-        </Svg>
-    );
-}
-
-export function IconArrowRight({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M4.6 12h14.8M13 5.6 19.4 12 13 18.4" {...line(size, color)} />
-        </Svg>
-    );
-}
-
 export function IconSwap({ color, size = IconSize.md }) {
     return (
         <Svg {...svg(size)}>
             <Path d="M4.6 8.6h14.8M15.4 4.6l4 4" {...line(size, color)} />
             <Path d="M19.4 15.4H4.6M8.6 19.4l-4-4" {...line(size, color)} />
-        </Svg>
-    );
-}
-
-export function IconRepeat({ color, size = IconSize.md }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M4.6 10.4V9a2.8 2.8 0 0 1 2.8-2.8h12M16 3l3.4 3.2L16 9.4" {...line(size, color)} />
-            <Path d="M19.4 13.6V15a2.8 2.8 0 0 1-2.8 2.8h-12M8 21l-3.4-3.2L8 14.6" {...line(size, color)} />
         </Svg>
     );
 }
