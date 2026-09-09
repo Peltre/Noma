@@ -2,6 +2,7 @@
 // título, una línea que explica, un botón que actúa.
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../store/useTheme';
+import { useAccent } from '../../store/useAccent';
 import { FontSize, Radius, Spacing } from '../../constants';
 import { displayFont } from '../../setup/Typography';
 import Button from './Button';
@@ -16,7 +17,8 @@ export default function EmptyState({
     style,
 }) {
     const { theme } = useTheme();
-    const tone = accent || theme.brand;
+    const { accent: ctxAccent } = useAccent();
+    const tone = accent || ctxAccent;
 
     return (
         <View style={[styles.wrap, { borderColor: theme.border }, style]}>

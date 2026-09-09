@@ -1,8 +1,10 @@
 // El primario es turquesa, salvo cuando la acción tiene tipo: ahí toma
-// el acento de ese tipo vía `accent` (gasto ámbar, MSI violeta).
+// el acento de ese tipo vía `accent` (gasto ámbar, MSI violeta) o del
+// AccentProvider que envuelva la pantalla.
 // theme.ink nunca es relleno de botón.
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../store/useTheme';
+import { useAccent } from '../../store/useAccent';
 import { FontSize, Radius } from '../../constants';
 
 export default function Button({
@@ -19,6 +21,7 @@ export default function Button({
     children,
 }) {
     const { theme } = useTheme();
+    const ctx = useAccent();
 
     let bg = 'transparent';
     let fg = theme.ink;
@@ -29,8 +32,8 @@ export default function Button({
         bg = 'rgba(255,255,255,0.06)';
         fg = theme.inkDim;
     } else if (variant === 'primary') {
-        bg = accent || theme.brand;
-        fg = accentOn || theme.brandOn;
+        bg = accent || ctx.accent;
+        fg = accentOn || ctx.accentOn;
     } else if (variant === 'secondary') {
         bg = theme.glassFill;
         borderColor = theme.glassBorder;

@@ -4,11 +4,13 @@
 // color sí carga información.
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../store/useTheme';
+import { useAccent } from '../../store/useAccent';
 import { FontSize, Radius, Spacing } from '../../constants';
 
 export default function Pill({ label, icon: Icon, selected = false, onPress, accent, style }) {
     const { theme } = useTheme();
-    const tone = accent || theme.brand;
+    const { accent: ctxAccent } = useAccent();
+    const tone = accent || ctxAccent;
     const fg = selected ? tone : theme.muted;
     const Wrapper = onPress ? TouchableOpacity : View;
 

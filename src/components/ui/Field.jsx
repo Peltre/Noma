@@ -1,5 +1,8 @@
 // Un solo material para todos los inputs: theme.inputFill sobre el
-// vidrio, alto 52 igual que los botones, borde turquesa al enfocar.
+// vidrio, alto 52 igual que los botones, borde del acento al enfocar
+// (turquesa por defecto; el del tipo de movimiento dentro de un
+// AccentProvider). `accent` en fieldSurface es para quien llame desde
+// fuera de Field: pásale el de useAccent().
 //
 // `hint` es la línea de ayuda debajo; con `error` la misma línea se
 // vuelve ámbar y el borde también, para no inventar un segundo
@@ -7,14 +10,16 @@
 import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useTheme } from '../../store/useTheme';
+import { useAccent } from '../../store/useAccent';
 import { FontSize, Radius, Spacing } from '../../constants';
 
 export function FieldLabel({ children, required, optional, style }) {
     const { theme } = useTheme();
+    const { accent } = useAccent();
     return (
         <Text style={[styles.label, { color: theme.inkDim }, style]}>
             {children}
-            {required && <Text style={{ color: theme.brand }}> *</Text>}
+            {required && <Text style={{ color: accent }}> *</Text>}
             {optional && <Text style={styles.optional}> (opcional)</Text>}
         </Text>
     );
@@ -23,7 +28,7 @@ export function FieldLabel({ children, required, optional, style }) {
 // El mismo alto/relleno/radio que usa el TextInput de abajo, para que
 // DatePickerField y SelectField —que no pueden ser un TextInput— se
 // vean idénticos sin duplicar los números.
-export function fieldSurface(theme, { focused = false, error = false } = {}) {
+export function fieldSurface(theme, { focused = false, error = false, accent } = {}) {
     return {
         height: 52,
         borderRadius: Radius.sm,
@@ -31,7 +36,7 @@ export function fieldSurface(theme, { focused = false, error = false } = {}) {
         paddingHorizontal: Spacing.md,
         justifyContent: 'center',
         backgroundColor: theme.inputFill,
-        borderColor: error ? theme.moneyOut : focused ? theme.brand : theme.border,
+        borderColor: error ? theme.moneyOut : focused ? (accent || theme.brand) : theme.border,
     };
 }
 
@@ -48,6 +53,7 @@ export default function Field({
     ...inputProps
 }) {
     const { theme } = useTheme();
+    const { accent } = useAccent();
     const [focused, setFocused] = useState(false);
 
     return (
@@ -58,7 +64,7 @@ export default function Field({
                     {...inputProps}
                     style={[
                         styles.input,
-                        fieldSurface(theme, { focused, error }),
+                        fieldSurface(theme, { focused, error, accent }),
                         { color: theme.ink },
                         inputStyle,
                     ]}

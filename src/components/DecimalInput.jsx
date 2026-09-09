@@ -9,6 +9,7 @@
 // so fixing it here fixes "too many decimals" everywhere at once.
 import { TextInput, InputAccessoryView, View, Text, TouchableOpacity, Platform, StyleSheet, Keyboard } from 'react-native';
 import { useTheme } from '../store/useTheme';
+import { useAccent } from '../store/useAccent';
 import { FontSize } from '../constants';
 
 const ACCESSORY_ID = 'decimal-pad-done';
@@ -33,6 +34,7 @@ function sanitizeDecimal(text) {
 
 export default function DecimalInput({ style, keyboardType = 'decimal-pad', onChangeText, ...props }) {
     const { theme } = useTheme();
+    const { accent } = useAccent();
 
     const handleChangeText = (text) => {
         onChangeText?.(sanitizeDecimal(text));
@@ -51,7 +53,7 @@ export default function DecimalInput({ style, keyboardType = 'decimal-pad', onCh
                 <InputAccessoryView nativeID={ACCESSORY_ID}>
                     <View style={[styles.bar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
                         <TouchableOpacity onPress={() => Keyboard.dismiss()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <Text style={[styles.doneText, { color: theme.brand }]}>Listo</Text>
+                            <Text style={[styles.doneText, { color: accent }]}>Listo</Text>
                         </TouchableOpacity>
                     </View>
                 </InputAccessoryView>

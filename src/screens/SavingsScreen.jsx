@@ -10,6 +10,7 @@ import { format, parseISO, differenceInCalendarMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
+import { AccentProvider } from '../store/useAccent';
 import { SAVINGS_COLORS } from '../store/useSavings';
 import { formatCurrencyShort } from '../utils';
 import { round2 } from '../utils/formatCurrency';
@@ -97,7 +98,6 @@ function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
                     key={a.id}
                     label={`${a.name} · ${formatCurrencyShort(getFreeRoom(a.id))} libres`}
                     selected={selectedId === a.id}
-                    accent={theme.savings}
                     onPress={() => onSelect(a.id)}
                 />
             ))}
@@ -142,8 +142,6 @@ function InterestFields({ value, onChange }) {
         <>
             <Toggle
                 on={value.enabled}
-                accent={theme.savings}
-                accentOn={theme.savingsOn}
                 label="Generar interés (opcional)"
                 onPress={() => onChange({ ...value, enabled: !value.enabled })}
             />
@@ -308,8 +306,6 @@ function AddApartadoSheet({ onClose, accounts, getFreeRoom }) {
                 <Button label="Cancelar" variant="secondary" onPress={onClose} />
                 <Button
                     label="Crear apartado"
-                    accent={theme.savings}
-                    accentOn={theme.savingsOn}
                     loading={loading}
                     loadingLabel="Creando…"
                     disabled={!canSave}
@@ -369,28 +365,29 @@ function EditInterestSheet({ onClose, savingsAccount }) {
     };
 
     return (
-        <Sheet onClose={onClose} dismissable={!loading} scroll>
-            <View style={styles.sheetTitleRow}>
-                <AccountDot color={savingsAccount.color} size={28} />
-                <Text style={styles.sheetTitle}>Interés de {savingsAccount.name}</Text>
-            </View>
+        // El acento de la hoja es el color de ESTE apartado.
+        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
+            <Sheet onClose={onClose} dismissable={!loading} scroll>
+                <View style={styles.sheetTitleRow}>
+                    <AccountDot color={savingsAccount.color} size={28} />
+                    <Text style={styles.sheetTitle}>Interés de {savingsAccount.name}</Text>
+                </View>
 
-            <InterestFields value={interest} onChange={setInterest} />
+                <InterestFields value={interest} onChange={setInterest} />
 
-            <View style={styles.sheetBtns}>
-                <Button label="Cancelar" variant="secondary" onPress={onClose} />
-                <Button
-                    label="Guardar"
-                    accent={theme.savings}
-                    accentOn={theme.savingsOn}
-                    loading={loading}
-                    loadingLabel="Guardando…"
-                    disabled={interestRateMissing}
-                    onPress={handleSave}
-                    style={{ flex: 2 }}
-                />
-            </View>
-        </Sheet>
+                <View style={styles.sheetBtns}>
+                    <Button label="Cancelar" variant="secondary" onPress={onClose} />
+                    <Button
+                        label="Guardar"
+                        loading={loading}
+                        loadingLabel="Guardando…"
+                        disabled={interestRateMissing}
+                        onPress={handleSave}
+                        style={{ flex: 2 }}
+                    />
+                </View>
+            </Sheet>
+        </AccentProvider>
     );
 }
 
@@ -421,48 +418,49 @@ function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode }) {
     };
 
     return (
-        <Sheet onClose={onClose}>
-            <View style={styles.sheetTitleRow}>
-                <AccountDot color={savingsAccount?.color} size={28} />
-                <Text style={styles.sheetTitle}>
-                    {isDeposit ? 'Apartar más en' : 'Quitar de'} {savingsAccount?.name}
+        // El acento de la hoja es el color de ESTE apartado.
+        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
+            <Sheet onClose={onClose}>
+                <View style={styles.sheetTitleRow}>
+                    <AccountDot color={savingsAccount?.color} size={28} />
+                    <Text style={styles.sheetTitle}>
+                        {isDeposit ? 'Apartar más en' : 'Quitar de'} {savingsAccount?.name}
+                    </Text>
+                </View>
+
+                <FieldLabel required>Cantidad</FieldLabel>
+                <DecimalInput
+                    style={[styles.decimalInputLarge, fieldSurface(theme, { error: overCeiling })]}
+                    value={amount}
+                    onChangeText={setAmount}
+                    placeholder="$0.00"
+                    placeholderTextColor={theme.inkDim}
+                    autoFocus
+                />
+                <Text style={[styles.hint, overCeiling && styles.hintError]}>
+                    {isDeposit
+                        ? `Libre en esa cuenta: ${formatCurrencyShort(free)}`
+                        : `Apartado actualmente: ${formatCurrencyShort(ceiling)}`}
                 </Text>
-            </View>
 
-            <FieldLabel required>Cantidad</FieldLabel>
-            <DecimalInput
-                style={[styles.decimalInputLarge, fieldSurface(theme, { error: overCeiling })]}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="$0.00"
-                placeholderTextColor={theme.inkDim}
-                autoFocus
-            />
-            <Text style={[styles.hint, overCeiling && styles.hintError]}>
-                {isDeposit
-                    ? `Libre en esa cuenta: ${formatCurrencyShort(free)}`
-                    : `Apartado actualmente: ${formatCurrencyShort(ceiling)}`}
-            </Text>
-
-            <View style={styles.sheetBtns}>
-                <Button
-                    label="Cancelar"
-                    variant="secondary"
-                    onPress={() => {
-                        setAmount('');
-                        onClose();
-                    }}
-                />
-                <Button
-                    label={isDeposit ? 'Apartar' : 'Quitar'}
-                    accent={theme.savings}
-                    accentOn={theme.savingsOn}
-                    disabled={!amt || amt <= 0 || overCeiling}
-                    onPress={handleConfirm}
-                    style={{ flex: 2 }}
-                />
-            </View>
-        </Sheet>
+                <View style={styles.sheetBtns}>
+                    <Button
+                        label="Cancelar"
+                        variant="secondary"
+                        onPress={() => {
+                            setAmount('');
+                            onClose();
+                        }}
+                    />
+                    <Button
+                        label={isDeposit ? 'Apartar' : 'Quitar'}
+                        disabled={!amt || amt <= 0 || overCeiling}
+                        onPress={handleConfirm}
+                        style={{ flex: 2 }}
+                    />
+                </View>
+            </Sheet>
+        </AccentProvider>
     );
 }
 
@@ -602,7 +600,6 @@ function GoalContributeSheet({ onClose, goal, savingsAccounts, mode }) {
                             key={a.id}
                             label={`${a.name} · ${formatCurrencyShort(a.earmarkedAmount)}`}
                             selected={selectedAccId === a.id}
-                            accent={theme.savings}
                             onPress={() => setSelectedAccId(a.id)}
                         />
                     ))}
@@ -643,7 +640,7 @@ function GoalContributeSheet({ onClose, goal, savingsAccounts, mode }) {
 // El ámbar arranca donde termina lo seguro, no en cero: leerlo de
 // afuera hacia adentro es "esto es lo último que llegó y es lo primero
 // que se puede perder", que es exactamente lo que significa.
-function GoalRing({ pct, riskPct, theme, size = 74 }) {
+function GoalRing({ pct, riskPct, theme, color, size = 74 }) {
     const stroke = 5;
     const r = (size - stroke) / 2;
     const circumference = 2 * Math.PI * r;
@@ -659,7 +656,7 @@ function GoalRing({ pct, riskPct, theme, size = 74 }) {
             {pct > 0 && (
                 <Circle
                     cx={size / 2} cy={size / 2} r={r}
-                    stroke={theme.brand} strokeWidth={stroke} fill="none"
+                    stroke={color || theme.ink} strokeWidth={stroke} fill="none"
                     strokeDasharray={dash(pct)}
                     // Con riesgo encima, un remate redondo asomaría por
                     // debajo del tramo ámbar. Sin riesgo sí va redondo.
@@ -738,6 +735,13 @@ function GoalCard({ goal, savingsAccounts, sources = [], onDelete, onRedeem, get
         ? Math.min((atRisk / goal.targetAmount) * 100, percentage)
         : 0;
 
+    // El anillo toma el color del apartado que más aporta al objetivo:
+    // el único color de la tarjeta, y significa "de dónde viene".
+    const mainSource = [...sources].sort((a, b) => b.amount - a.amount)[0];
+    const ringColor = mainSource
+        ? savingsAccounts.find((a) => a.id === mainSource.savingsAccountId)?.color
+        : null;
+
     const monthsLeft = goal.deadline
         ? differenceInCalendarMonths(parseISO(goal.deadline), new Date())
         : null;
@@ -780,7 +784,7 @@ function GoalCard({ goal, savingsAccounts, sources = [], onDelete, onRedeem, get
                 de cuántas cosas apliquen. */}
             <View style={styles.goalMain}>
                 <View style={styles.goalRingWrap}>
-                    <GoalRing pct={percentage} riskPct={riskPct} theme={theme} />
+                    <GoalRing pct={percentage} riskPct={riskPct} theme={theme} color={ringColor} />
                     <View style={styles.goalRingCenter} pointerEvents="none">
                         <Text style={styles.goalRingPct}>{percentage}%</Text>
                         <Text style={styles.goalRingLabel}>
@@ -919,48 +923,51 @@ function ApartadoActionsSheet({ onClose, savingsAccount, backing, atRisk = 0, on
     if (!savingsAccount) return null;
 
     return (
-        <Sheet onClose={onClose}>
-            <View style={styles.sheetTitleRow}>
-                <AccountDot color={savingsAccount.color} size={28} />
-                <Text style={styles.sheetTitle}>{savingsAccount.name}</Text>
-            </View>
+        // El acento de la hoja es el color de ESTE apartado.
+        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
+            <Sheet onClose={onClose}>
+                <View style={styles.sheetTitleRow}>
+                    <AccountDot color={savingsAccount.color} size={28} />
+                    <Text style={styles.sheetTitle}>{savingsAccount.name}</Text>
+                </View>
 
-            <View style={styles.actionsTotal}>
-                <Money value={backing.total} size={FontSize.xl} color={theme.ink} />
-                <Text style={styles.backingNote}>
-                    {backing.committed > 0
-                        ? `${formatCurrencyShort(backing.free)} libres · ${formatCurrencyShort(backing.committed)} con destino`
-                        : 'todo libre'}
-                </Text>
-            </View>
-
-            {/* La cifra que la fila ya no carga: ahí solo hay un punto
-                ámbar, el detalle está aquí. */}
-            {atRisk > 0 && (
-                <View style={styles.riskRow}>
-                    <IconWarningTriangle color={theme.moneyOut} size={13} />
-                    <Text style={styles.riskText}>
-                        {formatCurrencyShort(atRisk)} en riesgo — la cuenta ligada tiene menos saldo del que
-                        este apartado promete
+                <View style={styles.actionsTotal}>
+                    <Money value={backing.total} size={FontSize.xl} color={theme.ink} />
+                    <Text style={styles.backingNote}>
+                        {backing.committed > 0
+                            ? `${formatCurrencyShort(backing.free)} libres · ${formatCurrencyShort(backing.committed)} con destino`
+                            : 'todo libre'}
                     </Text>
                 </View>
-            )}
 
-            <View style={styles.sheetBtns}>
-                <Button label="Apartar" accent={theme.savings} accentOn={theme.savingsOn} onPress={onDeposit} />
-                <Button label="Quitar" variant="secondary" onPress={onWithdraw} />
-            </View>
-            <View style={styles.sheetBtnsTight}>
-                <Button
-                    label={savingsAccount.interest?.enabled ? 'Editar interés' : 'Generar interés'}
-                    variant="secondary"
-                    onPress={onInterest}
-                />
-            </View>
-            <View style={styles.sheetBtnsTight}>
-                <Button label="Eliminar apartado" variant="danger" onPress={onDelete} />
-            </View>
-        </Sheet>
+                {/* La cifra que la fila ya no carga: ahí solo hay un punto
+                ámbar, el detalle está aquí. */}
+                {atRisk > 0 && (
+                    <View style={styles.riskRow}>
+                        <IconWarningTriangle color={theme.moneyOut} size={13} />
+                        <Text style={styles.riskText}>
+                            {formatCurrencyShort(atRisk)} en riesgo — la cuenta ligada tiene menos saldo del que
+                            este apartado promete
+                        </Text>
+                    </View>
+                )}
+
+                <View style={styles.sheetBtns}>
+                    <Button label="Apartar" onPress={onDeposit} />
+                    <Button label="Quitar" variant="secondary" onPress={onWithdraw} />
+                </View>
+                <View style={styles.sheetBtnsTight}>
+                    <Button
+                        label={savingsAccount.interest?.enabled ? 'Editar interés' : 'Generar interés'}
+                        variant="secondary"
+                        onPress={onInterest}
+                    />
+                </View>
+                <View style={styles.sheetBtnsTight}>
+                    <Button label="Eliminar apartado" variant="danger" onPress={onDelete} />
+                </View>
+            </Sheet>
+        </AccentProvider>
     );
 }
 
@@ -1132,16 +1139,24 @@ export default function SavingsScreen() {
 
                     {totalSavings > 0 && (
                         <>
+                            {/* Un segmento por apartado, con SU color; dentro de
+                                cada uno, lo libre sólido y lo comprometido al 42 %.
+                                El color dice de quién es el dinero; la opacidad, si
+                                ya tiene destino. La pantalla no estrena ningún tono. */}
                             <View style={styles.splitBar}>
-                                <View
-                                    style={[
-                                        styles.splitFree,
-                                        { flex: Math.max(apartadosTotal, 0.0001) },
-                                    ]}
-                                />
-                                {goalsTotal > 0 && (
-                                    <View style={[styles.splitCommitted, { flex: goalsTotal }]} />
-                                )}
+                                {savingsAccounts.map((acc) => {
+                                    const mine = commitments.byAccount[acc.id] || [];
+                                    const committed = mine.reduce((s2, c) => s2 + c.amount, 0);
+                                    if (acc.earmarkedAmount + committed <= 0) return null;
+                                    return (
+                                        <View key={acc.id} style={[styles.splitSegment, { flex: acc.earmarkedAmount + committed }]}>
+                                            <View style={[styles.splitFree, { flex: Math.max(acc.earmarkedAmount, 0.0001), backgroundColor: acc.color }]} />
+                                            {committed > 0 && (
+                                                <View style={[styles.splitCommitted, { flex: committed, backgroundColor: acc.color }]} />
+                                            )}
+                                        </View>
+                                    );
+                                })}
                             </View>
                             <View style={styles.legendRow}>
                                 <View style={styles.legendItem}>
@@ -1190,7 +1205,6 @@ export default function SavingsScreen() {
                     {savingsAccounts.length === 0 ? (
                         <EmptyState
                             icon={IconSavings}
-                            accent={theme.savings}
                             title="Sin apartados"
                             description="Reserva parte del saldo de una tarjeta que ya tienes, sin mover el dinero de lugar."
                             actionLabel="Crear apartado"
@@ -1273,10 +1287,10 @@ export default function SavingsScreen() {
                                                         <>
                                                             <View style={[
                                                                 styles.splitFree,
-                                                                { flex: Math.max(acc.earmarkedAmount, 0.0001) },
+                                                                { flex: Math.max(acc.earmarkedAmount, 0.0001), backgroundColor: acc.color },
                                                             ]} />
                                                             {committed > 0 && (
-                                                                <View style={[styles.splitCommitted, { flex: committed }]} />
+                                                                <View style={[styles.splitCommitted, { flex: committed, backgroundColor: acc.color }]} />
                                                             )}
                                                         </>
                                                     )}

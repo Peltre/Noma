@@ -37,6 +37,7 @@ import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTheme } from '../store/useTheme';
+import { useAccent } from '../store/useAccent';
 import { FontSize, Spacing } from '../constants';
 import { fieldSurface } from './ui/Field';
 import Sheet from './ui/Sheet';
@@ -52,6 +53,7 @@ export default function DatePickerField({
     style,
 }) {
     const { theme } = useTheme();
+    const { accent } = useAccent();
     const [iosOpen, setIosOpen] = useState(false);
     const [androidOpen, setAndroidOpen] = useState(false);
     const [tempDate, setTempDate] = useState(value || new Date());
@@ -68,7 +70,7 @@ export default function DatePickerField({
     return (
         <>
             <TouchableOpacity
-                style={[styles.field, fieldSurface(theme, { focused: iosOpen }), style]}
+                style={[styles.field, fieldSurface(theme, { focused: iosOpen, accent }), style]}
                 onPress={openPicker}
                 activeOpacity={0.7}
                 accessibilityRole="button"

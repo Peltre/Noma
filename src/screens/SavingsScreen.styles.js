@@ -43,14 +43,18 @@ export default function createSavingsStyles(theme) {
         // montones distintos. Dos colores dirían lo contrario.
         splitBar: {
             flexDirection: 'row',
+            gap: 2,
             height: 7,
             borderRadius: 4,
             overflow: 'hidden',
             marginTop: Spacing.md,
             backgroundColor: theme.border,
         },
-        splitFree: { backgroundColor: theme.savings },
-        splitCommitted: { backgroundColor: theme.savings, opacity: 0.42 },
+        // Los colores reales llegan inline (acc.color); esto es la forma
+        // y la opacidad. En la leyenda van en tinta.
+        splitSegment: { flexDirection: 'row', gap: 2 },
+        splitFree: { backgroundColor: theme.ink },
+        splitCommitted: { backgroundColor: theme.ink, opacity: 0.42 },
 
         legendRow: {
             flexDirection: 'row',
@@ -84,17 +88,17 @@ export default function createSavingsStyles(theme) {
         accountNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
         accountSub: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 5 },
         accountRight: { alignItems: 'flex-end' },
-        earnedText: { fontSize: FontSize.xs - 1, color: theme.savings, fontWeight: '700', marginTop: 2 },
+        earnedText: { fontSize: FontSize.xs - 1, color: theme.inkMid, fontWeight: '700', marginTop: 2 },
 
         // La tasa pasó de una fila propia a una pastilla junto al nombre
         ratePill: {
             borderWidth: 1,
-            borderColor: theme.savings + '66',
+            borderColor: theme.glassBorderTop,
             borderRadius: Radius.full,
             paddingHorizontal: 6,
             paddingVertical: 1,
         },
-        ratePillText: { fontSize: FontSize.xs - 2, color: theme.savings, fontWeight: '800' },
+        ratePillText: { fontSize: FontSize.xs - 2, color: theme.inkMid, fontWeight: '800' },
 
         actionsTotal: { alignItems: 'center', marginTop: Spacing.sm, marginBottom: Spacing.xs },
         sheetBtnsTight: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
@@ -328,7 +332,7 @@ export default function createSavingsStyles(theme) {
         interestBox: {
             paddingLeft: Spacing.md,
             borderLeftWidth: 2,
-            borderLeftColor: theme.savingsSoft,
+            borderLeftColor: theme.glassBorderTop,
             marginTop: Spacing.xs,
         },
         percentRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },

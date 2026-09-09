@@ -5,6 +5,7 @@ import { format, parseISO, isSameMonth, isSameWeek, isSameYear, addMonths, addWe
 import { es } from 'date-fns/locale';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
+import { AccentProvider } from '../store/useAccent';
 import { FontSize, Spacing, getCategoryLabel, getTagIcon } from '../constants';
 import createHistoryStyles from './HistoryScreen.styles';
 import DecimalInput from '../components/DecimalInput';
@@ -208,86 +209,90 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
     };
 
     return (
-        <Sheet onClose={onClose}>
-            <View style={styles.sheetHead}>
-                <TxnIcon type={txn.type} category={txn.category} theme={theme} size={52} />
-                <Text style={[styles.sheetType, { color: cfg.fg }]}>{cfg.label}</Text>
-            </View>
+        // La hoja toma el acento del movimiento (cfg.fg: ámbar gasto,
+        // teal ingreso…): etiquetas, campos al editar y botón Guardar.
+        <AccentProvider color={cfg.fg} on={theme.brandOn}>
+            <Sheet onClose={onClose}>
+                <View style={styles.sheetHead}>
+                    <TxnIcon type={txn.type} category={txn.category} theme={theme} size={52} />
+                    <Text style={[styles.sheetType, { color: cfg.fg }]}>{cfg.label}</Text>
+                </View>
 
-            {editing ? (
-                <>
-                    <Field
-                        label="Razón"
-                        required
-                        value={editReason}
-                        onChangeText={setReason}
-                        placeholder="Describe el movimiento"
-                        autoFocus
-                    />
-
-                    <FieldLabel required>Monto</FieldLabel>
-                    <DecimalInput
-                        style={[styles.decimalInputLarge, fieldSurface(theme)]}
-                        value={editAmount}
-                        onChangeText={setAmount}
-                        placeholder="0.00"
-                        placeholderTextColor={theme.inkDim}
-                    />
-
-                    <View style={styles.sheetBtns}>
-                        <Button label="Cancelar" variant="secondary" onPress={() => setEditing(false)} />
-                        <Button label="Guardar" onPress={handleSave} style={{ flex: 2 }} />
-                    </View>
-                </>
-            ) : (
-                <>
-                    <View style={styles.sheetAmount}>
-                        <Money
-                            value={txn.amount}
-                            size={FontSize.hero - 6}
-                            sign={signFor(txn.type)}
-                            color={cfg.fg}
+                {editing ? (
+                    <>
+                        <Field
+                            label="Razón"
+                            required
+                            value={editReason}
+                            onChangeText={setReason}
+                            placeholder="Describe el movimiento"
+                            autoFocus
                         />
-                    </View>
-                    <Text style={styles.sheetReason}>{txn.reason}</Text>
 
-                    <View style={styles.detailList}>
-                        <View style={styles.detailRow}>
-                            <Text style={styles.detailKey}>Fecha</Text>
-                            <Text style={styles.detailVal}>
-                                {format(parseISO(txn.date), "d 'de' MMMM yyyy · HH:mm", { locale: es })}
-                            </Text>
+                        <FieldLabel required>Monto</FieldLabel>
+                        <DecimalInput
+                            style={[styles.decimalInputLarge, fieldSurface(theme)]}
+                            value={editAmount}
+                            onChangeText={setAmount}
+                            placeholder="0.00"
+                            placeholderTextColor={theme.inkDim}
+                        />
+
+                        <View style={styles.sheetBtns}>
+                            <Button label="Cancelar" variant="secondary" onPress={() => setEditing(false)} />
+                            <Button label="Guardar" onPress={handleSave} style={{ flex: 2 }} />
                         </View>
-                        <View style={styles.detailRow}>
-                            <Text style={styles.detailKey}>Cuenta</Text>
-                            <Text style={styles.detailVal}>{accountName}</Text>
+                    </>
+                ) : (
+                    <>
+                        <View style={styles.sheetAmount}>
+                            <Money
+                                value={txn.amount}
+                                size={FontSize.hero - 6}
+                                sign={signFor(txn.type)}
+                                color={cfg.fg}
+                            />
                         </View>
-                        {txn.category && (
-                            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                                <Text style={styles.detailKey}>Categoría</Text>
-                                <Text style={styles.detailVal}>{getCategoryLabel(txn.type, txn.category)}</Text>
+                        <Text style={styles.sheetReason}>{txn.reason}</Text>
+
+                        <View style={styles.detailList}>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailKey}>Fecha</Text>
+                                <Text style={styles.detailVal}>
+                                    {format(parseISO(txn.date), "d 'de' MMMM yyyy · HH:mm", { locale: es })}
+                                </Text>
                             </View>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailKey}>Cuenta</Text>
+                                <Text style={styles.detailVal}>{accountName}</Text>
+                            </View>
+                            {txn.category && (
+                                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                                    <Text style={styles.detailKey}>Categoría</Text>
+                                    <Text style={styles.detailVal}>{getCategoryLabel(txn.type, txn.category)}</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {txnTags.length > 0 && (
+                            <>
+                                <FieldLabel>Etiquetas</FieldLabel>
+                                <View style={styles.tagsWrap}>
+                                    {txnTags.map(tag => (
+                                        <Pill key={tag.id} label={tag.label} icon={getTagIcon(tag.icon)} selected />
+                                    ))}
+                                </View>
+                            </>
                         )}
-                    </View>
 
-                    {txnTags.length > 0 && (
-                        <>
-                            <FieldLabel>Etiquetas</FieldLabel>
-                            <View style={styles.tagsWrap}>
-                                {txnTags.map(tag => (
-                                    <Pill key={tag.id} label={tag.label} icon={getTagIcon(tag.icon)} selected />
-                                ))}
-                            </View>
-                        </>
-                    )}
-
-                    <View style={styles.sheetBtns}>
-                        <Button label="Eliminar" variant="danger" onPress={handleDelete} />
-                        <Button label="Editar" onPress={() => setEditing(true)} style={{ flex: 2 }} />
-                    </View>
-                </>
-            )}
-        </Sheet>
+                        <View style={styles.sheetBtns}>
+                            <Button label="Eliminar" variant="danger" onPress={handleDelete} />
+                            <Button label="Editar" onPress={() => setEditing(true)} style={{ flex: 2 }} />
+                        </View>
+                    </>
+                )}
+            </Sheet>
+        </AccentProvider>
     );
 }
 

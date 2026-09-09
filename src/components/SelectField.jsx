@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../store/useTheme';
+import { useAccent } from '../store/useAccent';
 import { FontSize, Spacing } from '../constants';
 import { fieldSurface } from './ui/Field';
 import Sheet from './ui/Sheet';
@@ -18,13 +19,14 @@ export default function SelectField({
     style,
 }) {
     const { theme } = useTheme();
+    const { accent } = useAccent();
     const [open, setOpen] = useState(false);
     const selected = options.find(o => o.key === value);
 
     return (
         <>
             <TouchableOpacity
-                style={[styles.field, fieldSurface(theme, { focused: open }), style]}
+                style={[styles.field, fieldSurface(theme, { focused: open, accent }), style]}
                 onPress={() => setOpen(true)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
@@ -51,12 +53,12 @@ export default function SelectField({
                                 >
                                     <Text style={[
                                         styles.optionText,
-                                        { color: isSelected ? theme.brand : theme.ink },
+                                        { color: isSelected ? accent : theme.ink },
                                         isSelected && { fontWeight: '800' },
                                     ]}>
                                         {opt.label}
                                     </Text>
-                                    {isSelected && <IconCheck color={theme.brand} size={14} />}
+                                    {isSelected && <IconCheck color={accent} size={14} />}
                                 </TouchableOpacity>
                             );
                         })}
