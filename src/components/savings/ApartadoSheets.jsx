@@ -373,14 +373,15 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
 
 // Add/remove money from an apartado. Never touches the linked
 // account's real balance — only how much of it is claimed.
-export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode }) {
+export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, getApartadoFree }) {
     const { addToSavingsAccount, removeFromSavingsAccount } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [amount, setAmount] = useState('');
     const isDeposit = mode === 'deposit';
     const free = savingsAccount ? getFreeRoom(savingsAccount.linkedAccountId) : 0;
-    const ceiling = isDeposit ? free : (savingsAccount?.earmarkedAmount ?? 0);
+    // Quitar sólo hasta lo que ningún objetivo del apartado reclame.
+    const ceiling = isDeposit ? free : (getApartadoFree ? getApartadoFree(savingsAccount.id) : (savingsAccount?.earmarkedAmount ?? 0));
     const amt = parseFloat(amount) || 0;
     const overCeiling = amt > ceiling;
 

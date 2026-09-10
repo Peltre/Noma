@@ -824,6 +824,7 @@ export default function SavingsScreen() {
                     onClose={() => setMoveMoneyTarget(null)}
                     savingsAccount={moveMoneyTarget.account}
                     getFreeRoom={getFreeRoom}
+                    getApartadoFree={getApartadoFree}
                     mode={moveMoneyTarget.mode}
                 />
             )}

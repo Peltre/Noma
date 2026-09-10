@@ -305,6 +305,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                 onClose={() => setSub({ kind: 'detail', acc: sub.acc })}
                 savingsAccount={sub.acc}
                 getFreeRoom={getFreeRoom}
+                getApartadoFree={getApartadoFree}
                 mode={sub.mode}
             />
         );

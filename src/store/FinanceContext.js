@@ -118,6 +118,12 @@ export function FinanceProvider({ children }) {
         if (linkedApartados.length > 0) {
             return { error: 'Esta cuenta tiene apartados de ahorro ligados. Elimínalos (o quítales el dinero asignado) antes de eliminar la cuenta.' };
         }
+        // Objetivos que viven directo en esta tarjeta: si se borra, se
+        // quedarían apuntando a un id muerto.
+        const goalsHere = savingsStore.savingsGoals.filter(g => g.accountId === accountId && !g.savingsAccountId);
+        if (goalsHere.length > 0) {
+            return { error: 'Hay objetivos que viven en esta cuenta. Muévelos a otro lugar antes de borrarla.' };
+        }
         const result = await financeStore.deleteAccount(accountId);
         if (result?.error) return result;
 
