@@ -115,7 +115,11 @@ function PeriodField({
 
                 <TouchableOpacity style={styles.periodCenter} onPress={() => setOpen(true)} activeOpacity={0.7}>
                     <Text style={styles.periodLabel}>{label}</Text>
-                    <Text style={styles.periodValue} numberOfLines={1}>{periodLabel}</Text>
+                    {/* "Septiembre 2026" no cabe a tamaño completo en el ancho
+                        del campo: se encoge hasta 80 % antes de recortarse. */}
+                    <Text style={styles.periodValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                        {periodLabel}
+                    </Text>
                 </TouchableOpacity>
 
                 {canStep ? (

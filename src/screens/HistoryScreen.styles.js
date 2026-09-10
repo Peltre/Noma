@@ -24,13 +24,13 @@ export default function createHistoryStyles(theme) {
         // La superficie (alto, radio, borde) la pone fieldSurface para
         // que Tipo y Periodo se lean como un par.
         periodField: {
-            flex: 1.15,
+            flex: 1.35,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: Spacing.xs,
         },
-        periodCenter: { flex: 1, alignItems: 'center' },
+        periodCenter: { flex: 1, minWidth: 0, alignItems: 'center' },
         periodLabel: {
             fontSize: FontSize.xs - 2,
             fontWeight: '800',
