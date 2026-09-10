@@ -19,7 +19,7 @@ import { Money, SectionHeader, EmptyState, Sheet, Pill, Button } from '../compon
 import {
     IconSwap,
     IconCardPayment,
-    IconSavings,
+    IconGoal,
     IconTrendUp,
     IconTrendDown,
     IconCalendarClock,
@@ -47,7 +47,7 @@ function getTxnVisual(theme, type, category) {
     if (category === 'card_payment')
         return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCardPayment };
     if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
-    if (category === 'goal') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconSavings };
+    if (category === 'goal') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconGoal };
     if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
     if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
     if (type === 'transfer') return { bg: theme.transferSoft, color: theme.transfer, Icon: IconSwap };

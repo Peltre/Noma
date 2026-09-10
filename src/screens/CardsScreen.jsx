@@ -18,7 +18,9 @@ import Svg, { Circle } from 'react-native-svg';
 import {
     ScreenHeader, EmptyState, Sheet, Pill, Button, FieldLabel, Money, fieldSurface,
 } from '../components/ui';
-import { IconCard, IconPencil, IconCardPayment, IconTrash, IconChevronDown, IconCardAdd } from '../components/Icons';
+import { IconCard, IconPencil, IconCardPayment, IconTrash, IconChevronDown, IconCardAdd, IconChevronRight } from '../components/Icons';
+import { AddApartadoSheet, ApartadoSheet, MoveMoneySheet, EditInterestSheet } from '../components/savings/ApartadoSheets';
+import { round2 } from '../utils/formatCurrency';
 
 // Tiny utilization ring for the Crédito deck's header — how much of
 // the combined limit across all credit cards is currently used up.
@@ -189,10 +191,20 @@ function PayCardSheet({ card, accounts, onClose }) {
 // Tap the front card of any deck → this. Full detail for either
 // type, plus edit/delete, plus "Pagar" for a credit card with debt.
 function CardDetailSheet({ card, onClose, onPay, onEdit }) {
-    const { deleteAccount, deleteCreditCard } = useFinance();
+    const {
+        deleteAccount, deleteCreditCard, accounts, savingsAccounts, savingsGoals,
+        deleteSavingsAccount, getFreeRoom, getApartadoFree, getSavingsAccountRisk,
+    } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
     const isCredit = card.cardType === 'credit';
+
+    // Los apartados de ESTA tarjeta se administran aquí: son parte de su
+    // saldo, así que aquí nacen y aquí se ven todos. `sub` es la hoja
+    // secundaria abierta encima (crear, detalle, mover dinero, interés).
+    const myApartados = isCredit ? [] : savingsAccounts.filter((s) => s.linkedAccountId === card.id);
+    const freeRoom = isCredit ? 0 : getFreeRoom(card.id);
+    const [sub, setSub] = useState(null); // { kind: 'add' | 'detail' | 'move' | 'interest', acc?, mode? }
 
     const pct = isCredit && card.limit > 0
         ? Math.min(Math.round((card.currentDebt / card.limit) * 100), 100)
@@ -241,6 +253,71 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
         </View>
     );
 
+    // Las hojas de apartado reemplazan a esta (nunca un Modal dentro de
+    // otro Modal: en iOS con la nueva arquitectura truena). Al cerrar
+    // vuelven al detalle.
+    if (sub?.kind === 'add') {
+        return (
+            <AddApartadoSheet
+                onClose={() => setSub(null)}
+                accounts={accounts}
+                getFreeRoom={getFreeRoom}
+                initialAccountId={card.id}
+            />
+        );
+    }
+    const subAcc = sub?.acc ? savingsAccounts.find((s) => s.id === sub.acc.id) : null;
+    if (sub?.kind === 'detail' && subAcc) {
+        const acc = subAcc;
+        const goalsHere = savingsGoals.filter((g) => g.savingsAccountId === acc.id);
+        const committed = round2(goalsHere.reduce((t, g) => t + g.savedAmount, 0));
+        return (
+            <ApartadoSheet
+                onClose={() => setSub(null)}
+                savingsAccount={acc}
+                atRisk={getSavingsAccountRisk(acc.id).atRisk}
+                backing={{ free: getApartadoFree(acc.id), committed, total: acc.earmarkedAmount }}
+                destinos={goalsHere.map((g) => ({ goal: g, amount: g.savedAmount }))}
+                linkedAccount={accounts.find((a) => a.id === acc.linkedAccountId)}
+                linkedFree={getFreeRoom(acc.linkedAccountId)}
+                onOpenGoal={() => { }}
+                onDeposit={() => setSub({ kind: 'move', acc, mode: 'deposit' })}
+                onWithdraw={() => setSub({ kind: 'move', acc, mode: 'withdraw' })}
+                onInterest={() => setSub({ kind: 'interest', acc })}
+                onDelete={() => {
+                    Alert.alert('Eliminar apartado', `¿Eliminar "${acc.name}"?`, [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: 'Eliminar', style: 'destructive', onPress: async () => {
+                                const r = await deleteSavingsAccount(acc.id);
+                                if (r?.error) Alert.alert('No se pudo eliminar', r.error);
+                                else setSub(null);
+                            }
+                        },
+                    ]);
+                }}
+            />
+        );
+    }
+    if (sub?.kind === 'move') {
+        return (
+            <MoveMoneySheet
+                onClose={() => setSub({ kind: 'detail', acc: sub.acc })}
+                savingsAccount={sub.acc}
+                getFreeRoom={getFreeRoom}
+                mode={sub.mode}
+            />
+        );
+    }
+    if (sub?.kind === 'interest') {
+        return (
+            <EditInterestSheet
+                onClose={() => setSub({ kind: 'detail', acc: sub.acc })}
+                savingsAccount={sub.acc}
+            />
+        );
+    }
+
     return (
         <Sheet onClose={onClose}>
             <View style={styles.detailFace}>
@@ -275,6 +352,48 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                 )}
             </View>
 
+            {!isCredit && (
+                <>
+                    <FieldLabel>
+                        Apartados en esta tarjeta
+                        {myApartados.length > 0 ? ` · ${formatCurrency(round2(myApartados.reduce((t, a) => t + a.earmarkedAmount, 0)))}` : ''}
+                    </FieldLabel>
+                    <View style={styles.detailCard}>
+                        {myApartados.map((a) => (
+                            <TouchableOpacity
+                                key={a.id}
+                                style={styles.detailRow}
+                                onPress={() => setSub({ kind: 'detail', acc: a })}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Apartado ${a.name}`}
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                                    <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: a.color }} />
+                                    <Text style={[styles.detailVal, { textAlign: 'left' }]} numberOfLines={1}>{a.name}</Text>
+                                    {a.interest?.enabled && <Text style={styles.detailKey}>· {a.interest.rate}%</Text>}
+                                </View>
+                                <Money value={a.earmarkedAmount} size={FontSize.sm + 1} color={theme.ink} decimals={false} />
+                                <IconChevronRight color={theme.inkDim} size={13} />
+                            </TouchableOpacity>
+                        ))}
+                        {myApartados.length > 0 && (
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailKey}>Sin apartar</Text>
+                                <Money value={freeRoom} size={FontSize.sm + 1} color={theme.inkMid} decimals={false} />
+                            </View>
+                        )}
+                        <TouchableOpacity
+                            style={[styles.detailRow, { borderBottomWidth: 0 }]}
+                            onPress={() => setSub({ kind: 'add' })}
+                            accessibilityRole="button"
+                        >
+                            <Text style={[styles.detailVal, { color: theme.brand, textAlign: 'left' }]}>+ Nuevo apartado en {card.name}</Text>
+                            <IconChevronRight color={theme.brand} size={13} />
+                        </TouchableOpacity>
+                    </View>
+                </>
+            )}
+
             {isCredit && card.currentDebt > 0 && (
                 <View style={styles.sheetBtns}>
                     <Button
@@ -296,6 +415,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                     style={{ flex: 1.4 }}
                 />
             </View>
+
         </Sheet>
     );
 }

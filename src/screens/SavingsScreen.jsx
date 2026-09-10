@@ -1,9 +1,17 @@
-// Savings tab — apartados linked to real débito/efectivo accounts,
-// and goals funded from one or several of them. See useSavings.js for
-// the full model: nothing here ever moves real money except the
-// "Marcar como comprado" redeem flow, which is the one place a goal
-// actually spends for real.
-import { useMemo, useState, useEffect } from 'react';
+// Ahorros — tres bloques:
+//   1. Todo tu dinero: por tarjeta (el lugar físico), con sus apartados
+//      colgando debajo y lo "sin apartar" al final.
+//   2. Ahorro: la suma de los objetivos, en grande.
+//   3. Objetivos: una fila por objetivo; el detalle vive en su hoja.
+//
+// Modelo (ver useSavings.js): tarjeta → apartado (parte del saldo de la
+// tarjeta) → objetivo (vive en un lugar: la tarjeta o uno de sus
+// apartados). No hay aportaciones ni fuentes.
+//
+// Los apartados no tienen sección propia: se ven dentro de "Todo tu
+// dinero" y en cada objetivo, y se administran desde el detalle de su
+// tarjeta en Tarjetas (o con el atajo del formulario de objetivo).
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { format, parseISO, differenceInCalendarMonths } from 'date-fns';
@@ -18,648 +26,55 @@ import { FontSize, Spacing } from '../constants';
 import createSavingsStyles from './SavingsScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
+import { IconWarningTriangle, IconGoal, IconChevronRight } from '../components/Icons';
 import {
-    IconCheck,
-    IconWarningTriangle,
-    IconSavings,
-    IconChevronRight,
-} from '../components/Icons';
-import {
-    ScreenHeader,
-    SectionHeader,
-    EmptyState,
-    Sheet,
-    Pill,
-    Button,
-    Field,
-    FieldLabel,
-    Money,
-    GlassCard,
-    fieldSurface,
+    ScreenHeader, EmptyState, Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface,
 } from '../components/ui';
+import {
+    LINKABLE_TYPES, ColorPicker, Toggle, AddApartadoSheet, MoveMoneySheet, EditInterestSheet, ApartadoSheet,
+} from '../components/savings/ApartadoSheets';
 
-// Only débito/efectivo can back an apartado — same rule useSavings.js
-// enforces server-side, mirrored here so the picker never even shows
-// an option that would get rejected.
-const LINKABLE_TYPES = ['debit', 'cash'];
+// ── Helpers ──────────────────────────────────────────────────────────
 
-// Color picker (bye bye emoji picker)
-function ColorPicker({ selected, onSelect }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    return (
-        <View style={styles.colorRow}>
-            {SAVINGS_COLORS.map((c) => (
-                <TouchableOpacity
-                    key={c}
-                    style={[
-                        styles.colorDot,
-                        { backgroundColor: c },
-                        selected === c && { borderColor: theme.ink },
-                    ]}
-                    onPress={() => onSelect(c)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: selected === c }}
-                />
-            ))}
-        </View>
-    );
+const accountColor = (a, theme) => a.color || (a.type === 'cash' ? theme.cashTone : theme.inkDim);
+
+// El lugar de un objetivo, resuelto: tarjeta + apartado (si lo hay).
+function resolvePlace(goal, accounts, savingsAccounts) {
+    const account = accounts.find((a) => a.id === goal.accountId) || null;
+    const apartado = goal.savingsAccountId
+        ? savingsAccounts.find((s) => s.id === goal.savingsAccountId) || null
+        : null;
+    return { account, apartado };
 }
 
-// Colored circle dot used in cards and chips
-function AccountDot({ color, size = 40 }) {
-    return (
-        <View
-            style={{
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                backgroundColor: color,
-            }}
-        />
-    );
+// Los números que comparten la fila y la hoja de un objetivo.
+function describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk) {
+    const percentage = goal.targetAmount > 0
+        ? Math.min(Math.round((goal.savedAmount / goal.targetAmount) * 100), 100) : 0;
+    // Completo con montos reales, nunca con el porcentaje redondeado.
+    const isComplete = goal.targetAmount > 0 && goal.savedAmount >= goal.targetAmount;
+    const suggestion = getMonthlySuggestion(goal);
+    const atRisk = getGoalRisk(goal);
+    const riskPct = goal.targetAmount > 0 ? Math.min((atRisk / goal.targetAmount) * 100, percentage) : 0;
+    const color = goal.color || place.apartado?.color || (place.account ? accountColor(place.account, theme) : null);
+    const monthsLeft = goal.deadline ? differenceInCalendarMonths(parseISO(goal.deadline), new Date()) : null;
+    const hasPlace = !!goal.accountId;
+    return { percentage, isComplete, suggestion, atRisk, riskPct, color, monthsLeft, hasPlace };
 }
 
-// Pick which real débito/efectivo account an apartado is linked to.
-// Shows how much of each is currently free, so the choice already
-// carries the info that decides how much can be earmarked.
-function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const linkable = accounts.filter((a) => LINKABLE_TYPES.includes(a.type));
-
-    if (linkable.length === 0) {
-        return <Text style={styles.hint}>Primero agrega una cuenta de débito en Tarjetas</Text>;
-    }
-    return (
-        <View style={styles.pillRow}>
-            {linkable.map((a) => (
-                <Pill
-                    key={a.id}
-                    label={`${a.name} · ${formatCurrencyShort(getFreeRoom(a.id))} libres`}
-                    selected={selectedId === a.id}
-                    onPress={() => onSelect(a.id)}
-                />
-            ))}
-        </View>
-    );
-}
-
-// Casilla — misma anatomía que el toggle de TransactionScreen.
-function Toggle({ on, label, onPress, accent, accentOn }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const tone = accent || theme.brand;
-    return (
-        <TouchableOpacity
-            style={styles.toggle}
-            onPress={onPress}
-            activeOpacity={0.7}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: on }}
-        >
-            <View style={[styles.checkbox, on && { backgroundColor: tone, borderColor: tone }]}>
-                {on && <IconCheck color={accentOn || theme.brandOn} size={12} />}
-            </View>
-            <Text style={styles.toggleText}>{label}</Text>
-        </TouchableOpacity>
-    );
-}
-
-// Empty/default shape for the interest form, shared by AddApartadoSheet
-// and EditInterestSheet below. Kept as strings until submit, like
-// every other money field in this app.
-const EMPTY_INTEREST = { enabled: false, rate: '', cap: '', rateAboveCap: '' };
-
-// Rate/cap fields for "this apartado grows on its own" — shared
-// between creation and editing so both stay in sync.
-function InterestFields({ value, onChange }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const hasCap = parseFloat(value.cap) > 0;
-
-    return (
-        <>
-            <Toggle
-                on={value.enabled}
-                label="Generar interés (opcional)"
-                onPress={() => onChange({ ...value, enabled: !value.enabled })}
-            />
-
-            {value.enabled && (
-                <View style={styles.interestBox}>
-                    <Text style={styles.hint}>
-                        Este apartado crecerá solo, como una cuenta de ahorro real: el interés se deposita de
-                        verdad en tu cuenta ligada y se suma aquí.
-                    </Text>
-
-                    <FieldLabel required>Tasa anual</FieldLabel>
-                    <View style={styles.percentRow}>
-                        <DecimalInput
-                            style={[styles.decimalInput, fieldSurface(theme), styles.percentInput]}
-                            value={value.rate}
-                            onChangeText={(rate) => onChange({ ...value, rate })}
-                            placeholder="13.00"
-                            placeholderTextColor={theme.inkDim}
-                        />
-                        <Text style={styles.percentSign}>% anual</Text>
-                    </View>
-
-                    <FieldLabel optional>Tope</FieldLabel>
-                    <DecimalInput
-                        style={[styles.decimalInput, fieldSurface(theme)]}
-                        value={value.cap}
-                        onChangeText={(cap) => onChange({ ...value, cap })}
-                        placeholder="Sin tope — aplica a todo"
-                        placeholderTextColor={theme.inkDim}
-                    />
-                    <Text style={styles.hint}>
-                        Ej. como en Nu: 13% anual hasta $25,000 pesos — arriba de eso, baja la tasa.
-                        Déjalo vacío para que la tasa aplique a cualquier cantidad.
-                    </Text>
-
-                    {hasCap && (
-                        <>
-                            <FieldLabel>Tasa arriba del tope</FieldLabel>
-                            <View style={styles.percentRow}>
-                                <DecimalInput
-                                    style={[styles.decimalInput, fieldSurface(theme), styles.percentInput]}
-                                    value={value.rateAboveCap}
-                                    onChangeText={(rateAboveCap) => onChange({ ...value, rateAboveCap })}
-                                    placeholder="0.00"
-                                    placeholderTextColor={theme.inkDim}
-                                />
-                                <Text style={styles.percentSign}>% anual</Text>
-                            </View>
-                            <Text style={styles.hint}>
-                                Lo que exceda el tope gana esta tasa reducida en vez de la normal. Déjalo
-                                vacío si arriba del tope no quieres que gane nada.
-                            </Text>
-                        </>
-                    )}
-                </View>
-            )}
-        </>
-    );
-}
-
-// New apartado sheet
-function AddApartadoSheet({ onClose, accounts, getFreeRoom }) {
-    const { addSavingsAccount } = useFinance();
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const [name, setName] = useState('');
-    const [color, setColor] = useState(SAVINGS_COLORS[0]);
-    const [linkedAccountId, setLinkedAccountId] = useState(null);
-    const [initialAmount, setInitialAmount] = useState('');
-    const [interest, setInterest] = useState(EMPTY_INTEREST);
-    const [loading, setLoading] = useState(false);
-
-    const free = linkedAccountId ? getFreeRoom(linkedAccountId) : 0;
-    const requested = parseFloat(initialAmount) || 0;
-    const exceedsAvailable = linkedAccountId && requested > free;
-    const interestRateMissing = interest.enabled && !(parseFloat(interest.rate) > 0);
-    const canSave = name.trim() && linkedAccountId && !interestRateMissing && !loading;
-
-    const handleAdd = async () => {
-        if (!canSave) return;
-        setLoading(true);
-        const result = await addSavingsAccount({
-            name: name.trim(),
-            color,
-            linkedAccountId,
-            initialAmount: requested,
-            interest: interest.enabled
-                ? {
-                    enabled: true,
-                    rate: parseFloat(interest.rate) || 0,
-                    cap: parseFloat(interest.cap) || 0,
-                    rateAboveCap: parseFloat(interest.rateAboveCap) || 0,
-                }
-                : null,
-        });
-        setLoading(false);
-        if (result?.error) {
-            Alert.alert('No se pudo crear', result.error);
-            return;
-        }
-        onClose();
-    };
-
-    return (
-        <Sheet onClose={onClose} dismissable={!loading} title="Nuevo apartado" scroll>
-            {/* Live preview */}
-            <View style={styles.preview}>
-                <AccountDot color={color} size={44} />
-                <Text style={styles.previewName} numberOfLines={1}>
-                    {name || 'Nombre del apartado'}
-                </Text>
-            </View>
-
-            <FieldLabel>Color</FieldLabel>
-            <ColorPicker selected={color} onSelect={setColor} />
-
-            <Field
-                label="Nombre"
-                required
-                value={name}
-                onChangeText={setName}
-                placeholder="Ej. Cajita Nu, Apartado BBVA..."
-            />
-
-            <FieldLabel required>¿De qué cuenta sale?</FieldLabel>
-            <AccountPicker
-                accounts={accounts}
-                selectedId={linkedAccountId}
-                onSelect={setLinkedAccountId}
-                getFreeRoom={getFreeRoom}
-            />
-            <Text style={styles.hint}>
-                No mueve el dinero — tu tarjeta sigue mostrando su saldo real completo. Solo reserva parte de
-                él.
-            </Text>
-
-            {linkedAccountId && (
-                <>
-                    <FieldLabel optional>Apartar ahora</FieldLabel>
-                    <DecimalInput
-                        style={[
-                            styles.decimalInput,
-                            fieldSurface(theme, { error: !!exceedsAvailable }),
-                        ]}
-                        value={initialAmount}
-                        onChangeText={setInitialAmount}
-                        placeholder="$0.00"
-                        placeholderTextColor={theme.inkDim}
-                    />
-                    <Text style={[styles.hint, exceedsAvailable && styles.hintError]}>
-                        {exceedsAvailable
-                            ? `Solo tienes ${formatCurrencyShort(free)} libres en esa cuenta`
-                            : `Disponible ahí: ${formatCurrencyShort(free)}`}
-                    </Text>
-                </>
-            )}
-
-            <InterestFields value={interest} onChange={setInterest} />
-
-            <View style={styles.sheetBtns}>
-                <Button label="Cancelar" variant="secondary" onPress={onClose} />
-                <Button
-                    label="Crear apartado"
-                    loading={loading}
-                    loadingLabel="Creando…"
-                    disabled={!canSave}
-                    onPress={handleAdd}
-                    style={{ flex: 2 }}
-                />
-            </View>
-        </Sheet>
-    );
-}
-
-// Edit an existing apartado's interest settings — same fields as
-// creation, reachable any time afterward (the % button on each
-// apartado row), since interest here is meant to be something the
-// person can turn on, tune, or turn back off whenever they want.
-function EditInterestSheet({ onClose, savingsAccount }) {
-    const { updateSavingsAccountInterest } = useFinance();
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const [interest, setInterest] = useState(EMPTY_INTEREST);
-    const [loading, setLoading] = useState(false);
-
-    // Re-sync every time a different (or the same, freshly reopened)
-    // apartado's sheet opens — mirrors the userName sync pattern in
-    // SettingsScreen (a plain useEffect keyed off the prop that can
-    // change out from under this component).
-    useEffect(() => {
-        if (!savingsAccount) return;
-        const i = savingsAccount.interest;
-        setInterest({
-            enabled: !!i?.enabled,
-            rate: i?.rate ? String(i.rate) : '',
-            cap: i?.cap ? String(i.cap) : '',
-            rateAboveCap: i?.rateAboveCap ? String(i.rateAboveCap) : '',
-        });
-    }, [savingsAccount?.id]);
-
-    if (!savingsAccount) return null;
-
-    const interestRateMissing = interest.enabled && !(parseFloat(interest.rate) > 0);
-
-    const handleSave = async () => {
-        if (interestRateMissing || loading) return;
-        setLoading(true);
-        const result = await updateSavingsAccountInterest(savingsAccount.id, {
-            enabled: interest.enabled,
-            rate: parseFloat(interest.rate) || 0,
-            cap: parseFloat(interest.cap) || 0,
-            rateAboveCap: parseFloat(interest.rateAboveCap) || 0,
-        });
-        setLoading(false);
-        if (result?.error) {
-            Alert.alert('No se pudo guardar', result.error);
-            return;
-        }
-        onClose();
-    };
-
-    return (
-        // El acento de la hoja es el color de ESTE apartado.
-        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
-            <Sheet onClose={onClose} dismissable={!loading} scroll>
-                <View style={styles.sheetTitleRow}>
-                    <AccountDot color={savingsAccount.color} size={28} />
-                    <Text style={styles.sheetTitle}>Interés de {savingsAccount.name}</Text>
-                </View>
-
-                <InterestFields value={interest} onChange={setInterest} />
-
-                <View style={styles.sheetBtns}>
-                    <Button label="Cancelar" variant="secondary" onPress={onClose} />
-                    <Button
-                        label="Guardar"
-                        loading={loading}
-                        loadingLabel="Guardando…"
-                        disabled={interestRateMissing}
-                        onPress={handleSave}
-                        style={{ flex: 2 }}
-                    />
-                </View>
-            </Sheet>
-        </AccentProvider>
-    );
-}
-
-// Add/remove money from an apartado. Never touches the linked
-// account's real balance — only how much of it is claimed.
-function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode }) {
-    const { addToSavingsAccount, removeFromSavingsAccount } = useFinance();
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const [amount, setAmount] = useState('');
-    const isDeposit = mode === 'deposit';
-    const free = savingsAccount ? getFreeRoom(savingsAccount.linkedAccountId) : 0;
-    const ceiling = isDeposit ? free : (savingsAccount?.earmarkedAmount ?? 0);
-    const amt = parseFloat(amount) || 0;
-    const overCeiling = amt > ceiling;
-
-    const handleConfirm = async () => {
-        if (!amt || amt <= 0) return;
-        const result = isDeposit
-            ? await addToSavingsAccount({ savingsAccountId: savingsAccount.id, amount: amt })
-            : await removeFromSavingsAccount({ savingsAccountId: savingsAccount.id, amount: amt });
-        if (result?.error) {
-            Alert.alert('No se puede', result.error);
-            return;
-        }
-        setAmount('');
-        onClose();
-    };
-
-    return (
-        // El acento de la hoja es el color de ESTE apartado.
-        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
-            <Sheet onClose={onClose}>
-                <View style={styles.sheetTitleRow}>
-                    <AccountDot color={savingsAccount?.color} size={28} />
-                    <Text style={styles.sheetTitle}>
-                        {isDeposit ? 'Apartar más en' : 'Quitar de'} {savingsAccount?.name}
-                    </Text>
-                </View>
-
-                <FieldLabel required>Cantidad</FieldLabel>
-                <DecimalInput
-                    style={[styles.decimalInputLarge, fieldSurface(theme, { error: overCeiling })]}
-                    value={amount}
-                    onChangeText={setAmount}
-                    placeholder="$0.00"
-                    placeholderTextColor={theme.inkDim}
-                    autoFocus
-                />
-                <Text style={[styles.hint, overCeiling && styles.hintError]}>
-                    {isDeposit
-                        ? `Libre en esa cuenta: ${formatCurrencyShort(free)}`
-                        : `Apartado actualmente: ${formatCurrencyShort(ceiling)}`}
-                </Text>
-
-                <View style={styles.sheetBtns}>
-                    <Button
-                        label="Cancelar"
-                        variant="secondary"
-                        onPress={() => {
-                            setAmount('');
-                            onClose();
-                        }}
-                    />
-                    <Button
-                        label={isDeposit ? 'Apartar' : 'Quitar'}
-                        disabled={!amt || amt <= 0 || overCeiling}
-                        onPress={handleConfirm}
-                        style={{ flex: 2 }}
-                    />
-                </View>
-            </Sheet>
-        </AccentProvider>
-    );
-}
-
-// New Goal sheet — a goal itself doesn't know about apartados until
-// someone contributes to it.
-function AddGoalSheet({ onClose }) {
-    const { addSavingsGoal } = useFinance();
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const [name, setName] = useState('');
-    const [targetAmount, setTargetAmount] = useState('');
-    const [hasDeadline, setHasDeadline] = useState(false);
-    const [deadline, setDeadline] = useState(null);
-
-    const handleAdd = async () => {
-        if (!name.trim() || !parseFloat(targetAmount)) return;
-        await addSavingsGoal({
-            name: name.trim(),
-            targetAmount: parseFloat(targetAmount),
-            deadline: hasDeadline && deadline ? deadline.toISOString() : null,
-        });
-        onClose();
-    };
-
-    const canSave = name.trim() && parseFloat(targetAmount) > 0 && (!hasDeadline || deadline);
-
-    return (
-        <Sheet onClose={onClose} title="Nuevo objetivo" scroll>
-            <Field
-                label="¿Qué quieres?"
-                required
-                value={name}
-                onChangeText={setName}
-                placeholder="Ej. AirPods 4, Viaje NYC..."
-            />
-
-            <FieldLabel required>¿Cuánto cuesta?</FieldLabel>
-            <DecimalInput
-                style={[styles.decimalInputLarge, fieldSurface(theme)]}
-                value={targetAmount}
-                onChangeText={setTargetAmount}
-                placeholder="$0.00"
-                placeholderTextColor={theme.inkDim}
-            />
-
-            <Toggle
-                on={hasDeadline}
-                label="Establecer fecha límite"
-                onPress={() => setHasDeadline(!hasDeadline)}
-            />
-
-            {hasDeadline && (
-                <>
-                    <FieldLabel required>Fecha límite</FieldLabel>
-                    <DatePickerField
-                        value={deadline}
-                        onChange={setDeadline}
-                        placeholder="Selecciona una fecha"
-                        minimumDate={new Date()}
-                        displayFormat="MMMM yyyy"
-                    />
-                </>
-            )}
-
-            <View style={styles.sheetBtns}>
-                <Button label="Cancelar" variant="secondary" onPress={onClose} />
-                <Button label="Crear objetivo" disabled={!canSave} onPress={handleAdd} style={{ flex: 2 }} />
-            </View>
-        </Sheet>
-    );
-}
-
-// Contribute to (or withdraw from) a goal — one apartado at a time.
-// To fund a goal from several apartados, just do this more than once;
-// each contribution keeps its own source, which is exactly what lets
-// the risk calculation trace things back later.
-function GoalContributeSheet({ onClose, goal, savingsAccounts, mode }) {
-    const { contributeToGoal, withdrawFromGoal } = useFinance();
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const [amount, setAmount] = useState('');
-    const [selectedAccId, setSelectedAccId] = useState(savingsAccounts[0]?.id || '');
-    const isDeposit = mode === 'deposit';
-    const remaining = Math.max(0, (goal?.targetAmount || 0) - (goal?.savedAmount || 0));
-    const wouldOverflow = isDeposit && parseFloat(amount) > remaining;
-
-    const handleConfirm = async () => {
-        const amt = parseFloat(amount);
-        if (!amt || amt <= 0 || !selectedAccId) return;
-        const result = isDeposit
-            ? await contributeToGoal({ goalId: goal.id, fromSavingsAccountId: selectedAccId, amount: amt })
-            : await withdrawFromGoal({ goalId: goal.id, toSavingsAccountId: selectedAccId, amount: amt });
-        if (result?.error) {
-            Alert.alert('Error', result.error);
-            return;
-        }
-        setAmount('');
-        onClose();
-    };
-
-    return (
-        <Sheet
-            onClose={onClose}
-            title={isDeposit ? 'Aportar al objetivo' : 'Retirar del objetivo'}
-            subtitle={goal?.name}
-            scroll
-        >
-            <FieldLabel required>Cantidad</FieldLabel>
-            <DecimalInput
-                style={[styles.decimalInputLarge, fieldSurface(theme, { error: !!wouldOverflow })]}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="$0.00"
-                placeholderTextColor={theme.inkDim}
-                autoFocus
-            />
-
-            {/* The store already blocks an overflowing contribution
-                outright — this is just letting the person see it
-                (and fix it in one tap) before they hit "Aportar"
-                instead of only after. */}
-            {isDeposit && (
-                <TouchableOpacity onPress={() => setAmount(remaining.toFixed(2))} accessibilityRole="button">
-                    <Text style={[styles.hintTappable, wouldOverflow && styles.hintError]}>
-                        Faltan {formatCurrencyShort(remaining)} para completarlo — toca para llenar
-                    </Text>
-                </TouchableOpacity>
-            )}
-
-            <FieldLabel required>{isDeposit ? 'Desde qué apartado' : 'Regresar a'}</FieldLabel>
-            {savingsAccounts.length === 0 ? (
-                <Text style={styles.hint}>Primero crea un apartado</Text>
-            ) : (
-                <View style={styles.pillRow}>
-                    {savingsAccounts.map((a) => (
-                        <Pill
-                            key={a.id}
-                            label={`${a.name} · ${formatCurrencyShort(a.earmarkedAmount)}`}
-                            selected={selectedAccId === a.id}
-                            onPress={() => setSelectedAccId(a.id)}
-                        />
-                    ))}
-                </View>
-            )}
-            {isDeposit && (
-                <Text style={styles.hint}>
-                    ¿No te alcanza con uno? Aporta lo que tenga, guarda, y repite eligiendo otro apartado.
-                </Text>
-            )}
-
-            <View style={styles.sheetBtns}>
-                <Button
-                    label="Cancelar"
-                    variant="secondary"
-                    onPress={() => {
-                        setAmount('');
-                        onClose();
-                    }}
-                />
-                <Button
-                    label={isDeposit ? 'Aportar' : 'Retirar'}
-                    disabled={!amount || !selectedAccId}
-                    onPress={handleConfirm}
-                    style={{ flex: 2 }}
-                />
-            </View>
-        </Sheet>
-    );
-}
-
-// Anillo de progreso del objetivo. Mete dos datos en una sola forma:
-// el arco turquesa es lo reunido, y el tramo ámbar del final es la
-// parte de eso que está en riesgo. Antes el riesgo era un renglón
-// aparte debajo de la barra, así que la tarjeta crecía cuando había
-// mala noticia — justo cuando menos quieres que se descuadre.
-//
-// El ámbar arranca donde termina lo seguro, no en cero: leerlo de
-// afuera hacia adentro es "esto es lo último que llegó y es lo primero
-// que se puede perder", que es exactamente lo que significa.
-function GoalRing({ pct, riskPct, theme, color, size = 74 }) {
-    const stroke = 5;
+function GoalRing({ pct, riskPct, theme, color, size = 74, stroke = size >= 60 ? 5 : 3 }) {
     const r = (size - stroke) / 2;
     const circumference = 2 * Math.PI * r;
     const safePct = Math.max(0, pct - riskPct);
     const dash = (p) => `${(circumference * p) / 100}, ${circumference}`;
-
     return (
         <Svg width={size} height={size}>
-            <Circle
-                cx={size / 2} cy={size / 2} r={r}
-                stroke={theme.border} strokeWidth={stroke} fill="none"
-            />
+            <Circle cx={size / 2} cy={size / 2} r={r} stroke={theme.border} strokeWidth={stroke} fill="none" />
             {pct > 0 && (
                 <Circle
                     cx={size / 2} cy={size / 2} r={r}
                     stroke={color || theme.ink} strokeWidth={stroke} fill="none"
                     strokeDasharray={dash(pct)}
-                    // Con riesgo encima, un remate redondo asomaría por
-                    // debajo del tramo ámbar. Sin riesgo sí va redondo.
                     strokeLinecap={riskPct > 0 ? 'butt' : 'round'}
                     transform={`rotate(-90 ${size / 2} ${size / 2})`}
                 />
@@ -668,9 +83,7 @@ function GoalRing({ pct, riskPct, theme, color, size = 74 }) {
                 <Circle
                     cx={size / 2} cy={size / 2} r={r}
                     stroke={theme.moneyOut} strokeWidth={stroke} fill="none"
-                    strokeDasharray={dash(riskPct)}
-                    strokeLinecap="butt"
-                    // 3.6° por punto porcentual.
+                    strokeDasharray={dash(riskPct)} strokeLinecap="butt"
                     transform={`rotate(${-90 + safePct * 3.6} ${size / 2} ${size / 2})`}
                 />
             )}
@@ -678,508 +91,627 @@ function GoalRing({ pct, riskPct, theme, color, size = 74 }) {
     );
 }
 
-// Retirar y eliminar de un objetivo, fuera de la tarjeta. Misma razón
-// que ApartadoActionsSheet: eliminar era el único ícono tocable de la
-// tarjeta y bastaba un toque para llegar al diálogo destructivo,
-// mientras que aportar —lo que de verdad haces seguido— era un botón
-// más abajo.
-function GoalActionsSheet({ onClose, goal, atRisk, onWithdraw, onDelete }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    if (!goal) return null;
-
+// "BBVA › Viaje" con los dos colores, o sólo la tarjeta.
+function PlaceLine({ place, theme, styles, strong }) {
+    if (!place.account) return <Text style={styles.goalRowSub}>Sin lugar todavía</Text>;
     return (
-        <Sheet onClose={onClose} title={goal.name}>
-            <View style={styles.actionsTotal}>
-                <Money value={goal.savedAmount} size={FontSize.xl} color={theme.ink} />
-                <Text style={styles.backingNote}>
-                    reunidos de {formatCurrencyShort(goal.targetAmount)}
-                    {atRisk > 0 ? ` · ${formatCurrencyShort(atRisk)} en riesgo` : ''}
-                </Text>
-            </View>
-
-            {goal.savedAmount > 0 && (
-                <View style={styles.sheetBtns}>
-                    <Button label="Retirar a un apartado" variant="secondary" onPress={onWithdraw} />
-                </View>
+        <View style={styles.placeLine}>
+            <View style={[styles.legendDot, { backgroundColor: accountColor(place.account, theme) }]} />
+            <Text style={[styles.placeText, strong && !place.apartado && styles.placeTextStrong]} numberOfLines={1}>
+                {place.account.name}
+            </Text>
+            {place.apartado && (
+                <>
+                    <Text style={styles.placeSep}>›</Text>
+                    <View style={[styles.legendDot, { backgroundColor: place.apartado.color }]} />
+                    <Text style={[styles.placeText, strong && styles.placeTextStrong]} numberOfLines={1}>
+                        {place.apartado.name}
+                    </Text>
+                </>
             )}
-            <View style={styles.sheetBtnsTight}>
-                <Button label="Eliminar objetivo" variant="danger" onPress={onDelete} />
-            </View>
-        </Sheet>
+        </View>
     );
 }
 
-// Goal card
-function GoalCard({ goal, savingsAccounts, sources = [], onDelete, onRedeem, getMonthlySuggestion, getGoalRisk }) {
+// Selector de lugar: las tarjetas y, debajo de cada una, sus apartados,
+// cada opción con cuánto tiene sin destino. Última línea: "+ Nuevo
+// apartado" (atajo). `sameAccountOnly` limita a una tarjeta (mover).
+function PlacePicker({ accounts, savingsAccounts, value, onChange, getPlaceFree, onNewApartado, sameAccountOnly }) {
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    const [showContribute, setShowContribute] = useState(false);
-    const [showWithdraw, setShowWithdraw] = useState(false);
-    const [showActions, setShowActions] = useState(false);
+    const linkable = accounts.filter((a) => LINKABLE_TYPES.includes(a.type) && (!sameAccountOnly || a.id === sameAccountOnly));
+    const isSel = (accountId, savingsAccountId) =>
+        value?.accountId === accountId && (value?.savingsAccountId || null) === (savingsAccountId || null);
+    return (
+        <View>
+            {linkable.map((a) => {
+                const mine = savingsAccounts.filter((s) => s.linkedAccountId === a.id);
+                return (
+                    <View key={a.id} style={styles.placeGroup}>
+                        <Pill
+                            icon={() => <View style={[styles.legendDot, { backgroundColor: accountColor(a, theme) }]} />}
+                            label={`${a.name} · ${formatCurrencyShort(getPlaceFree({ accountId: a.id }))}`}
+                            selected={isSel(a.id, null)}
+                            onPress={() => onChange({ accountId: a.id, savingsAccountId: null })}
+                        />
+                        {mine.length > 0 && (
+                            <View style={styles.placeChildren}>
+                                {mine.map((s) => (
+                                    <Pill
+                                        key={s.id}
+                                        icon={() => <View style={[styles.legendDot, { backgroundColor: s.color }]} />}
+                                        label={`${s.name} · ${formatCurrencyShort(getPlaceFree({ accountId: a.id, savingsAccountId: s.id }))}`}
+                                        selected={isSel(a.id, s.id)}
+                                        onPress={() => onChange({ accountId: a.id, savingsAccountId: s.id })}
+                                    />
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                );
+            })}
+            {onNewApartado && (
+                <TouchableOpacity style={styles.newApartadoLink} onPress={onNewApartado} accessibilityRole="button">
+                    <Text style={styles.newApartadoText}>+ Nuevo apartado en una tarjeta</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
 
-    const percentage =
-        goal.targetAmount > 0 ? Math.min(Math.round((goal.savedAmount / goal.targetAmount) * 100), 100) : 0;
-    // Complete has to come from the real amounts, never from the
-    // rounded `percentage` above — that one is only for display.
-    // Math.round would flip this to true as early as 99.5% funded
-    // (e.g. $995 of a $1,000 goal), which used to let "Marcar como
-    // comprado" fire while less money than promised was actually
-    // sitting in the source apartados.
-    const isComplete = goal.targetAmount > 0 && goal.savedAmount >= goal.targetAmount;
-    const suggestion = getMonthlySuggestion(goal);
-    const atRisk = getGoalRisk(goal);
-    // Acotado a `percentage` para que el tramo ámbar nunca sea más
-    // largo que el arco sobre el que se dibuja.
-    const riskPct = goal.targetAmount > 0
-        ? Math.min((atRisk / goal.targetAmount) * 100, percentage)
-        : 0;
+// ── Sheets ───────────────────────────────────────────────────────────
 
-    // El anillo toma el color del apartado que más aporta al objetivo:
-    // el único color de la tarjeta, y significa "de dónde viene".
-    const mainSource = [...sources].sort((a, b) => b.amount - a.amount)[0];
-    const ringColor = mainSource
-        ? savingsAccounts.find((a) => a.id === mainSource.savingsAccountId)?.color
-        : null;
+// Nuevo objetivo: nombre, meta, fecha opcional, dónde vive, color y
+// "empezar con lo que ya hay libre ahí".
+function AddGoalSheet({ onClose, accounts, savingsAccounts, getPlaceFree, initialPlace = null }) {
+    const { addSavingsGoal } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [name, setName] = useState('');
+    const [targetAmount, setTargetAmount] = useState('');
+    const [hasDeadline, setHasDeadline] = useState(false);
+    const [deadline, setDeadline] = useState(null);
+    const [place, setPlace] = useState(initialPlace);
+    const [color, setColor] = useState(SAVINGS_COLORS[0]);
+    const [startWithFree, setStartWithFree] = useState(false);
+    const [newApartado, setNewApartado] = useState(false);
 
-    const monthsLeft = goal.deadline
-        ? differenceInCalendarMonths(parseISO(goal.deadline), new Date())
-        : null;
+    const free = place ? getPlaceFree(place) : 0;
+    const target = parseFloat(targetAmount) || 0;
+    const startAmount = target > 0 ? Math.min(free, target) : free;
+    const initialAmount = startWithFree ? startAmount : 0;
+    const canSave = name.trim() && target > 0 && place && (!hasDeadline || deadline);
 
-    // Una sola línea de estado en vez de dos bloques apilados. Riesgo y
-    // sugerencia decían cosas distintas con el mismo peso visual y cada
-    // una empujaba la tarjeta hacia abajo; ahora se combinan en una
-    // frase: qué pasa, y qué hacer al respecto.
-    //
-    // Sin riesgo, la sugerencia no se pinta de ámbar: no hay nada mal,
-    // solo hay algo que decir.
-    let status = null;
-    if (atRisk > 0) {
-        status = {
-            urgent: true,
-            text: `${formatCurrencyShort(atRisk)} en riesgo — un apartado de origen tiene menos saldo del que prometía.`
-                + (suggestion && !isComplete ? ` Ahorra ${formatCurrencyShort(suggestion)}/mes para llegar a tiempo.` : ''),
-        };
-    } else if (suggestion && !isComplete) {
-        status = { urgent: false, text: `Ahorra ${formatCurrencyShort(suggestion)}/mes para llegar a tiempo` };
-    }
-
-    const handleDelete = () => {
-        Alert.alert(
-            'Eliminar objetivo',
-            goal.savedAmount > 0
-                ? `Este objetivo tiene ${formatCurrencyShort(goal.savedAmount)} aportados. Al eliminarlo, regresan a los apartados de donde salieron.`
-                : '¿Eliminar este objetivo?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Eliminar', style: 'destructive', onPress: onDelete },
-            ]
-        );
+    const handleAdd = async () => {
+        if (!canSave) return;
+        const result = await addSavingsGoal({
+            name: name.trim(),
+            targetAmount: target,
+            deadline: hasDeadline && deadline ? deadline.toISOString() : null,
+            accountId: place.accountId,
+            savingsAccountId: place.savingsAccountId || null,
+            color,
+            initialAmount,
+        });
+        if (result?.error) { Alert.alert('No se pudo crear', result.error); return; }
+        onClose();
     };
 
+    if (newApartado) {
+        return (
+            <AddApartadoSheet
+                onClose={() => setNewApartado(false)}
+                accounts={accounts}
+                getFreeRoom={(id) => getPlaceFree({ accountId: id })}
+                initialAccountId={place?.accountId || null}
+                onCreated={(sa) => setPlace({ accountId: sa.linkedAccountId, savingsAccountId: sa.id })}
+            />
+        );
+    }
+
     return (
-        <GlassCard style={[styles.goalCard, isComplete && { borderColor: theme.moneyIn, borderWidth: 1.5 }]}>
-            {/* Anillo + información. Dos columnas en vez de siete
-                bloques apilados: la altura de la tarjeta ya no depende
-                de cuántas cosas apliquen. */}
-            <View style={styles.goalMain}>
-                <View style={styles.goalRingWrap}>
-                    <GoalRing pct={percentage} riskPct={riskPct} theme={theme} color={ringColor} />
-                    <View style={styles.goalRingCenter} pointerEvents="none">
-                        <Text style={styles.goalRingPct}>{percentage}%</Text>
-                        <Text style={styles.goalRingLabel}>
-                            {isComplete ? 'LISTO' : 'REUNIDO'}
-                        </Text>
-                    </View>
-                </View>
+        <AccentProvider color={color} on={theme.brandOn}>
+            <Sheet onClose={onClose} title="Nuevo objetivo" scroll>
+                <Field label="¿Qué quieres?" required value={name} onChangeText={setName} placeholder="Ej. Enganche, viaje, laptop…" />
 
-                <View style={styles.goalInfo}>
-                    <View style={styles.goalHeader}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.goalName} numberOfLines={1}>{goal.name}</Text>
-                            {!!goal.deadline && (
-                                <Text style={styles.goalDeadline} numberOfLines={1}>
-                                    {format(parseISO(goal.deadline), "MMMM 'de' yyyy", { locale: es })}
-                                    {monthsLeft > 0 ? ` · faltan ${monthsLeft} ${monthsLeft === 1 ? 'mes' : 'meses'}` : ''}
-                                </Text>
-                            )}
-                        </View>
-                        <TouchableOpacity
-                            style={styles.kebabBtn}
-                            onPress={() => setShowActions(true)}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 6 }}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Más acciones de ${goal.name}`}
-                        >
-                            <View style={styles.kebabDot} />
-                            <View style={styles.kebabDot} />
-                            <View style={styles.kebabDot} />
-                        </TouchableOpacity>
-                    </View>
+                <FieldLabel required>Meta</FieldLabel>
+                <DecimalInput
+                    style={[styles.decimalInputLarge, fieldSurface(theme)]}
+                    value={targetAmount}
+                    onChangeText={setTargetAmount}
+                    placeholder="$0.00"
+                    placeholderTextColor={theme.inkDim}
+                />
 
-                    <View style={styles.goalAmountRow}>
-                        <Money value={goal.savedAmount} size={FontSize.xl - 1} color={theme.ink} decimals={false} compact />
-                        <Text style={styles.goalOf}>de {formatCurrencyShort(goal.targetAmount)}</Text>
-                    </View>
-
-                    {/* De dónde sale este dinero. Sigue estando, pero como
-                        puntos encimados y una línea de nombres en vez de
-                        un bloque con divisor, etiqueta y fichas. */}
-                    {sources.length > 0 && (
-                        <View style={styles.goalSrcRow}>
-                            <View style={styles.stackDots}>
-                                {sources.slice(0, 4).map((src, i) => {
-                                    const sa = savingsAccounts.find((a) => a.id === src.savingsAccountId);
-                                    return (
-                                        <View
-                                            key={src.savingsAccountId}
-                                            style={[
-                                                styles.stackDot,
-                                                i === 0 && styles.stackDotFirst,
-                                                { backgroundColor: sa?.color || theme.inkDim },
-                                            ]}
-                                        />
-                                    );
-                                })}
-                            </View>
-                            <Text style={styles.goalSrcText} numberOfLines={1}>
-                                {sources
-                                    .map((src) => savingsAccounts.find((a) => a.id === src.savingsAccountId)?.name ?? 'eliminado')
-                                    .join(' · ')}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-
-            {!!status && (
-                <View style={[styles.statusBox, !status.urgent && styles.statusBoxQuiet]}>
-                    {status.urgent && <IconWarningTriangle color={theme.moneyOut} size={13} />}
-                    <Text style={[styles.statusText, !status.urgent && styles.statusTextQuiet]}>
-                        {status.text}
-                    </Text>
-                </View>
-            )}
-
-            {/* Una sola acción principal inline. Retirar y eliminar
-                viven en la hoja del "···" — son las raras, y una de
-                ellas no se deshace. */}
-            <View style={styles.goalBtns}>
-                {isComplete ? (
-                    <Button
-                        label="Marcar como comprado"
-                        accent={theme.moneyIn}
-                        accentOn={theme.brandOn}
-                        compact
-                        onPress={() => onRedeem(goal)}
-                        style={{ flex: 1 }}
-                    />
-                ) : (
-                    <Button
-                        label="+ Aportar"
-                        compact
-                        onPress={() => setShowContribute(true)}
-                        style={{ flex: 1 }}
-                    />
+                <Toggle on={hasDeadline} label="Establecer fecha límite" onPress={() => setHasDeadline(!hasDeadline)} accent={color} accentOn={theme.brandOn} />
+                {hasDeadline && (
+                    <>
+                        <FieldLabel required>Fecha límite</FieldLabel>
+                        <DatePickerField value={deadline} onChange={setDeadline} placeholder="Selecciona una fecha" minimumDate={new Date()} displayFormat="MMMM yyyy" />
+                    </>
                 )}
-            </View>
 
-            {showActions && (
-                <GoalActionsSheet
-                    goal={goal}
-                    atRisk={atRisk}
-                    onClose={() => setShowActions(false)}
-                    onWithdraw={() => { setShowActions(false); setShowWithdraw(true); }}
-                    onDelete={() => { setShowActions(false); handleDelete(); }}
-                />
-            )}
-            {showContribute && (
-                <GoalContributeSheet
-                    onClose={() => setShowContribute(false)}
-                    goal={goal}
+                <FieldLabel required>¿Dónde vive este dinero?</FieldLabel>
+                <Text style={styles.hint}>La tarjeta o el apartado donde está (o estará) guardado. Cada opción muestra cuánto tiene sin destino.</Text>
+                <PlacePicker
+                    accounts={accounts}
                     savingsAccounts={savingsAccounts}
-                    mode="deposit"
+                    value={place}
+                    onChange={(p) => { setPlace(p); setStartWithFree(false); }}
+                    getPlaceFree={getPlaceFree}
+                    onNewApartado={() => setNewApartado(true)}
                 />
-            )}
-            {showWithdraw && (
-                <GoalContributeSheet
-                    onClose={() => setShowWithdraw(false)}
-                    goal={goal}
-                    savingsAccounts={savingsAccounts}
-                    mode="withdraw"
-                />
-            )}
-        </GlassCard>
-    );
-}
 
-// Las cuatro acciones de un apartado. Antes eran botones de 30x30
-// pegados en la propia fila —por debajo del mínimo táctil de 44 y
-// compitiendo con el contenido—; ahora la fila entera es el disparador
-// y aquí caben con su nombre.
-function ApartadoActionsSheet({ onClose, savingsAccount, backing, atRisk = 0, onDeposit, onWithdraw, onInterest, onDelete }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
-    if (!savingsAccount) return null;
+                <FieldLabel>Color</FieldLabel>
+                <ColorPicker selected={color} onSelect={setColor} />
 
-    return (
-        // El acento de la hoja es el color de ESTE apartado.
-        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
-            <Sheet onClose={onClose}>
-                <View style={styles.sheetTitleRow}>
-                    <AccountDot color={savingsAccount.color} size={28} />
-                    <Text style={styles.sheetTitle}>{savingsAccount.name}</Text>
-                </View>
-
-                <View style={styles.actionsTotal}>
-                    <Money value={backing.total} size={FontSize.xl} color={theme.ink} />
-                    <Text style={styles.backingNote}>
-                        {backing.committed > 0
-                            ? `${formatCurrencyShort(backing.free)} libres · ${formatCurrencyShort(backing.committed)} con destino`
-                            : 'todo libre'}
-                    </Text>
-                </View>
-
-                {/* La cifra que la fila ya no carga: ahí solo hay un punto
-                ámbar, el detalle está aquí. */}
-                {atRisk > 0 && (
-                    <View style={styles.riskRow}>
-                        <IconWarningTriangle color={theme.moneyOut} size={13} />
-                        <Text style={styles.riskText}>
-                            {formatCurrencyShort(atRisk)} en riesgo — la cuenta ligada tiene menos saldo del que
-                            este apartado promete
-                        </Text>
-                    </View>
+                {place && free > 0 && (
+                    <Toggle
+                        on={startWithFree}
+                        label={`Empezar con lo que ya hay libre ahí (${formatCurrencyShort(startAmount)})`}
+                        onPress={() => setStartWithFree(!startWithFree)}
+                        accent={color}
+                        accentOn={theme.brandOn}
+                    />
                 )}
 
                 <View style={styles.sheetBtns}>
-                    <Button label="Apartar" onPress={onDeposit} />
-                    <Button label="Quitar" variant="secondary" onPress={onWithdraw} />
-                </View>
-                <View style={styles.sheetBtnsTight}>
-                    <Button
-                        label={savingsAccount.interest?.enabled ? 'Editar interés' : 'Generar interés'}
-                        variant="secondary"
-                        onPress={onInterest}
-                    />
-                </View>
-                <View style={styles.sheetBtnsTight}>
-                    <Button label="Eliminar apartado" variant="danger" onPress={onDelete} />
+                    <Button label="Cancelar" variant="secondary" onPress={onClose} />
+                    <Button label="Crear objetivo" disabled={!canSave} onPress={handleAdd} style={{ flex: 2 }} />
                 </View>
             </Sheet>
         </AccentProvider>
     );
 }
 
-// Main screen
+// Editar nombre, meta, fecha y color.
+function EditGoalSheet({ onClose, goal }) {
+    const { updateSavingsGoal } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [name, setName] = useState(goal.name);
+    const [targetAmount, setTargetAmount] = useState(String(goal.targetAmount));
+    const [hasDeadline, setHasDeadline] = useState(!!goal.deadline);
+    const [deadline, setDeadline] = useState(goal.deadline ? parseISO(goal.deadline) : null);
+    const [color, setColor] = useState(goal.color || SAVINGS_COLORS[0]);
+    const target = parseFloat(targetAmount) || 0;
+    const canSave = name.trim() && target > 0 && (!hasDeadline || deadline);
+
+    const handleSave = async () => {
+        if (!canSave) return;
+        const result = await updateSavingsGoal(goal.id, {
+            name: name.trim(),
+            targetAmount: target,
+            deadline: hasDeadline && deadline ? deadline.toISOString() : null,
+            color,
+        });
+        if (result?.error) { Alert.alert('No se pudo guardar', result.error); return; }
+        onClose();
+    };
+
+    return (
+        <AccentProvider color={color} on={theme.brandOn}>
+            <Sheet onClose={onClose} title="Editar objetivo" scroll>
+                <Field label="Nombre" required value={name} onChangeText={setName} />
+                <FieldLabel required>Meta</FieldLabel>
+                <DecimalInput style={[styles.decimalInputLarge, fieldSurface(theme)]} value={targetAmount} onChangeText={setTargetAmount} placeholder="$0.00" placeholderTextColor={theme.inkDim} />
+                <Toggle on={hasDeadline} label="Fecha límite" onPress={() => setHasDeadline(!hasDeadline)} accent={color} accentOn={theme.brandOn} />
+                {hasDeadline && (
+                    <>
+                        <FieldLabel required>Fecha límite</FieldLabel>
+                        <DatePickerField value={deadline} onChange={setDeadline} placeholder="Selecciona una fecha" displayFormat="MMMM yyyy" />
+                    </>
+                )}
+                <FieldLabel>Color</FieldLabel>
+                <ColorPicker selected={color} onSelect={setColor} />
+                <View style={styles.sheetBtns}>
+                    <Button label="Cancelar" variant="secondary" onPress={onClose} />
+                    <Button label="Guardar" disabled={!canSave} onPress={handleSave} style={{ flex: 2 }} />
+                </View>
+            </Sheet>
+        </AccentProvider>
+    );
+}
+
+// Ahorrar / Sacar: un monto, con el tope visible.
+function GoalAmountSheet({ onClose, goal, mode, available, accent }) {
+    const { saveToGoal, takeFromGoal } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [amount, setAmount] = useState('');
+    const isSave = mode === 'save';
+    const requested = parseFloat(amount) || 0;
+    const over = requested > available;
+    const canDo = requested > 0 && !over;
+
+    const handle = async () => {
+        if (!canDo) return;
+        const result = isSave
+            ? await saveToGoal({ goalId: goal.id, amount: requested })
+            : await takeFromGoal({ goalId: goal.id, amount: requested });
+        if (result?.error) { Alert.alert('No se pudo', result.error); return; }
+        onClose();
+    };
+
+    return (
+        <AccentProvider color={accent} on={theme.brandOn}>
+            <Sheet onClose={onClose} title={isSave ? `Ahorrar en ${goal.name}` : `Sacar de ${goal.name}`}>
+                <Text style={styles.hint}>
+                    {isSave
+                        ? `Puedes ahorrar hasta ${formatCurrencyShort(available)}: lo que hay sin destino donde vive el objetivo, sin pasar de la meta.`
+                        : `Vuelve a quedar sin destino en el mismo lugar. Ahorrado: ${formatCurrencyShort(available)}.`}
+                </Text>
+                <DecimalInput
+                    style={[styles.decimalInputLarge, fieldSurface(theme, { error: over })]}
+                    value={amount}
+                    onChangeText={setAmount}
+                    placeholder="$0.00"
+                    placeholderTextColor={theme.inkDim}
+                    autoFocus
+                />
+                {over && <Text style={[styles.hint, { color: theme.moneyOut }]}>Sólo hay {formatCurrencyShort(available)}.</Text>}
+                <View style={styles.sheetBtns}>
+                    <Button label="Cancelar" variant="secondary" onPress={onClose} />
+                    <Button label={isSave ? 'Ahorrar' : 'Sacar'} disabled={!canDo} onPress={handle} style={{ flex: 2 }} />
+                </View>
+            </Sheet>
+        </AccentProvider>
+    );
+}
+
+// Mover a otro lugar dentro de la misma tarjeta.
+function MoveGoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, accent }) {
+    const { moveGoal } = useFinance();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [place, setPlace] = useState(goal.accountId ? { accountId: goal.accountId, savingsAccountId: goal.savingsAccountId || null } : null);
+    const changed = !!place && (place.accountId !== goal.accountId || (place.savingsAccountId || null) !== (goal.savingsAccountId || null));
+    // Al moverlo, su propio dinero cuenta como libre en su lugar actual.
+    const freeFor = (p) => {
+        const base = getPlaceFree(p);
+        const same = p.accountId === goal.accountId && (p.savingsAccountId || null) === (goal.savingsAccountId || null);
+        return same ? round2(base + goal.savedAmount) : base;
+    };
+    const handle = async () => {
+        const result = await moveGoal({ goalId: goal.id, ...place });
+        if (result?.error) { Alert.alert('No se pudo mover', result.error); return; }
+        onClose();
+    };
+    const locked = goal.accountId && goal.savedAmount > 0 ? goal.accountId : null;
+    return (
+        <AccentProvider color={accent} on={theme.brandOn}>
+            <Sheet onClose={onClose} title={goal.accountId ? 'Mover a otro lugar' : 'Elegir dónde vive'} scroll>
+                <Text style={styles.hint}>
+                    {locked
+                        ? 'Dentro de la misma tarjeta: a la tarjeta o a uno de sus apartados. Para cambiar de tarjeta, primero haz un traspaso del dinero.'
+                        : 'Elige la tarjeta o el apartado donde vive este dinero.'}
+                </Text>
+                <PlacePicker
+                    accounts={accounts}
+                    savingsAccounts={savingsAccounts}
+                    value={place}
+                    onChange={setPlace}
+                    getPlaceFree={freeFor}
+                    sameAccountOnly={locked}
+                />
+                <View style={styles.sheetBtns}>
+                    <Button label="Cancelar" variant="secondary" onPress={onClose} />
+                    <Button label="Mover" disabled={!changed} onPress={handle} style={{ flex: 2 }} />
+                </View>
+            </Sheet>
+        </AccentProvider>
+    );
+}
+
+// La hoja del objetivo: explica y luego actúa.
+function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, getMonthlySuggestion, getGoalRisk, onRedeem, onDelete, onOpenApartado }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [sub, setSub] = useState(null); // 'save' | 'take' | 'edit' | 'move'
+    const place = resolvePlace(goal, accounts, savingsAccounts);
+    const g = describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk);
+    const accent = g.color || theme.brand;
+    const remaining = Math.max(round2(goal.targetAmount - goal.savedAmount), 0);
+    const freeHere = g.hasPlace ? getPlaceFree(goal) : 0;
+
+    const handleDelete = () => {
+        Alert.alert(
+            'Eliminar objetivo',
+            goal.savedAmount > 0
+                ? `Tiene ${formatCurrencyShort(goal.savedAmount)} ahorrados. Al eliminarlo, ese dinero se queda donde está, sólo sin destino.`
+                : '¿Eliminar este objetivo?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Eliminar', style: 'destructive', onPress: () => { onClose(); onDelete(); } },
+            ]
+        );
+    };
+
+    if (sub === 'save' || sub === 'take') {
+        return <GoalAmountSheet onClose={() => setSub(null)} goal={goal} mode={sub} accent={accent} available={sub === 'save' ? Math.min(freeHere, remaining) : goal.savedAmount} />;
+    }
+    if (sub === 'edit') return <EditGoalSheet onClose={() => setSub(null)} goal={goal} />;
+    if (sub === 'move') return <MoveGoalSheet onClose={() => setSub(null)} goal={goal} accounts={accounts} savingsAccounts={savingsAccounts} getPlaceFree={getPlaceFree} accent={accent} />;
+
+    return (
+        <AccentProvider color={accent} on={theme.brandOn}>
+            <Sheet onClose={onClose} scroll>
+                <View style={styles.goalSheetHead}>
+                    <View style={styles.goalRingWrap}>
+                        <GoalRing pct={g.percentage} riskPct={g.riskPct} theme={theme} color={g.color} size={84} />
+                        <View style={styles.goalRingCenter} pointerEvents="none">
+                            <Text style={[styles.goalRingPct, g.percentage >= 100 && styles.goalRingPctFull]}>{g.percentage}%</Text>
+                            <Text style={styles.goalRingLabel}>{g.isComplete ? 'LISTO' : 'REUNIDO'}</Text>
+                        </View>
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.goalSheetName} numberOfLines={2}>{goal.name}</Text>
+                        {!!goal.deadline && (
+                            <Text style={styles.goalDeadline} numberOfLines={1}>
+                                {format(parseISO(goal.deadline), "MMMM 'de' yyyy", { locale: es })}
+                                {g.monthsLeft > 0 ? ` · faltan ${g.monthsLeft} ${g.monthsLeft === 1 ? 'mes' : 'meses'}` : ''}
+                            </Text>
+                        )}
+                        <View style={styles.goalAmountRow}>
+                            <Money value={goal.savedAmount} size={FontSize.xl} color={theme.ink} decimals={false} compact />
+                            <Text style={styles.goalOf}>de {formatCurrencyShort(goal.targetAmount)}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {!g.isComplete && (
+                    <GlassCard style={[styles.goalPaceBox, g.atRisk > 0 && { borderColor: theme.moneyOut }]}>
+                        {!!g.suggestion && (
+                            <View style={styles.sheetRow}>
+                                <Text style={styles.sheetRowLabel}>Para llegar a tiempo</Text>
+                                <Text style={styles.sheetRowValue}>{formatCurrencyShort(g.suggestion)} / mes</Text>
+                            </View>
+                        )}
+                        <View style={[styles.sheetRow, !!g.suggestion && styles.sheetRowBorder]}>
+                            <Text style={styles.sheetRowLabel}>Faltan</Text>
+                            <Text style={styles.sheetRowValue}>{formatCurrencyShort(remaining)}</Text>
+                        </View>
+                        {g.atRisk > 0 && (
+                            <View style={[styles.riskRow, { marginTop: 0, paddingBottom: Spacing.sm }]}>
+                                <IconWarningTriangle color={theme.moneyOut} size={13} />
+                                <Text style={styles.riskText}>
+                                    {formatCurrencyShort(g.atRisk)} en riesgo — la tarjeta donde vive tiene menos saldo del que reclaman sus apartados y objetivos.
+                                </Text>
+                            </View>
+                        )}
+                    </GlassCard>
+                )}
+
+                <FieldLabel>Vive en</FieldLabel>
+                <GlassCard style={styles.sheetGroup}>
+                    <TouchableOpacity
+                        style={styles.sheetRow}
+                        onPress={place.apartado ? () => onOpenApartado(place.apartado) : undefined}
+                        disabled={!place.apartado}
+                        accessibilityRole={place.apartado ? 'button' : undefined}
+                    >
+                        <PlaceLine place={place} theme={theme} styles={styles} strong />
+                        {place.apartado && <IconChevronRight color={theme.inkDim} size={13} />}
+                    </TouchableOpacity>
+                    {g.hasPlace && (
+                        <View style={[styles.sheetRow, styles.sheetRowBorder]}>
+                            <Text style={styles.sheetRowLabel}>Sin destino ahí</Text>
+                            <Text style={styles.sheetRowValue}>{formatCurrencyShort(freeHere)}</Text>
+                        </View>
+                    )}
+                    <TouchableOpacity style={[styles.sheetRow, styles.sheetRowBorder]} onPress={() => setSub('move')} accessibilityRole="button">
+                        <Text style={[styles.sheetRowText, { color: accent }]}>{g.hasPlace ? 'Mover a otro lugar' : 'Elegir dónde vive'}</Text>
+                        <IconChevronRight color={accent} size={13} />
+                    </TouchableOpacity>
+                </GlassCard>
+
+                {g.isComplete ? (
+                    <>
+                        <View style={styles.sheetBtns}>
+                            <Button label="Marcar como comprado" accent={theme.moneyIn} accentOn={theme.brandOn} onPress={() => { onClose(); onRedeem(goal); }} />
+                        </View>
+                        <View style={styles.sheetBtnsTight}>
+                            <Button label="Sacar" variant="secondary" onPress={() => setSub('take')} style={{ flex: 1 }} />
+                            <Button label="Editar" variant="secondary" onPress={() => setSub('edit')} style={{ flex: 1 }} />
+                        </View>
+                    </>
+                ) : (
+                    <View style={styles.sheetBtns}>
+                        <Button label="+ Ahorrar" disabled={!g.hasPlace} onPress={() => setSub('save')} style={{ flex: 2 }} />
+                        {goal.savedAmount > 0 && <Button label="Sacar" variant="secondary" onPress={() => setSub('take')} style={{ flex: 1 }} />}
+                        <Button label="Editar" variant="secondary" onPress={() => setSub('edit')} style={{ flex: 1 }} />
+                    </View>
+                )}
+                <View style={styles.sheetBtnsTight}>
+                    <Button label="Eliminar objetivo" variant="danger" onPress={handleDelete} />
+                </View>
+            </Sheet>
+        </AccentProvider>
+    );
+}
+
+// ── Rows ─────────────────────────────────────────────────────────────
+
+function GoalRow({ goal, accounts, savingsAccounts, getMonthlySuggestion, getGoalRisk, onPress, last }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const place = resolvePlace(goal, accounts, savingsAccounts);
+    const g = describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk);
+
+    let sub = `${formatCurrencyShort(goal.savedAmount)} de ${formatCurrencyShort(goal.targetAmount)}`;
+    if (g.isComplete) sub += ' · listo';
+    else if (goal.deadline) sub += ` · ${format(parseISO(goal.deadline), 'MMM yyyy', { locale: es })}`;
+    if (!g.isComplete && g.atRisk === 0 && g.suggestion) sub += ` · ${formatCurrencyShort(g.suggestion)}/mes`;
+
+    return (
+        <TouchableOpacity
+            style={[styles.goalRow, last && styles.accountRowLast]}
+            onPress={onPress}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${goal.name}, ${g.percentage}% reunido`}
+        >
+            <View style={styles.goalRowRing}>
+                <GoalRing pct={g.percentage} riskPct={g.riskPct} theme={theme} color={g.color} size={36} />
+                <View style={styles.goalRowRingCenter} pointerEvents="none">
+                    <Text style={[styles.goalRowPct, g.percentage >= 100 && styles.goalRowPctFull, !g.hasPlace && { color: theme.inkDim }]}>{g.percentage}%</Text>
+                </View>
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.goalRowName} numberOfLines={1}>{goal.name}</Text>
+                <Text style={styles.goalRowSub} numberOfLines={1}>
+                    {sub}
+                    {g.atRisk > 0 && <Text style={styles.goalRowUrgent}>  · {formatCurrencyShort(g.atRisk)} en riesgo</Text>}
+                </Text>
+                <PlaceLine place={place} theme={theme} styles={styles} />
+            </View>
+            <IconChevronRight color={theme.inkDim} size={13} />
+        </TouchableOpacity>
+    );
+}
+
+// ── Screen ───────────────────────────────────────────────────────────
+
 export default function SavingsScreen() {
     const {
-        accounts,
-        savingsAccounts,
-        savingsGoals,
-        deleteSavingsAccount,
-        deleteSavingsGoal,
-        getMonthlySuggestion,
-        addTransactionsBatch,
-        getFreeRoom,
-        getSavingsAccountRisk,
-        getGoalRisk,
-        getGoalCommitments,
+        accounts, savingsAccounts, savingsGoals,
+        deleteSavingsAccount, deleteSavingsGoal,
+        getMonthlySuggestion, addTransaction,
+        getFreeRoom, getApartadoFree, getPlaceFree, getSavingsAccountRisk, getGoalRisk, getAccountDeficit,
     } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
 
-    const [showAddAccount, setShowAddAccount] = useState(false);
     const [showAddGoal, setShowAddGoal] = useState(false);
+    // 'general' = sólo tarjetas; 'detalle' = con sus apartados y lo sin apartar.
+    const [breakdown, setBreakdown] = useState('general');
+    const [goalTarget, setGoalTarget] = useState(null);
+    const [apartadoTarget, setApartadoTarget] = useState(null);
     const [moveMoneyTarget, setMoveMoneyTarget] = useState(null);
     const [editInterestTarget, setEditInterestTarget] = useState(null);
-    // Las cuatro acciones ya no viven en la fila (eran botones de 30x30
-    // pegados entre sí): la fila entera abre esta hoja.
-    const [actionsTarget, setActionsTarget] = useState(null);
 
-    // Total ahorros = everything currently earmarked in an apartado +
-    // everything currently sitting inside a goal. Never double-counted:
-    // contributing to a goal moves the amount OUT of the apartado's
-    // own earmarkedAmount, so each peso is counted in exactly one of
-    // the two sums below.
-    // Una sola pasada para toda la pantalla: la usan las filas de
-    // apartado y las fichas "sale de" de cada objetivo.
-    const commitments = getGoalCommitments();
+    const totalMoney = round2(accounts.reduce((sum, a) => sum + (a.balance || 0), 0));
+    const totalSaved = round2(savingsGoals.reduce((s, g) => s + g.savedAmount, 0));
+    const savedPct = totalMoney > 0 ? Math.round((totalSaved / totalMoney) * 100) : 0;
+    const moneyAccounts = accounts.filter((a) => a.balance > 0 || savingsAccounts.some((s) => s.linkedAccountId === a.id));
+    // Riesgo total = déficit de cada tarjeta, una sola vez por tarjeta.
+    const totalAtRisk = round2(accounts.reduce((s, a) => s + getAccountDeficit(a.id).deficit, 0));
 
-    const apartadosTotal = round2(savingsAccounts.reduce((s, a) => s + a.earmarkedAmount, 0));
-    const goalsTotal = round2(savingsGoals.reduce((s, g) => s + g.savedAmount, 0));
-    const totalSavings = round2(apartadosTotal + goalsTotal);
-
-    const totalAtRisk = round2(
-        savingsAccounts.reduce((s, a) => s + getSavingsAccountRisk(a.id).atRisk, 0) +
-        savingsGoals.reduce((s, g) => s + getGoalRisk(g), 0),
-    );
-
-    const handleDeleteAccount = (acc) => {
-        // Con dinero apartado no hay nada que confirmar: se explica por
-        // qué no se puede y ya.
-        if (acc.earmarkedAmount > 0) {
-            Alert.alert(
-                'Eliminar apartado',
-                `Este apartado tiene ${formatCurrencyShort(acc.earmarkedAmount)} asignados. Quítaselos antes de eliminarlo.`,
-                [{ text: 'Entendido' }]
-            );
-            return;
-        }
-        Alert.alert(
-            'Eliminar apartado',
-            `¿Eliminar "${acc.name}"?`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: () => deleteSavingsAccount(acc.id),
-                },
-            ]
-        );
+    const handleDeleteApartado = (acc) => {
+        Alert.alert('Eliminar apartado', `¿Eliminar "${acc.name}"?`, [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+                text: 'Eliminar', style: 'destructive', onPress: async () => {
+                    const r = await deleteSavingsAccount(acc.id);
+                    if (r?.error) Alert.alert('No se pudo eliminar', r.error);
+                }
+            },
+        ]);
     };
 
-    // Redeem a completed goal: one real expense per apartado that fed
-    // it, each charged against that apartado's own linked account.
-    // Applied through one addTransactionsBatch call, not a loop of
-    // addTransaction() — that reads accounts/transactions by closure,
-    // so looping it would silently drop every source but the last.
-    // The batch validates everything first (so a since-depleted
-    // account fails with a clear error instead of spending money
-    // that isn't there) and only applies once all sources pass, so a
-    // goal never ends up half-redeemed.
+    // Marcar como comprado: el dinero sale de verdad (gasto en la tarjeta
+    // donde vive) y el objetivo desaparece sin devolver nada.
     const handleRedeemGoal = (goal) => {
-        const bySource = {};
-        goal.contributions.forEach((c) => {
-            const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
-            if (!key) return;
-            const sign = c.type === 'deposit' ? 1 : -1;
-            bySource[key] = round2((bySource[key] || 0) + sign * c.amount);
-        });
-        const sources = Object.entries(bySource)
-            .filter(([, amt]) => amt > 0)
-            .map(([savingsAccountId, amt]) => ({
-                amount: amt,
-                sa: savingsAccounts.find((a) => a.id === savingsAccountId),
-            }))
-            // An apartado deleted before redeeming has nothing left to
-            // trace this slice back to — skip it here, once, instead
-            // of re-checking `source.sa` at every other use below.
-            .filter((source) => source.sa);
-
-        // What the confirmation below promises to deduct — the real
-        // sum of what's about to be charged, not goal.targetAmount.
-        const totalToDeduct = round2(sources.reduce((sum, s) => sum + s.amount, 0));
-
+        const account = accounts.find((a) => a.id === goal.accountId);
+        if (!account) { Alert.alert('Sin lugar', 'Este objetivo no tiene una tarjeta. Elige dónde vive antes de marcarlo.'); return; }
         Alert.alert(
             'Marcar como comprado',
-            `Se descontarán ${formatCurrencyShort(totalToDeduct)} de tus cuentas y quedará registrado en tu historial.`,
+            `Se descontarán ${formatCurrencyShort(goal.savedAmount)} de ${account.name} y quedará en tu historial.`,
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
                     text: 'Confirmar', onPress: async () => {
-                        const result = await addTransactionsBatch(
-                            sources.map((source) => ({
-                                amount: source.amount,
-                                reason: goal.name,
-                                category: 'goal',
-                                accountId: source.sa.linkedAccountId,
-                            })),
-                        );
-                        if (result.error) {
-                            const failedSource = sources[result.index];
-                            Alert.alert(
-                                'No se pudo',
-                                `${result.error}${failedSource ? ` (al descontar de ${failedSource.sa.name})` : ''}`,
-                            );
-                            return;
-                        }
+                        const result = await addTransaction({
+                            type: 'expense', amount: goal.savedAmount, reason: goal.name, category: 'goal', accountId: account.id,
+                        });
+                        if (result?.error) { Alert.alert('No se pudo', result.error); return; }
                         await deleteSavingsGoal(goal.id, { returnFunds: false });
-                        if (result.savingsWarnings?.length > 0) {
-                            const lines = result.savingsWarnings
-                                .map((w) => `· ${formatCurrencyShort(w.newlyAtRisk)} en ${w.accountName}`)
-                                .join('\n');
-                            Alert.alert(
-                                'Comprado — con aviso',
-                                `Esta compra también usó fondos de otros apartados en la misma cuenta:\n${lines}`,
-                            );
-                        }
-                    },
+                    }
                 },
             ]
         );
     };
+
+    const liveGoal = goalTarget ? savingsGoals.find((g) => g.id === goalTarget.id) : null;
+    const liveApartado = apartadoTarget ? savingsAccounts.find((s) => s.id === apartadoTarget.id) : null;
 
     return (
         <View style={styles.safeArea}>
             <ScrollView showsVerticalScrollIndicator={false}>
                 <ScreenHeader
                     title="Ahorros"
-                    subtitle={`${savingsAccounts.length} ${savingsAccounts.length === 1 ? 'apartado' : 'apartados'} · ${savingsGoals.length} ${savingsGoals.length === 1 ? 'objetivo' : 'objetivos'}`}
+                    subtitle={`${savingsGoals.length} ${savingsGoals.length === 1 ? 'objetivo' : 'objetivos'} en ${moneyAccounts.length} ${moneyAccounts.length === 1 ? 'lugar' : 'lugares'}`}
                 />
 
-                {/* Un solo bote, dos estados. Antes eran dos tarjetas
-                    —"Total" y luego "Apartados | Objetivos"— pero el
-                    total YA es la suma de esas dos, así que la segunda
-                    repetía el mismo hecho partido en pedazos.
-                    
-                    Y partirlo como "Apartados vs Objetivos" sugería dos
-                    montones separados de dinero, cuando es uno solo:
-                    todo vive en las cuentas ligadas, y un objetivo
-                    apenas le pone destino a una parte. Por eso el mismo
-                    azul en dos opacidades y no dos colores distintos.
-                    
-                    La píldora de crecimiento (vs. mes pasado) sigue
-                    pendiente: los movimientos de apartado no llevan
-                    fecha en el modelo. */}
+                {/* ── Todo tu dinero ── */}
                 <GlassCard style={styles.totalCard}>
-                    <Text style={styles.totalLabel}>Total apartado</Text>
-                    <Money value={totalSavings} size={FontSize.hero - 4} />
+                    <View style={styles.totalHead}>
+                        <View>
+                            <Text style={styles.totalLabel}>Todo tu dinero</Text>
+                            <Money value={totalMoney} size={FontSize.hero - 4} />
+                        </View>
+                        {savingsAccounts.length > 0 && (
+                            <View style={styles.segment} accessibilityRole="tablist">
+                                {[['general', 'General'], ['detalle', 'Detalle']].map(([key, label]) => (
+                                    <TouchableOpacity
+                                        key={key}
+                                        style={[styles.segmentBtn, breakdown === key && styles.segmentBtnOn]}
+                                        onPress={() => setBreakdown(key)}
+                                        accessibilityRole="tab"
+                                        accessibilityState={{ selected: breakdown === key }}
+                                    >
+                                        <Text style={[styles.segmentText, breakdown === key && styles.segmentTextOn]}>{label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
 
-                    {totalSavings > 0 && (
+                    {totalMoney > 0 && (
                         <>
-                            {/* Un segmento por apartado, con SU color; dentro de
-                                cada uno, lo libre sólido y lo comprometido al 42 %.
-                                El color dice de quién es el dinero; la opacidad, si
-                                ya tiene destino. La pantalla no estrena ningún tono. */}
                             <View style={styles.splitBar}>
-                                {savingsAccounts.map((acc) => {
-                                    const mine = commitments.byAccount[acc.id] || [];
-                                    const committed = mine.reduce((s2, c) => s2 + c.amount, 0);
-                                    if (acc.earmarkedAmount + committed <= 0) return null;
-                                    return (
-                                        <View key={acc.id} style={[styles.splitSegment, { flex: acc.earmarkedAmount + committed }]}>
-                                            <View style={[styles.splitFree, { flex: Math.max(acc.earmarkedAmount, 0.0001), backgroundColor: acc.color }]} />
-                                            {committed > 0 && (
-                                                <View style={[styles.splitCommitted, { flex: committed, backgroundColor: acc.color }]} />
-                                            )}
+                                {moneyAccounts.map((a) => a.balance > 0 && (
+                                    <View key={a.id} style={{ flex: a.balance, backgroundColor: accountColor(a, theme) }} />
+                                ))}
+                            </View>
+
+                            {moneyAccounts.map((a) => {
+                                const mine = savingsAccounts.filter((s) => s.linkedAccountId === a.id);
+                                const free = getFreeRoom(a.id);
+                                return (
+                                    <View key={a.id} style={styles.acctBlock}>
+                                        <View style={styles.acctRow}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+                                                <View style={[styles.legendDot, { backgroundColor: accountColor(a, theme) }]} />
+                                                <Text style={styles.acctName} numberOfLines={1}>{a.name}</Text>
+                                            </View>
+                                            <Money value={a.balance} size={FontSize.sm} color={theme.ink} decimals={false} />
+                                            <Text style={styles.acctPct}>{Math.round((a.balance / totalMoney) * 100)}%</Text>
                                         </View>
-                                    );
-                                })}
-                            </View>
-                            <View style={styles.legendRow}>
-                                <View style={styles.legendItem}>
-                                    <View style={[styles.legendDot, styles.splitFree]} />
-                                    <Text style={styles.legendLabel}>Libre</Text>
-                                    <Money
-                                        value={apartadosTotal}
-                                        size={FontSize.sm}
-                                        decimals={false}
-                                        compact
-                                    />
-                                </View>
-                                <View style={styles.legendItem}>
-                                    <View style={[styles.legendDot, styles.splitCommitted]} />
-                                    <Text style={styles.legendLabel}>Con destino</Text>
-                                    <Money
-                                        value={goalsTotal}
-                                        size={FontSize.sm}
-                                        decimals={false}
-                                        compact
-                                    />
-                                </View>
-                            </View>
+                                        {breakdown === 'detalle' && mine.length > 0 && (
+                                            <View style={styles.acctChildren}>
+                                                {mine.map((s) => (
+                                                    <TouchableOpacity key={s.id} style={styles.acctChild} onPress={() => setApartadoTarget(s)} accessibilityRole="button" accessibilityLabel={`Apartado ${s.name}`}>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+                                                            <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                                                            <Text style={styles.acctChildName} numberOfLines={1}>{s.name}</Text>
+                                                            {s.interest?.enabled && <Text style={styles.acctChip}>{s.interest.rate}%</Text>}
+                                                        </View>
+                                                        <Money value={s.earmarkedAmount} size={FontSize.xs + 1} color={theme.inkMid} decimals={false} />
+                                                    </TouchableOpacity>
+                                                ))}
+                                                <View style={styles.acctChild}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+                                                        <View style={[styles.legendDot, styles.legendDotFree]} />
+                                                        <Text style={styles.acctChildName}>Sin apartar</Text>
+                                                    </View>
+                                                    <Money value={free} size={FontSize.xs + 1} color={theme.inkDim} decimals={false} />
+                                                </View>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
                         </>
                     )}
 
@@ -1187,201 +719,106 @@ export default function SavingsScreen() {
                         <View style={styles.riskRow}>
                             <IconWarningTriangle color={theme.moneyOut} size={13} />
                             <Text style={styles.riskText}>
-                                {formatCurrencyShort(totalAtRisk)} en riesgo — alguna cuenta ligada tiene
-                                menos saldo del que sus apartados prometen
+                                {formatCurrencyShort(totalAtRisk)} en riesgo — alguna tarjeta tiene menos saldo del que reclaman sus apartados y objetivos
                             </Text>
                         </View>
                     )}
                 </GlassCard>
 
-                {/* ── Mis apartados ── */}
-                <View style={styles.section}>
-                    <SectionHeader
-                        title="Mis apartados"
-                        actionLabel="+ Nuevo"
-                        onAction={() => setShowAddAccount(true)}
-                    />
-
-                    {savingsAccounts.length === 0 ? (
-                        <EmptyState
-                            icon={IconSavings}
-                            title="Sin apartados"
-                            description="Reserva parte del saldo de una tarjeta que ya tienes, sin mover el dinero de lugar."
-                            actionLabel="Crear apartado"
-                            onAction={() => setShowAddAccount(true)}
-                        />
-                    ) : (
-                        <GlassCard style={styles.accountsGroup}>
-                            {savingsAccounts.map((acc, i) => {
-                                const linkedAccount = accounts.find((a) => a.id === acc.linkedAccountId);
-                                const { atRisk } = getSavingsAccountRisk(acc.id);
-                                // Lo que este apartado respalda de verdad:
-                                // lo libre más lo que ya prometió. Ver
-                                // getGoalCommitments en useSavings.js.
-                                const mine = commitments.byAccount[acc.id] || [];
-                                const committed = round2(mine.reduce((s2, c) => s2 + c.amount, 0));
-                                const backing = round2(acc.earmarkedAmount + committed);
-                                const destinos = mine
-                                    .map((c) => savingsGoals.find((g) => g.id === c.goalId)?.name)
-                                    .filter(Boolean);
-
-                                // El subtítulo dice el estado del dinero
-                                // primero y la cuenta ligada después:
-                                // "a dónde va" cambia, "de dónde sale"
-                                // casi nunca.
-                                const linkedName = linkedAccount ? linkedAccount.name : 'cuenta eliminada';
-                                let subLabel;
-                                if (committed > 0) {
-                                    const destino = destinos.length === 1
-                                        ? destinos[0]
-                                        : `${destinos.length} objetivos`;
-                                    subLabel = `${formatCurrencyShort(committed)} → ${destino}  ·  ${linkedName}`;
-                                } else if (backing > 0) {
-                                    subLabel = `Todo libre  ·  ${linkedName}`;
-                                } else {
-                                    subLabel = `Vacío  ·  ${linkedName}`;
-                                }
-
-                                return (
-                                    <TouchableOpacity
-                                        key={acc.id}
-                                        style={[
-                                            styles.accountRow,
-                                            i === savingsAccounts.length - 1 && styles.accountRowLast,
-                                        ]}
-                                        onPress={() => setActionsTarget(acc)}
-                                        activeOpacity={0.7}
-                                        accessibilityRole="button"
-                                        accessibilityLabel={`${acc.name}, ver acciones`}
-                                    >
-                                        <View style={[styles.accountDot, { backgroundColor: acc.color }]} />
-
-                                        <View style={styles.accountInfo}>
-                                            <View style={styles.accountNameRow}>
-                                                <Text style={styles.accountName} numberOfLines={1}>
-                                                    {acc.name}
-                                                </Text>
-                                                {acc.interest?.enabled && (
-                                                    <View style={styles.ratePill}>
-                                                        <Text style={styles.ratePillText}>
-                                                            {acc.interest.rate}%
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                {/* El monto en riesgo ya no se
-                                                    concatena al subtítulo: aquí
-                                                    solo avisa que lo hay, y la
-                                                    hoja de acciones da la cifra. */}
-                                                {atRisk > 0 && <View style={styles.riskDot} />}
-                                            </View>
-
-                                            {/* La barra vive DENTRO del subtítulo,
-                                                no debajo de la fila. Antes crecía
-                                                la fila cuando había compromisos, y
-                                                además caía al lado del contenido en
-                                                vez de abajo, porque accountRow ya
-                                                era flexDirection:'row'. */}
-                                            <View style={styles.accountSub}>
-                                                <View style={styles.miniBar}>
-                                                    {backing > 0 && (
-                                                        <>
-                                                            <View style={[
-                                                                styles.splitFree,
-                                                                { flex: Math.max(acc.earmarkedAmount, 0.0001), backgroundColor: acc.color },
-                                                            ]} />
-                                                            {committed > 0 && (
-                                                                <View style={[styles.splitCommitted, { flex: committed, backgroundColor: acc.color }]} />
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </View>
-                                                <Text style={styles.accountLinked} numberOfLines={1}>
-                                                    {subLabel}
-                                                </Text>
-                                            </View>
-                                        </View>
-
-                                        <View style={styles.accountRight}>
-                                            <Money
-                                                value={backing}
-                                                size={FontSize.md}
-                                                color={theme.ink}
-                                                decimals={false}
-                                            />
-                                            {acc.totalInterestEarned > 0 && (
-                                                <Text style={styles.earnedText}>
-                                                    +{formatCurrencyShort(acc.totalInterestEarned)} ganados
-                                                </Text>
-                                            )}
-                                        </View>
-
-                                        <IconChevronRight color={theme.inkDim} size={13} />
-                                    </TouchableOpacity>
-                                );
-                            })}
-
-                            {/* Cierra el grupo con su propia suma, que
-                                antes solo existía arriba mezclada con lo
-                                que está dentro de objetivos. */}
-                            <View style={styles.accountsFooter}>
-                                <Text style={styles.accountsFooterLabel}>
-                                    {savingsAccounts.length} {savingsAccounts.length === 1 ? 'apartado' : 'apartados'}
-                                </Text>
-                                <Money
-                                    value={round2(apartadosTotal + goalsTotal)}
-                                    size={FontSize.sm + 1}
-                                    color={theme.inkMid}
-                                    decimals={false}
-                                    compact
-                                />
-                            </View>
-                        </GlassCard>
-                    )}
-                </View>
-
                 {/* ── Objetivos ── */}
                 <View style={styles.section}>
-                    <SectionHeader
-                        title="A dónde va"
-                        actionLabel="+ Nuevo"
-                        onAction={() => setShowAddGoal(true)}
-                    />
-
+                    {/* El encabezado de la lista ES el total: "Ahorro $X" y su
+                        desglose debajo. Sin tarjeta propia: pesa lo que dice. */}
+                    <View style={styles.goalsHead}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={styles.goalsHeadLabel}>Ahorro</Text>
+                            <View style={styles.goalsHeadRow}>
+                                <Money value={totalSaved} size={FontSize.xl} color={theme.ink} decimals={false} />
+                                {savingsGoals.length > 0 && (
+                                    <Text style={styles.goalsHeadSub} numberOfLines={1}>
+                                        {' · '}{savingsGoals.length} {savingsGoals.length === 1 ? 'objetivo' : 'objetivos'}
+                                        {' · '}<Text style={styles.savedStrong}>{savedPct}%</Text>
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                        <TouchableOpacity onPress={() => setShowAddGoal(true)} accessibilityRole="button" hitSlop={8}>
+                            <Text style={styles.goalsHeadAction}>+ Nuevo</Text>
+                        </TouchableOpacity>
+                    </View>
                     {savingsGoals.length === 0 ? (
                         <EmptyState
-                            icon={IconSavings}
+                            icon={IconGoal}
                             title="Sin objetivos"
-                            description="AirPods, un viaje, un fondo de emergencia — algo concreto a lo que apuntar tus apartados."
+                            description="Un enganche, un viaje, un fondo de emergencia — dile a una parte de tu dinero para qué es."
                             actionLabel="Crear objetivo"
                             onAction={() => setShowAddGoal(true)}
                         />
                     ) : (
-                        savingsGoals.map((goal) => (
-                            <GoalCard
-                                key={goal.id}
-                                goal={goal}
-                                savingsAccounts={savingsAccounts}
-                                sources={commitments.byGoal[goal.id] || []}
-                                onDelete={() => deleteSavingsGoal(goal.id)}
-                                onRedeem={handleRedeemGoal}
-                                getMonthlySuggestion={getMonthlySuggestion}
-                                getGoalRisk={getGoalRisk}
-                            />
-                        ))
+                        <GlassCard style={styles.accountsGroup}>
+                            {savingsGoals.map((goal, i) => (
+                                <GoalRow
+                                    key={goal.id}
+                                    goal={goal}
+                                    accounts={accounts}
+                                    savingsAccounts={savingsAccounts}
+                                    getMonthlySuggestion={getMonthlySuggestion}
+                                    getGoalRisk={getGoalRisk}
+                                    last={i === savingsGoals.length - 1}
+                                    onPress={() => setGoalTarget(goal)}
+                                />
+                            ))}
+                        </GlassCard>
                     )}
                 </View>
 
                 <View style={{ height: Spacing.xl + Spacing.lg }} />
             </ScrollView>
 
-            {showAddAccount && (
-                <AddApartadoSheet
-                    onClose={() => setShowAddAccount(false)}
+            {showAddGoal && (
+                <AddGoalSheet
+                    onClose={() => setShowAddGoal(false)}
                     accounts={accounts}
-                    getFreeRoom={getFreeRoom}
+                    savingsAccounts={savingsAccounts}
+                    getPlaceFree={getPlaceFree}
                 />
             )}
-            {showAddGoal && <AddGoalSheet onClose={() => setShowAddGoal(false)} />}
+            {liveGoal && (
+                <GoalSheet
+                    onClose={() => setGoalTarget(null)}
+                    goal={liveGoal}
+                    accounts={accounts}
+                    savingsAccounts={savingsAccounts}
+                    getPlaceFree={getPlaceFree}
+                    getMonthlySuggestion={getMonthlySuggestion}
+                    getGoalRisk={getGoalRisk}
+                    onRedeem={handleRedeemGoal}
+                    onDelete={() => deleteSavingsGoal(liveGoal.id)}
+                    onOpenApartado={(sa) => { setGoalTarget(null); setApartadoTarget(sa); }}
+                />
+            )}
+            {liveApartado && (() => {
+                const acc = liveApartado;
+                const goalsHere = savingsGoals.filter((g) => g.savingsAccountId === acc.id);
+                const committed = round2(goalsHere.reduce((s, g) => s + g.savedAmount, 0));
+                const linked = accounts.find((a) => a.id === acc.linkedAccountId);
+                return (
+                    <ApartadoSheet
+                        onClose={() => setApartadoTarget(null)}
+                        savingsAccount={acc}
+                        atRisk={getSavingsAccountRisk(acc.id).atRisk}
+                        backing={{ free: getApartadoFree(acc.id), committed, total: acc.earmarkedAmount }}
+                        destinos={goalsHere.map((g) => ({ goal: g, amount: g.savedAmount }))}
+                        linkedAccount={linked}
+                        linkedFree={linked ? getFreeRoom(linked.id) : 0}
+                        onOpenGoal={(goal) => { setApartadoTarget(null); setGoalTarget(goal); }}
+                        onDeposit={() => { setApartadoTarget(null); setMoveMoneyTarget({ account: acc, mode: 'deposit' }); }}
+                        onWithdraw={() => { setApartadoTarget(null); setMoveMoneyTarget({ account: acc, mode: 'withdraw' }); }}
+                        onInterest={() => { setApartadoTarget(null); setEditInterestTarget(acc); }}
+                        onDelete={() => { setApartadoTarget(null); handleDeleteApartado(acc); }}
+                    />
+                );
+            })()}
             {moveMoneyTarget && (
                 <MoveMoneySheet
                     onClose={() => setMoveMoneyTarget(null)}
@@ -1390,47 +827,8 @@ export default function SavingsScreen() {
                     mode={moveMoneyTarget.mode}
                 />
             )}
-            {actionsTarget && (
-                <ApartadoActionsSheet
-                    onClose={() => setActionsTarget(null)}
-                    savingsAccount={actionsTarget}
-                    atRisk={getSavingsAccountRisk(actionsTarget.id).atRisk}
-                    backing={(() => {
-                        const mine = commitments.byAccount[actionsTarget.id] || [];
-                        const committed = round2(mine.reduce((s2, c) => s2 + c.amount, 0));
-                        return {
-                            free: actionsTarget.earmarkedAmount,
-                            committed,
-                            total: round2(actionsTarget.earmarkedAmount + committed),
-                        };
-                    })()}
-                    onDeposit={() => {
-                        const acc = actionsTarget;
-                        setActionsTarget(null);
-                        setMoveMoneyTarget({ account: acc, mode: 'deposit' });
-                    }}
-                    onWithdraw={() => {
-                        const acc = actionsTarget;
-                        setActionsTarget(null);
-                        setMoveMoneyTarget({ account: acc, mode: 'withdraw' });
-                    }}
-                    onInterest={() => {
-                        const acc = actionsTarget;
-                        setActionsTarget(null);
-                        setEditInterestTarget(acc);
-                    }}
-                    onDelete={() => {
-                        const acc = actionsTarget;
-                        setActionsTarget(null);
-                        handleDeleteAccount(acc);
-                    }}
-                />
-            )}
             {editInterestTarget && (
-                <EditInterestSheet
-                    onClose={() => setEditInterestTarget(null)}
-                    savingsAccount={editInterestTarget}
-                />
+                <EditInterestSheet onClose={() => setEditInterestTarget(null)} savingsAccount={editInterestTarget} />
             )}
         </View>
     );

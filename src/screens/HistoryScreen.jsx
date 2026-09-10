@@ -14,7 +14,7 @@ import {
     ScreenHeader, EmptyState, Sheet, Button, Field, FieldLabel, Pill, Money, GlassCard, fieldSurface,
 } from '../components/ui';
 import {
-    IconSwap, IconCardPayment, IconCalendarClock, IconReceipt, IconWallet, IconBanknotePlus, IconPercent, IconSavings,
+    IconSwap, IconCardPayment, IconCalendarClock, IconReceipt, IconWallet, IconGoal, IconBanknotePlus, IconPercent,
     IconChevronLeft, IconChevronRight, IconCheck,
 } from '../components/Icons';
 
@@ -62,7 +62,7 @@ function getTypeConfig(theme, type, category) {
     // useFinanceStore's addTransactionsBatch), but it's money already
     // set aside, not a new outflow — same savings accent as Interés,
     // so it doesn't read (icon or amount) as a plain Gasto.
-    if (category === 'goal') return { Icon: IconSavings, bg: theme.savingsSoft, fg: theme.savings, label: 'Objetivo cumplido' };
+    if (category === 'goal') return { Icon: IconGoal, bg: theme.savingsSoft, fg: theme.savings, label: 'Objetivo cumplido' };
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
     if (type === 'transfer') return { Icon: IconSwap, bg: theme.transferSoft, fg: theme.transfer, label: 'Traspaso' };

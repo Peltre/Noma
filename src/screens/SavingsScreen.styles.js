@@ -27,6 +27,95 @@ export default function createSavingsStyles(theme) {
             padding: Spacing.lg,
             ...Shadow.card,
         },
+        totalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+        totalPct: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600', marginBottom: 6 },
+        totalPctStrong: { color: theme.ink, fontWeight: '800', fontSize: FontSize.sm },
+        acctRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+        acctName: { fontSize: FontSize.sm, color: theme.inkMid, fontWeight: '600', flexShrink: 1 },
+        acctPct: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600', width: 34, textAlign: 'right' },
+        totalFoot: {
+            flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+            marginTop: Spacing.sm, paddingTop: Spacing.sm,
+            borderTopWidth: 1, borderTopColor: theme.border,
+        },
+        acctFootLabel: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600' },
+        acctFootValue: { fontSize: FontSize.sm, color: theme.ink, fontWeight: '800' },
+
+        // Fila compacta de objetivo (~52 px) y su hoja.
+        goalRow: {
+            flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2,
+            paddingVertical: Spacing.sm + 1, paddingHorizontal: Spacing.md,
+            borderBottomWidth: 1, borderBottomColor: theme.border,
+        },
+        goalRowRing: { width: 36, height: 36 },
+        goalRowRingCenter: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' },
+        goalRowPct: { fontSize: FontSize.xs - 2, fontWeight: '800', color: theme.ink },
+        goalRowName: { fontSize: FontSize.sm + 1, fontWeight: '700', color: theme.ink },
+        goalRowSub: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '500', marginTop: 2 },
+        goalRowUrgent: { color: theme.moneyOut, fontWeight: '700' },
+        goalSheetHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.xs },
+        goalSheetName: { fontSize: FontSize.lg, fontWeight: '800', color: theme.ink },
+        goalPaceBox: { marginTop: Spacing.md, paddingHorizontal: Spacing.md, paddingVertical: 2 },
+        apSheetHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, marginTop: Spacing.xs },
+        sheetGroup: { paddingHorizontal: Spacing.md, paddingVertical: 2 },
+        sheetRow: {
+            flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+            paddingVertical: Spacing.sm + 1, gap: Spacing.sm,
+        },
+        sheetRowBorder: { borderTopWidth: 1, borderTopColor: theme.border },
+        sheetRowLabel: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '500' },
+        sheetRowValue: { fontSize: FontSize.sm, color: theme.ink, fontWeight: '700' },
+        sheetRowText: { fontSize: FontSize.sm, color: theme.ink, fontWeight: '600', flexShrink: 1 },
+
+        // Interruptor General / Detalle en la tarjeta del total.
+        segment: {
+            flexDirection: 'row', padding: 2, borderRadius: Radius.full,
+            backgroundColor: theme.inputFill, borderWidth: 1, borderColor: theme.border,
+            alignSelf: 'flex-start', marginBottom: 6,
+        },
+        segmentBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full },
+        segmentBtnOn: { backgroundColor: theme.glassFill, borderWidth: 1, borderColor: theme.glassBorderTop, paddingHorizontal: 9, paddingVertical: 4 },
+        segmentText: { fontSize: FontSize.xs, fontWeight: '700', color: theme.inkDim },
+        segmentTextOn: { color: theme.ink },
+
+        // "Todo tu dinero": tarjeta y, con sangría, sus apartados.
+        acctBlock: { marginTop: 2 },
+        acctChildren: {
+            marginLeft: 3, paddingLeft: 12,
+            borderLeftWidth: 1, borderLeftColor: theme.border,
+        },
+        acctChild: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
+        acctChildName: { fontSize: FontSize.xs + 1, color: theme.inkMid, fontWeight: '500', flexShrink: 1 },
+        acctChip: {
+            fontSize: FontSize.xs - 2, fontWeight: '800', color: theme.inkMid,
+            borderWidth: 1, borderColor: theme.border, borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1,
+        },
+        legendDotFree: { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.inkDim },
+
+        // Encabezado de Objetivos = total de ahorro.
+        goalsHead: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm, marginTop: Spacing.lg, marginBottom: Spacing.sm },
+        goalsHeadLabel: { fontSize: FontSize.xs - 0.5, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', color: theme.inkDim },
+        goalsHeadRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2, minWidth: 0 },
+        goalsHeadSub: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600', flexShrink: 1 },
+        goalsHeadAction: { fontSize: FontSize.sm, fontWeight: '700', color: theme.brand, paddingBottom: 4 },
+
+        // Ahorro en grande.
+        savedCard: { alignItems: 'center', paddingVertical: Spacing.lg },
+        savedSub: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600', marginTop: 4, textAlign: 'center' },
+        savedStrong: { color: theme.ink, fontWeight: '800' },
+
+        // "BBVA › Viaje"
+        placeLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3, minWidth: 0 },
+        placeText: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600', flexShrink: 1 },
+        placeTextStrong: { color: theme.ink, fontSize: FontSize.sm, fontWeight: '700' },
+        placeSep: { fontSize: FontSize.xs, color: theme.inkDim, opacity: 0.7 },
+
+        // Selector de lugar.
+        placeGroup: { marginBottom: Spacing.sm },
+        placeChildren: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs + 2, marginTop: Spacing.xs + 2, marginLeft: Spacing.md },
+        newApartadoLink: { paddingVertical: Spacing.xs + 2 },
+        newApartadoText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.brand },
+
         totalLabel: {
             fontSize: FontSize.xs,
             fontWeight: '800',
@@ -192,7 +281,9 @@ export default function createSavingsStyles(theme) {
         // bloques apilados: el progreso, el porcentaje y el riesgo
         // caben todos dentro de los mismos 74x74.
         goalMain: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md - 2 },
-        goalRingWrap: { width: 74, height: 74, flexShrink: 0 },
+        // El anillo de la hoja mide 84; el wrap debe medir lo mismo o el
+        // texto del centro queda descentrado.
+        goalRingWrap: { width: 84, height: 84, flexShrink: 0 },
         goalRingCenter: {
             ...StyleSheet.absoluteFill,
             alignItems: 'center',
@@ -204,6 +295,8 @@ export default function createSavingsStyles(theme) {
             color: theme.ink,
             letterSpacing: -0.6,
         },
+        goalRingPctFull: { fontSize: FontSize.lg, letterSpacing: -0.5 },
+        goalRowPctFull: { fontSize: FontSize.xs - 3 },
         goalRingLabel: {
             fontSize: FontSize.xs - 3,
             fontWeight: '800',

@@ -56,7 +56,12 @@ export default function Button({
             accessibilityState={{ disabled: disabled || loading }}
         >
             {children ?? (
-                <Text style={[styles.label, compact && styles.labelCompact, { color: fg }]}>
+                <Text
+                    style={[styles.label, compact && styles.labelCompact, { color: fg }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                >
                     {loading ? loadingLabel : label}
                 </Text>
             )}
@@ -75,6 +80,6 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     compact: { height: 38, borderRadius: Radius.xs, flex: 0, paddingHorizontal: 14 },
-    label: { fontSize: FontSize.md + 0.5, fontWeight: '700' },
+    label: { fontSize: FontSize.md + 0.5, fontWeight: '700', textAlign: 'center' },
     labelCompact: { fontSize: FontSize.sm },
 });

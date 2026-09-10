@@ -18,6 +18,7 @@
 // / getGoalRisk). When one account backs several apartados and comes
 // up short, the shortfall splits proportionally across them.
 import { useState, useEffect } from 'react';
+import { theme } from '../constants/themes';
 import { saveData, loadData, removeData } from './storage';
 import { round2 } from '../utils/formatCurrency';
 import { parseISO, addDays } from 'date-fns';
@@ -27,19 +28,37 @@ const KEYS = {
     savingsGoals: 'savingsGoals',
 };
 
-// palette for apartado color dots
-export const SAVINGS_COLORS = [
-    '#6B5B9E', // purple (default)
-    '#3D5A4C', // sage
-    '#C9822A', // amber
-    '#B94040', // red
-    '#4A7FA5', // blue
-    '#5A9E6B', // green
-    '#A0522D', // brown
-    '#7B7B7B', // gray
-    '#C45FAB', // pink
-    '#2C7BB5', // ocean
+
+// La paleta vive en el tema (themes.js → savingsColors) para que
+// cambie junto con el resto de los colores. Se re-exporta aquí porque
+// SavingsScreen y Onboarding ya la importan de este módulo.
+// Con respaldo por si el tema en uso aún no trae savingsColors: un
+// `undefined` aquí tiraba AddApartadoSheet al hacer SAVINGS_COLORS[0].
+export const SAVINGS_COLORS = theme.savingsColors || [
+    '#78ABEB', '#6FB3A6', '#9C93CF', '#C9A06A', '#7FA48C', '#B889A6', '#C98B7B', '#8CA3B8',
 ];
+
+// Paleta anterior, previa al tema Medianoche: saturada y fuera de
+// clave. Sólo sirve para migrar apartados guardados con esos colores
+// al tono nuevo de la misma familia (morado→violeta, naranja→arena…),
+// para que cada apartado siga reconociéndose. Borrar cuando ya nadie
+// tenga datos de esa época.
+const LEGACY_SAVINGS_COLORS = {
+    '#6B5B9E': '#9C93CF', // purple  → violeta
+    '#3D5A4C': '#7FA48C', // sage    → salvia
+    '#C9822A': '#C9A06A', // amber   → arena
+    '#B94040': '#C98B7B', // red     → terracota
+    '#4A7FA5': '#78ABEB', // blue    → azul
+    '#5A9E6B': '#6FB3A6', // green   → teal
+    '#A0522D': '#C98B7B', // brown   → terracota
+    '#7B7B7B': '#8CA3B8', // gray    → pizarra
+    '#C45FAB': '#B889A6', // pink    → malva
+    '#2C7BB5': '#78ABEB', // ocean   → azul
+};
+function migrateColor(color) {
+    if (!color) return SAVINGS_COLORS[0];
+    return LEGACY_SAVINGS_COLORS[color.toUpperCase()] || color;
+}
 
 // Only débito/efectivo hold real, spendable money that can be earmarked.
 const LINKABLE_TYPES = ['debit', 'cash'];
@@ -52,8 +71,50 @@ export function useSavings(accounts = []) {
         const load = async () => {
             const accs = await loadData(KEYS.savingsAccounts);
             const goals = await loadData(KEYS.savingsGoals);
-            setSavingsAccounts(accs || []);
-            setSavingsGoals(goals || []);
+            // Migración de colores de la paleta vieja; se guarda de una
+            // vez para que sólo pase la primera vez.
+            let migrated = accs || [];
+            if (migrated.some(a => migrateColor(a.color) !== a.color)) {
+                migrated = migrated.map(a => ({ ...a, color: migrateColor(a.color) }));
+                await saveData(KEYS.savingsAccounts, migrated);
+            }
+            // Migración al modelo "vive en un lugar": los objetivos que aún
+            // traen `contributions` se colocan en el apartado de su fuente
+            // principal, y ese apartado recupera en earmarkedAmount todo lo
+            // que el objetivo tiene (antes aportar se lo restaba). Un
+            // objetivo sin fuentes queda sin lugar hasta que se le elija.
+            let goalsNext = goals || [];
+            if (goalsNext.some((g) => Array.isArray(g.contributions))) {
+                const saById = new Map(migrated.map((a) => [a.id, a]));
+                const extraBySA = {};
+                goalsNext = goalsNext.map((g) => {
+                    if (!Array.isArray(g.contributions)) return g;
+                    const bySource = {};
+                    g.contributions.forEach((c) => {
+                        const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
+                        if (!key) return;
+                        bySource[key] = round2((bySource[key] || 0) + (c.type === 'deposit' ? 1 : -1) * c.amount);
+                    });
+                    const main = Object.entries(bySource).filter(([id, amt]) => amt > 0 && saById.has(id)).sort((x, y) => y[1] - x[1])[0];
+                    const sa = main ? saById.get(main[0]) : null;
+                    if (sa && g.savedAmount > 0) extraBySA[sa.id] = round2((extraBySA[sa.id] || 0) + g.savedAmount);
+                    // eslint-disable-next-line no-unused-vars -- se descarta a propósito
+                    const { contributions, ...rest } = g;
+                    return {
+                        ...rest,
+                        accountId: sa ? sa.linkedAccountId : null,
+                        savingsAccountId: sa ? sa.id : null,
+                        color: rest.color || sa?.color || null,
+                    };
+                });
+                if (Object.keys(extraBySA).length) {
+                    migrated = migrated.map((a) => extraBySA[a.id] ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + extraBySA[a.id]) } : a);
+                    await saveData(KEYS.savingsAccounts, migrated);
+                }
+                await saveData(KEYS.savingsGoals, goalsNext);
+            }
+            setSavingsAccounts(migrated);
+            setSavingsGoals(goalsNext);
         };
         load();
     }, []);
@@ -64,16 +125,35 @@ export function useSavings(accounts = []) {
     // vs. what the account actually has. `balanceOverride` lets a
     // caller check "what WOULD the deficit be at this balance" before
     // a render happens.
+    // ── Modelo ──
+    // Tarjeta (account) → tiene TODO el dinero de ese banco.
+    //   Apartado (savingsAccount) → una PARTE con nombre de ese saldo
+    //     (cajita Nu, apartado BBVA). earmarkedAmount es el total del
+    //     apartado, incluido lo que sus objetivos ya reclaman.
+    //   Objetivo (goal) → vive en un lugar: { accountId, savingsAccountId | null }.
+    //     Su savedAmount es parte del saldo de ese lugar.
+    // "Sin destino" de un lugar = lo que hay ahí menos lo que sus
+    // objetivos reclaman. No hay aportaciones ni fuentes: el objetivo
+    // simplemente está en un lugar.
+
+    const goalsIn = (accountId, savingsAccountId = null) =>
+        savingsGoals.filter((g) => g.accountId === accountId && (g.savingsAccountId || null) === savingsAccountId);
+    const sumSaved = (goals) => round2(goals.reduce((s, g) => s + g.savedAmount, 0));
+
+    // Cuánto de una tarjeta está reclamado (apartados + objetivos que
+    // viven directo en ella) y cuánto falta si el saldo no alcanza.
     const getAccountDeficit = (accountId, balanceOverride) => {
         const linked = savingsAccounts.filter((a) => a.linkedAccountId === accountId);
-        const totalEarmarked = round2(linked.reduce((s, a) => s + a.earmarkedAmount, 0));
+        const totalEarmarked = round2(
+            linked.reduce((s, a) => s + a.earmarkedAmount, 0) + sumSaved(goalsIn(accountId, null)),
+        );
         const account = accounts.find((a) => a.id === accountId);
         const balance = balanceOverride !== undefined ? balanceOverride : (account?.balance ?? 0);
         const deficit = round2(Math.max(0, totalEarmarked - balance));
         return { totalEarmarked, balance, deficit };
     };
 
-    // Free room left in an account for a new/bigger apartado — never negative.
+    // Sin destino en una tarjeta: saldo − apartados − objetivos directos.
     const getFreeRoom = (accountId) => {
         const account = accounts.find((a) => a.id === accountId);
         if (!account) return 0;
@@ -81,41 +161,34 @@ export function useSavings(accounts = []) {
         return round2(Math.max(0, account.balance - totalEarmarked));
     };
 
-    // One apartado's own slice of its account's deficit, proportional
-    // to how much of the account's total earmark it claims.
+    // Sin destino en un apartado: su total − lo que sus objetivos reclaman.
+    const getApartadoFree = (savingsAccountId) => {
+        const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
+        if (!sa) return 0;
+        return round2(Math.max(0, sa.earmarkedAmount - sumSaved(goalsIn(sa.linkedAccountId, sa.id))));
+    };
+
+    // Sin destino en un lugar, sea tarjeta o apartado.
+    const getPlaceFree = ({ accountId, savingsAccountId }) =>
+        savingsAccountId ? getApartadoFree(savingsAccountId) : getFreeRoom(accountId);
+
+    // Parte del déficit de la tarjeta que le toca a un apartado,
+    // proporcional a lo que reclama.
     const getSavingsAccountRisk = (savingsAccountId) => {
         const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
         if (!sa) return { atRisk: 0, safeAmount: 0 };
         const { totalEarmarked, deficit } = getAccountDeficit(sa.linkedAccountId);
-        if (deficit <= 0 || totalEarmarked <= 0) {
-            return { atRisk: 0, safeAmount: sa.earmarkedAmount };
-        }
+        if (deficit <= 0 || totalEarmarked <= 0) return { atRisk: 0, safeAmount: sa.earmarkedAmount };
         const atRisk = round2(deficit * (sa.earmarkedAmount / totalEarmarked));
         return { atRisk, safeAmount: round2(sa.earmarkedAmount - atRisk) };
     };
 
-    // A goal's at-risk amount: trace what it holds back to whichever
-    // apartados fed it (net of withdrawals), then apply each
-    // apartado's own risk ratio. An approximation — pooled money
-    // doesn't track which specific peso came from where.
+    // Parte del déficit que le toca a un objetivo, según el lugar donde vive.
     const getGoalRisk = (goal) => {
-        const bySource = {};
-        goal.contributions.forEach((c) => {
-            const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
-            if (!key) return;
-            const sign = c.type === 'deposit' ? 1 : -1;
-            bySource[key] = round2((bySource[key] || 0) + sign * c.amount);
-        });
-        let atRisk = 0;
-        Object.entries(bySource).forEach(([savingsAccountId, netAmount]) => {
-            if (netAmount <= 0) return;
-            const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
-            if (!sa) return; // apartado no longer exists — can't trace risk for it
-            const { totalEarmarked, deficit } = getAccountDeficit(sa.linkedAccountId);
-            if (deficit <= 0 || totalEarmarked <= 0) return;
-            atRisk += netAmount * (deficit / totalEarmarked);
-        });
-        return round2(atRisk);
+        if (!goal.accountId || goal.savedAmount <= 0) return 0;
+        const { totalEarmarked, deficit } = getAccountDeficit(goal.accountId);
+        if (deficit <= 0 || totalEarmarked <= 0) return 0;
+        return round2(goal.savedAmount * (deficit / totalEarmarked));
     };
 
     // ── Apartados ──
@@ -176,6 +249,9 @@ export function useSavings(accounts = []) {
         if (acc?.earmarkedAmount > 0) {
             return { error: 'Este apartado tiene dinero asignado. Quítaselo antes de eliminarlo.' };
         }
+        if (acc && goalsIn(acc.linkedAccountId, acc.id).length > 0) {
+            return { error: 'Hay objetivos que viven en este apartado. Muévelos antes de eliminarlo.' };
+        }
         const updated = savingsAccounts.filter((a) => a.id !== accountId);
         setSavingsAccounts(updated);
         await saveData(KEYS.savingsAccounts, updated);
@@ -205,8 +281,8 @@ export function useSavings(accounts = []) {
         return { ok: true };
     };
 
-    // Un-earmark part of an apartado. Always allowed down to 0 — there's
-    // no separate pot to return it to.
+    // Un-earmark part of an apartado, hasta lo que no reclame ningún
+    // objetivo que viva en él.
     const removeFromSavingsAccount = async ({ savingsAccountId, amount }) => {
         if (!amount || amount <= 0) {
             return { error: 'El monto debe ser mayor a cero.' };
@@ -215,6 +291,10 @@ export function useSavings(accounts = []) {
         const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
         if (!sa || sa.earmarkedAmount < amount) {
             return { error: 'Este apartado no tiene asignado ese monto.' };
+        }
+        const free = getApartadoFree(savingsAccountId);
+        if (amount > free) {
+            return { error: `Solo hay ${free.toFixed(2)} sin destino en este apartado; el resto es de sus objetivos.` };
         }
         const updated = savingsAccounts.map((a) =>
             a.id === savingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount - amount) } : a,
@@ -322,15 +402,32 @@ export function useSavings(accounts = []) {
     };
 
     // ── Goals ──
-    const addSavingsGoal = async ({ name, targetAmount, deadline = null }) => {
+    // Un objetivo vive en un lugar (tarjeta, y opcionalmente un apartado
+    // de ella). Ahorrar toma del "sin destino" de ese lugar; sacar lo
+    // devuelve. El dinero nunca cambia de tarjeta por estas acciones.
+    const addSavingsGoal = async ({ name, targetAmount, deadline = null, accountId, savingsAccountId = null, color = null, initialAmount = 0 }) => {
+        if (!accountId) return { error: 'Elige dónde vive este dinero.' };
+        if (!accounts.some((a) => a.id === accountId)) return { error: 'La cuenta elegida ya no existe.' };
+        if (savingsAccountId) {
+            const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
+            if (!sa || sa.linkedAccountId !== accountId) return { error: 'Ese apartado no es de esa cuenta.' };
+        }
+        // El arranque tampoco puede pasar de la meta.
+        const start = round2(Math.min(Math.max(0, initialAmount || 0), round2(targetAmount)));
+        if (start > 0) {
+            const free = getPlaceFree({ accountId, savingsAccountId });
+            if (start > free) return { error: `Solo hay ${free.toFixed(2)} sin destino ahí.` };
+        }
         const newGoal = {
             id: Date.now().toString(),
             name,
             targetAmount: round2(targetAmount),
-            savedAmount: 0,
+            savedAmount: start,
             deadline,
+            accountId,
+            savingsAccountId: savingsAccountId || null,
+            color,
             createdAt: new Date().toISOString(),
-            contributions: [],
         };
         const updated = [...savingsGoals, newGoal];
         setSavingsGoals(updated);
@@ -338,140 +435,113 @@ export function useSavings(accounts = []) {
         return newGoal;
     };
 
-    // Returns whatever the goal holds back to wherever it came from,
-    // net per apartado. `returnFunds: false` is for "marcar como
-    // comprado" (SavingsScreen), where the money already left for
-    // real through expense transactions — crediting it back here
-    // would double it.
+    const updateSavingsGoal = async (goalId, patch) => {
+        const goal = savingsGoals.find((g) => g.id === goalId);
+        if (!goal) return { error: 'No se encontró el objetivo.' };
+        const next = { ...goal, ...patch };
+        if (patch.targetAmount != null) next.targetAmount = round2(patch.targetAmount);
+        const updated = savingsGoals.map((g) => (g.id === goalId ? next : g));
+        setSavingsGoals(updated);
+        await saveData(KEYS.savingsGoals, updated);
+        return { ok: true };
+    };
+
+    // Eliminar libera el dinero: se queda donde estaba, sólo sin destino.
+    // `returnFunds: false` es para "marcar como comprado", donde el dinero
+    // ya salió de verdad vía gasto y el lugar ya bajó su saldo.
     const deleteSavingsGoal = async (goalId, { returnFunds = true } = {}) => {
         const goal = savingsGoals.find((g) => g.id === goalId);
-        if (!goal) {
-            return { error: 'No se encontró el objetivo.' };
+        if (!goal) return { error: 'No se encontró el objetivo.' };
+        if (!returnFunds && goal.savingsAccountId && goal.savedAmount > 0) {
+            // El gasto ya restó al saldo de la tarjeta; el apartado tiene
+            // que encoger lo mismo para seguir siendo parte de ella.
+            const updatedSA = savingsAccounts.map((a) =>
+                a.id === goal.savingsAccountId
+                    ? { ...a, earmarkedAmount: round2(Math.max(0, a.earmarkedAmount - goal.savedAmount)) }
+                    : a,
+            );
+            setSavingsAccounts(updatedSA);
+            await saveData(KEYS.savingsAccounts, updatedSA);
         }
-
-        if (returnFunds) {
-            const bySource = {};
-            goal.contributions.forEach((c) => {
-                const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
-                if (!key) return;
-                const sign = c.type === 'deposit' ? 1 : -1;
-                bySource[key] = round2((bySource[key] || 0) + sign * c.amount);
-            });
-
-            let updatedSavingsAccounts = savingsAccounts;
-            Object.entries(bySource).forEach(([savingsAccountId, netAmount]) => {
-                if (netAmount <= 0) return; // apartado deleted mid-way, or net-negative — gets nothing back
-                updatedSavingsAccounts = updatedSavingsAccounts.map((a) =>
-                    a.id === savingsAccountId
-                        ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + netAmount) }
-                        : a,
-                );
-            });
-            setSavingsAccounts(updatedSavingsAccounts);
-            await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
-        }
-
         const updatedGoals = savingsGoals.filter((g) => g.id !== goalId);
         setSavingsGoals(updatedGoals);
         await saveData(KEYS.savingsGoals, updatedGoals);
         return { ok: true, releasedAmount: returnFunds ? goal.savedAmount : 0 };
     };
 
-    // Move money from an apartado into a goal — reduces the
-    // apartado's earmark by exactly what the goal gains.
-    const contributeToGoal = async ({ goalId, fromSavingsAccountId, amount }) => {
-        if (!amount || amount <= 0) {
-            return { error: 'El monto debe ser mayor a cero.' };
-        }
+    // Ahorrar: toma del sin destino del lugar donde vive el objetivo.
+    const saveToGoal = async ({ goalId, amount }) => {
+        if (!amount || amount <= 0) return { error: 'El monto debe ser mayor a cero.' };
         amount = round2(amount);
         const goal = savingsGoals.find((g) => g.id === goalId);
-        if (!goal) {
-            return { error: 'No se encontró el objetivo.' };
-        }
-        // Capped so savedAmount can never pass targetAmount — otherwise
-        // "Marcar como comprado" could leave an unexplained leftover.
-        const remaining = round2(goal.targetAmount - goal.savedAmount);
-        if (remaining <= 0) {
-            return { error: 'Este objetivo ya está completo.' };
-        }
-        if (amount > remaining) {
-            return { error: `Con eso te pasarías del objetivo — solo faltan ${remaining.toFixed(2)}.` };
-        }
-        const sa = savingsAccounts.find((a) => a.id === fromSavingsAccountId);
-        if (!sa || sa.earmarkedAmount < amount) {
-            return { error: 'Ese apartado no tiene asignado ese monto.' };
-        }
-
-        const updatedSavingsAccounts = savingsAccounts.map((a) =>
-            a.id === fromSavingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount - amount) } : a,
+        if (!goal) return { error: 'No se encontró el objetivo.' };
+        if (!goal.accountId) return { error: 'Este objetivo aún no tiene lugar. Elige dónde vive.' };
+        // Nunca por encima del 100 %: un objetivo lleno no acepta más.
+        const room = round2(Math.max(0, goal.targetAmount - goal.savedAmount));
+        if (room <= 0) return { error: 'Este objetivo ya está completo.' };
+        if (amount > room) return { error: `Solo faltan ${room.toFixed(2)} para completarlo.` };
+        const free = getPlaceFree(goal);
+        if (amount > free) return { error: `Solo hay ${free.toFixed(2)} sin destino ahí.` };
+        const updated = savingsGoals.map((g) =>
+            g.id === goalId ? { ...g, savedAmount: round2(g.savedAmount + amount) } : g,
         );
-        setSavingsAccounts(updatedSavingsAccounts);
-        await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
-
-        const contribution = {
-            id: Date.now().toString(),
-            fromSavingsAccountId,
-            amount,
-            date: new Date().toISOString(),
-            type: 'deposit',
-        };
-        const updatedGoals = savingsGoals.map((g) =>
-            g.id === goalId
-                ? {
-                    ...g,
-                    savedAmount: round2(g.savedAmount + amount),
-                    contributions: [contribution, ...g.contributions],
-                }
-                : g,
-        );
-        setSavingsGoals(updatedGoals);
-        await saveData(KEYS.savingsGoals, updatedGoals);
+        setSavingsGoals(updated);
+        await saveData(KEYS.savingsGoals, updated);
         return { ok: true };
     };
 
-    // Return earmarked goal funds back to a chosen apartado.
-    const withdrawFromGoal = async ({ goalId, toSavingsAccountId, amount }) => {
-        if (!amount || amount <= 0) {
-            return { error: 'El monto debe ser mayor a cero.' };
-        }
+    // Sacar: el dinero vuelve a estar sin destino en el mismo lugar.
+    const takeFromGoal = async ({ goalId, amount }) => {
+        if (!amount || amount <= 0) return { error: 'El monto debe ser mayor a cero.' };
         amount = round2(amount);
         const goal = savingsGoals.find((g) => g.id === goalId);
-        if (!goal || goal.savedAmount < amount) {
-            return { error: 'El objetivo no tiene suficientes fondos.' };
-        }
-        const sa = savingsAccounts.find((a) => a.id === toSavingsAccountId);
-        if (!sa) {
-            return { error: 'No se encontró el apartado destino.' };
-        }
-
-        const updatedSavingsAccounts = savingsAccounts.map((a) =>
-            a.id === toSavingsAccountId ? { ...a, earmarkedAmount: round2(a.earmarkedAmount + amount) } : a,
+        if (!goal) return { error: 'No se encontró el objetivo.' };
+        if (amount > goal.savedAmount) return { error: 'El objetivo no tiene tanto ahorrado.' };
+        const updated = savingsGoals.map((g) =>
+            g.id === goalId ? { ...g, savedAmount: round2(g.savedAmount - amount) } : g,
         );
-        setSavingsAccounts(updatedSavingsAccounts);
-        await saveData(KEYS.savingsAccounts, updatedSavingsAccounts);
-
-        const contribution = {
-            id: Date.now().toString(),
-            toSavingsAccountId,
-            amount,
-            date: new Date().toISOString(),
-            type: 'withdrawal',
-        };
-        const updatedGoals = savingsGoals.map((g) =>
-            g.id === goalId
-                ? {
-                    ...g,
-                    savedAmount: round2(g.savedAmount - amount),
-                    contributions: [contribution, ...g.contributions],
-                }
-                : g,
-        );
-        setSavingsGoals(updatedGoals);
-        await saveData(KEYS.savingsGoals, updatedGoals);
+        setSavingsGoals(updated);
+        await saveData(KEYS.savingsGoals, updated);
         return { ok: true };
     };
 
-    // Wipe all savings data (called from Settings global reset)
+    // Mover de lugar dentro de la MISMA tarjeta (tarjeta ↔ apartado, o
+    // entre apartados de la tarjeta). El saldo de la tarjeta no cambia;
+    // si entra o sale de un apartado, ese apartado crece o encoge.
+    // Cambiar de tarjeta es un traspaso real y va por Nuevo movimiento.
+    const moveGoal = async ({ goalId, accountId, savingsAccountId = null }) => {
+        const goal = savingsGoals.find((g) => g.id === goalId);
+        if (!goal) return { error: 'No se encontró el objetivo.' };
+        const toSA = savingsAccountId ? savingsAccounts.find((a) => a.id === savingsAccountId) : null;
+        if (savingsAccountId && (!toSA || toSA.linkedAccountId !== accountId)) {
+            return { error: 'Ese apartado no es de esa cuenta.' };
+        }
+        if (goal.accountId && goal.accountId !== accountId && goal.savedAmount > 0) {
+            return { error: 'Para cambiar de tarjeta, primero haz un traspaso del dinero en Nuevo movimiento.' };
+        }
+        // Al entrar a un apartado desde el sin destino de la tarjeta, debe caber.
+        if (savingsAccountId && !goal.savingsAccountId && goal.savedAmount > 0) {
+            const free = getFreeRoom(accountId) + goal.savedAmount; // su propio dinero cuenta como libre
+            if (goal.savedAmount > free) return { error: 'No hay suficiente sin destino en esa cuenta.' };
+        }
+        let updatedSA = savingsAccounts;
+        if (goal.savedAmount > 0 && goal.savingsAccountId !== (savingsAccountId || null)) {
+            updatedSA = savingsAccounts.map((a) => {
+                if (a.id === goal.savingsAccountId) return { ...a, earmarkedAmount: round2(Math.max(0, a.earmarkedAmount - goal.savedAmount)) };
+                if (a.id === savingsAccountId) return { ...a, earmarkedAmount: round2(a.earmarkedAmount + goal.savedAmount) };
+                return a;
+            });
+            setSavingsAccounts(updatedSA);
+            await saveData(KEYS.savingsAccounts, updatedSA);
+        }
+        const updated = savingsGoals.map((g) =>
+            g.id === goalId ? { ...g, accountId, savingsAccountId: savingsAccountId || null } : g,
+        );
+        setSavingsGoals(updated);
+        await saveData(KEYS.savingsGoals, updated);
+        return { ok: true };
+    };
+
     const resetSavings = async () => {
         await removeData(KEYS.savingsAccounts);
         await removeData(KEYS.savingsGoals);
@@ -495,7 +565,6 @@ export function useSavings(accounts = []) {
             ...g,
             targetAmount: round2(g.targetAmount * rate),
             savedAmount: round2(g.savedAmount * rate),
-            contributions: g.contributions.map((c) => ({ ...c, amount: round2(c.amount * rate) })),
         }));
         setSavingsAccounts(updatedSavingsAccounts);
         setSavingsGoals(updatedGoals);
@@ -515,53 +584,6 @@ export function useSavings(accounts = []) {
         return Math.ceil(remaining / monthsDiff);
     };
 
-    // Cuánto de cada apartado está comprometido a un objetivo, y de qué
-    // apartados sale cada objetivo. Las dos direcciones del mismo dato.
-    //
-    // Existe porque `contributeToGoal` le RESTA el monto al
-    // `earmarkedAmount` del apartado: sin esto, un apartado que respalda
-    // un objetivo se muestra con menos dinero del que realmente tiene
-    // detrás. El dinero nunca se movió de la cuenta ligada —solo cambió
-    // de destino—, y `getGoalRisk` ya trabaja bajo ese supuesto cuando
-    // rastrea el déficit hasta la cuenta real.
-    //
-    // Ojo con el tipo: `withdrawFromGoal` guarda 'withdrawal', no
-    // 'withdraw'. Comparar solo contra 'deposit' —como aquí— evita que
-    // un retiro deje de restar y los totales salgan inflados.
-    const getGoalCommitments = () => {
-        const byAccount = {}; // savingsAccountId -> [{ goalId, amount }]
-        const byGoal = {};    // goalId -> [{ savingsAccountId, amount }]
-
-        savingsGoals.forEach((goal) => {
-            const bySource = {};
-            goal.contributions.forEach((c) => {
-                const key = c.type === 'deposit' ? c.fromSavingsAccountId : c.toSavingsAccountId;
-                if (!key) return;
-                const sign = c.type === 'deposit' ? 1 : -1;
-                bySource[key] = round2((bySource[key] || 0) + sign * c.amount);
-            });
-            Object.entries(bySource).forEach(([savingsAccountId, amount]) => {
-                if (amount <= 0) return;
-                if (!byAccount[savingsAccountId]) byAccount[savingsAccountId] = [];
-                if (!byGoal[goal.id]) byGoal[goal.id] = [];
-                byAccount[savingsAccountId].push({ goalId: goal.id, amount });
-                byGoal[goal.id].push({ savingsAccountId, amount });
-            });
-        });
-
-        return { byAccount, byGoal };
-    };
-
-    // Lo que un apartado respalda de verdad: lo que tiene libre más lo
-    // que ya prometió a objetivos.
-    const getAccountBacking = (savingsAccountId, commitments) => {
-        const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
-        if (!sa) return { free: 0, committed: 0, total: 0 };
-        const { byAccount } = commitments || getGoalCommitments();
-        const committed = round2((byAccount[savingsAccountId] || []).reduce((s, c) => s + c.amount, 0));
-        return { free: sa.earmarkedAmount, committed, total: round2(sa.earmarkedAmount + committed) };
-    };
-
     return {
         savingsAccounts,
         savingsGoals,
@@ -577,15 +599,17 @@ export function useSavings(accounts = []) {
         creditInterestBatch,
         // Goals
         addSavingsGoal,
+        updateSavingsGoal,
         deleteSavingsGoal,
-        contributeToGoal,
-        withdrawFromGoal,
+        saveToGoal,
+        takeFromGoal,
+        moveGoal,
         getMonthlySuggestion,
-        getGoalCommitments,
-        getAccountBacking,
-        // Déficit / risk
+        // Sin destino / riesgo
         getAccountDeficit,
         getFreeRoom,
+        getApartadoFree,
+        getPlaceFree,
         getSavingsAccountRisk,
         getGoalRisk,
         resetSavings,

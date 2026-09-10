@@ -434,6 +434,28 @@ export function IconCardPayment({ color, size = IconSize.lg }) {
     );
 }
 
+// Objetivo: un blanco con la flecha clavada en el centro y saliendo
+// hacia arriba a la derecha. Antes los objetivos usaban la bolsa de
+// IconSavings, que es el ícono de la pestaña; ahora la bolsa es
+// "ahorros" y esto es "un objetivo". Por debajo de 16 px la flecha
+// se omite (se confundiría con un reloj) y queda sólo el blanco.
+export function IconGoal({ color, size = IconSize.lg }) {
+    return (
+        <Svg {...svg(size)}>
+            <Circle cx="12" cy="12" r="8.5" {...line(size, color)} />
+            <Circle cx="12" cy="12" r="4.6" {...line(size, color)} />
+            {size >= 16 ? (
+                <>
+                    <Path d="M12 12l5.6-5.6" {...line(size, color)} />
+                    <Path d="M17.6 6.4l3.1-.5-.5 3.1" {...line(size, color)} />
+                </>
+            ) : (
+                <Circle cx="12" cy="12" r="1.15" fill={color} />
+            )}
+        </Svg>
+    );
+}
+
 export function IconCardAdd({ color, bgColor, size = IconSize.lg }) {
     return (
         <Svg {...svg(size)}>

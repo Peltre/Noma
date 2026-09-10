@@ -66,6 +66,22 @@ export const theme = {
 
     cardColors: ['#1F4E4A', '#2C3E5C', '#4A3F6B', '#2D5F6E', '#3D4A5C', '#5C4A6B', '#2C5C4A', '#4A5C6B'],
 
+    // Colores de apartado: identidad de cada apartado en Ahorros
+    // (puntos, anillos). Más claros que cardColors porque van en
+    // puntos de 28 px sobre vidrio, pero igual de empolvados: versiones
+    // desaturadas de las cuatro familias del tema y sus vecinos, para
+    // que ninguno compita con brand / moneyOut / msi / savings.
+    savingsColors: [
+        '#78ABEB', // azul (default, = savings)
+        '#6FB3A6', // teal
+        '#9C93CF', // violeta
+        '#C9A06A', // arena
+        '#7FA48C', // salvia
+        '#B889A6', // malva
+        '#C98B7B', // terracota
+        '#8CA3B8', // pizarra
+    ],
+
     // Dos niveles de vidrio: glass* para tarjetas, sheet* para hojas y
     // modales. glassBorderTop es más brillante que glassBorder a
     // propósito: la luz pega arriba, y eso es lo que hace que se lea
