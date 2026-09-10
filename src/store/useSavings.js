@@ -343,9 +343,14 @@ export function useSavings(accounts = []) {
     // (Re-)enabling resets lastInterestAccrualAt to now, so the next
     // accrual doesn't backdate to a period where interest was off.
     // Editing rate/cap while already enabled does NOT reset the clock.
-    const updateSavingsAccountInterest = async (savingsAccountId, { enabled, rate, cap, rateAboveCap }) => {
+    // Editar un apartado: nombre, color e interés en una sola llamada.
+    // `name` y `color` son opcionales; si no vienen, se conservan.
+    const updateSavingsAccountInterest = async (savingsAccountId, { enabled, rate, cap, rateAboveCap, name, color }) => {
         const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
         if (!sa) return { error: 'No se encontró el apartado.' };
+        if (name !== undefined && !String(name).trim()) {
+            return { error: 'Ponle un nombre al apartado.' };
+        }
         if (enabled && (!rate || rate <= 0)) {
             return { error: 'Ponle una tasa de interés anual mayor a cero.' };
         }
@@ -354,6 +359,8 @@ export function useSavings(accounts = []) {
             if (a.id !== savingsAccountId) return a;
             return {
                 ...a,
+                name: name !== undefined ? String(name).trim() : a.name,
+                color: color || a.color,
                 interest: enabled
                     ? {
                         enabled: true,
@@ -596,6 +603,7 @@ export function useSavings(accounts = []) {
         computeAccruedInterest,
         getEstimatedMonthlyInterest,
         updateSavingsAccountInterest,
+        updateSavingsAccount: updateSavingsAccountInterest,
         creditInterestBatch,
         // Goals
         addSavingsGoal,

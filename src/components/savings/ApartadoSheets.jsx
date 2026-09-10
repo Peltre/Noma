@@ -302,18 +302,19 @@ export function AddApartadoSheet({ onClose, accounts, getFreeRoom, initialAccoun
 // apartado row), since interest here is meant to be something the
 // person can turn on, tune, or turn back off whenever they want.
 export function EditInterestSheet({ onClose, savingsAccount }) {
-    const { updateSavingsAccountInterest } = useFinance();
+    const { updateSavingsAccount } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const [name, setName] = useState('');
+    const [color, setColor] = useState(SAVINGS_COLORS[0]);
     const [interest, setInterest] = useState(EMPTY_INTEREST);
     const [loading, setLoading] = useState(false);
 
-    // Re-sync every time a different (or the same, freshly reopened)
-    // apartado's sheet opens — mirrors the userName sync pattern in
-    // SettingsScreen (a plain useEffect keyed off the prop that can
-    // change out from under this component).
+    // Re-sync cada vez que se abre para un apartado (el mismo u otro).
     useEffect(() => {
         if (!savingsAccount) return;
+        setName(savingsAccount.name);
+        setColor(savingsAccount.color || SAVINGS_COLORS[0]);
         const i = savingsAccount.interest;
         setInterest({
             enabled: !!i?.enabled,
@@ -326,11 +327,14 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
     if (!savingsAccount) return null;
 
     const interestRateMissing = interest.enabled && !(parseFloat(interest.rate) > 0);
+    const canSave = name.trim() && !interestRateMissing && !loading;
 
     const handleSave = async () => {
-        if (interestRateMissing || loading) return;
+        if (!canSave) return;
         setLoading(true);
-        const result = await updateSavingsAccountInterest(savingsAccount.id, {
+        const result = await updateSavingsAccount(savingsAccount.id, {
+            name: name.trim(),
+            color,
             enabled: interest.enabled,
             rate: parseFloat(interest.rate) || 0,
             cap: parseFloat(interest.cap) || 0,
@@ -345,13 +349,20 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
     };
 
     return (
-        // El acento de la hoja es el color de ESTE apartado.
-        <AccentProvider color={savingsAccount.color} on={theme.brandOn}>
-            <Sheet onClose={onClose} dismissable={!loading} scroll>
-                <View style={styles.sheetTitleRow}>
-                    <AccountDot color={savingsAccount.color} size={28} />
-                    <Text style={styles.sheetTitle}>Interés de {savingsAccount.name}</Text>
+        // El acento sigue al color que se está eligiendo.
+        <AccentProvider color={color} on={theme.brandOn}>
+            <Sheet onClose={onClose} dismissable={!loading} title="Editar apartado" scroll>
+                <View style={styles.preview}>
+                    <AccountDot color={color} size={44} />
+                    <Text style={styles.previewName} numberOfLines={1}>
+                        {name.trim() || savingsAccount.name}
+                    </Text>
                 </View>
+
+                <FieldLabel>Color</FieldLabel>
+                <ColorPicker selected={color} onSelect={setColor} />
+
+                <Field label="Nombre" required value={name} onChangeText={setName} placeholder="Ej. Cajita Nu, Apartado BBVA..." />
 
                 <InterestFields value={interest} onChange={setInterest} />
 
@@ -361,7 +372,7 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
                         label="Guardar"
                         loading={loading}
                         loadingLabel="Guardando…"
-                        disabled={interestRateMissing}
+                        disabled={!canSave}
                         onPress={handleSave}
                         style={{ flex: 2 }}
                     />
@@ -551,12 +562,7 @@ export function ApartadoSheet({ onClose, savingsAccount, backing, destinos = [],
                 <View style={styles.sheetBtns}>
                     <Button label="Apartar" onPress={onDeposit} style={{ flex: 1 }} />
                     <Button label="Quitar" variant="secondary" onPress={onWithdraw} style={{ flex: 1 }} />
-                    <Button
-                        label={rate != null ? 'Interés' : '+ Interés'}
-                        variant="secondary"
-                        onPress={onInterest}
-                        style={{ flex: 1 }}
-                    />
+                    <Button label="Editar" variant="secondary" onPress={onInterest} style={{ flex: 1 }} />
                 </View>
                 <View style={styles.sheetBtnsTight}>
                     <Button label="Eliminar apartado" variant="danger" onPress={onDelete} />
