@@ -216,6 +216,24 @@ export default function SettingsScreen() {
                     )}
                 </View>
 
+                {/* Volver a ver el recorrido de la bienvenida */}
+                <View style={styles.section}>
+                    <SectionHeader title="Ayuda" />
+                    <GlassCard style={styles.card}>
+                        <TouchableOpacity
+                            style={[styles.row, styles.rowLast]}
+                            onPress={() => updateSettings({ showTour: true })}
+                            activeOpacity={0.7}
+                            accessibilityRole="button"
+                        >
+                            <View style={styles.rowInfo}>
+                                <Text style={styles.rowValue}>Ver el recorrido</Text>
+                                <Text style={styles.rowLabel}>Las cuatro pantallas de la bienvenida, otra vez</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </GlassCard>
+                </View>
+
                 {/* Danger zone - reset btn */}
                 <View style={styles.section}>
                     <SectionHeader title="Zona de peligro" />

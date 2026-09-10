@@ -61,7 +61,12 @@ function RootApp() {
       <AppBackground />
       <NavigationContainer theme={navTheme}>
         <AppNavigator />
-        <OnboardingOverlay visible={!settings.onboardingCompleted} />
+        {/* Bienvenida completa la primera vez; sólo el tour cuando se
+            pide desde Ajustes ("Ver el recorrido"). */}
+        <OnboardingOverlay
+          visible={!settings.onboardingCompleted || !!settings.showTour}
+          tourOnly={!!settings.onboardingCompleted && !!settings.showTour}
+        />
       </NavigationContainer>
     </View>
   );

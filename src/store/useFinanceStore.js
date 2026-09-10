@@ -85,11 +85,14 @@ export function useFinanceStore() {
     // whole array in one pass and saves once. Also gives each account
     // a unique id (`${Date.now()}_i`) instead of relying on
     // Date.now() alone, which can collide across fast back-to-back calls.
-    const addAccountsBatch = async (list) => {
+    // `base` permite encadenar sobre un estado ya modificado en la misma
+    // pasada (ver setupInitialAccounts): dos escrituras seguidas desde el
+    // mismo closure se pisarían entre sí.
+    const addAccountsBatch = async (list, base = accounts) => {
         if (!list.length) return { accounts: [], errors: [] };
         const errors = [];
         const newAccounts = [];
-        let updatedAccounts = accounts;
+        let updatedAccounts = base;
         list.forEach(({ name, type, color, pattern, initialBalance = 0 }) => {
             if (!name || !name.trim()) {
                 errors.push({ name, error: 'Ponle un nombre a la cuenta.' });
@@ -521,6 +524,17 @@ export function useFinanceStore() {
     };
 
     // Onboarding only — sets starting balances directly, no transactions.
+    // Onboarding: saldo de efectivo + tarjetas de débito en UNA escritura.
+    // Antes eran setInitialBalances y luego addAccountsBatch, y la
+    // segunda pisaba a la primera (ambas leen `accounts` del mismo
+    // closure): el efectivo se quedaba en $0 si también había tarjeta.
+    const setupInitialAccounts = async ({ cashBalance = 0, debitCards = [] }) => {
+        const withCash = accounts.map(acc =>
+            acc.id === '1' ? { ...acc, balance: Math.max(0, round2(cashBalance)) } : acc,
+        );
+        return addAccountsBatch(debitCards, withCash);
+    };
+
     const setInitialBalances = async (balances) => {
         const updated = accounts.map(acc => {
             const found = balances.find(b => b.accountId === acc.id);
@@ -616,6 +630,7 @@ export function useFinanceStore() {
         deleteAccount,
         resetAll,
         setInitialBalances,
+        setupInitialAccounts,
         convertAllAmounts,
         creditInterestBatch,
     };
