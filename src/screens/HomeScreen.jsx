@@ -16,6 +16,12 @@ import CreditCardSummary from '../components/CreditCardSummary';
 import GlassCard from '../components/GlassCard';
 import HeroArt from '../components/HeroArt';
 import { Money, SectionHeader, EmptyState, Sheet, Pill, Button } from '../components/ui';
+
+// Barra Disponible / Ahorro del héroe: una sola familia (turquesa).
+// Lo disponible es "tu dinero" en versión clara; el ahorro, la
+// profunda. Se lee como "lo mismo, pero guardado".
+const SPLIT_AVAILABLE = '#8FD3C7';
+const SPLIT_SAVED = '#2E8C80';
 import {
     IconSwap,
     IconCardPayment,
@@ -147,6 +153,7 @@ export default function HomeScreen() {
         transactions,
         creditCards,
         totalBalance,
+        savingsGoals,
         isLoading,
         pendingFunds,
         getFundStatus,
@@ -195,6 +202,13 @@ export default function HomeScreen() {
         }, 0),
     );
     const balanceAtMonthStart = round2(totalBalance - netChangeThisMonth);
+
+    // Disponible vs. ahorro: del total, cuánto ya tiene destino en
+    // objetivos y cuánto queda para gastar. La deuda de crédito no entra
+    // aquí (totalBalance ya la considera como la considere).
+    const savedTotal = round2(savingsGoals.reduce((sum, g) => sum + g.savedAmount, 0));
+    const availableTotal = round2(Math.max(0, totalBalance - savedTotal));
+    const showSplit = totalBalance > 0 && savedTotal > 0;
     const hasTrend = thisMonthTxns.length > 0;
     const trendUp = netChangeThisMonth >= 0;
     const trendPct =
@@ -313,6 +327,37 @@ export default function HomeScreen() {
                                 </View>
                             )}
                         </View>
+
+                        {/* Disponible / Ahorro: dos segmentos que sí dicen algo.
+                            Tocar la barra lleva a Ahorros. Sólo aparece cuando
+                            hay algo ahorrado; sin objetivos el héroe queda
+                            como antes. */}
+                        {showSplit && (
+                            <TouchableOpacity
+                                style={styles.splitWrap}
+                                onPress={() => navigation.navigate('SavingsTab')}
+                                activeOpacity={0.75}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Disponible ${formatCurrency(availableTotal)}, ahorro ${formatCurrency(savedTotal)}`}
+                            >
+                                <View style={styles.splitBar}>
+                                    {availableTotal > 0 && <View style={[styles.splitSeg, { flex: availableTotal, backgroundColor: SPLIT_AVAILABLE }]} />}
+                                    <View style={[styles.splitSeg, { flex: savedTotal, backgroundColor: SPLIT_SAVED }]} />
+                                </View>
+                                <View style={styles.splitLegend}>
+                                    <View style={styles.splitItem}>
+                                        <View style={[styles.splitDot, { backgroundColor: SPLIT_AVAILABLE }]} />
+                                        <Text style={styles.splitLabel}>Disponible</Text>
+                                        <Money value={availableTotal} size={FontSize.xs + 1} color={theme.ink} decimals={false} />
+                                    </View>
+                                    <View style={styles.splitItem}>
+                                        <View style={[styles.splitDot, { backgroundColor: SPLIT_SAVED }]} />
+                                        <Text style={styles.splitLabel}>Ahorro</Text>
+                                        <Money value={savedTotal} size={FontSize.xs + 1} color={theme.ink} decimals={false} />
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </GlassCard>
 

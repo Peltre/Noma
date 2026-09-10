@@ -115,6 +115,18 @@ export default function createHomeStyles(theme) {
         // mismo que la flecha más "+9.9%" a 11px. Por eso la píldora
         // sigue cabiendo al lado de la cifra del héroe en vez de
         // empujarse al renglón siguiente.
+        // Barra Disponible / Ahorro al pie del héroe.
+        splitWrap: { marginTop: Spacing.md },
+        splitBar: {
+            flexDirection: 'row', gap: 2, height: 6, borderRadius: 3, overflow: 'hidden',
+            backgroundColor: 'rgba(255,255,255,0.08)',
+        },
+        splitSeg: { height: '100%' },
+        splitLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 7 },
+        splitItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+        splitDot: { width: 6, height: 6, borderRadius: 2 },
+        splitLabel: { fontSize: FontSize.xs, color: theme.inkMid, fontWeight: '600' },
+
         trendPill: {
             alignItems: 'center',
             paddingHorizontal: Spacing.sm + 2,
