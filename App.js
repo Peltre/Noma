@@ -13,7 +13,6 @@ import OnboardingOverlay from './src/screens/OnboardingOverlayScreen';
 import { FinanceProvider, useFinance } from './src/store/FinanceContext';
 import { useTheme } from './src/store/useTheme';
 import AppBackground from './src/components/AppBackground';
-import { applyGlobalTypography } from './src/setup/Typography';
 import { FONT_FILE_NAMES } from './src/constants/theme';
 
 // { BricolageGrotesque_400Regular: <módulo ttf>, ... } armado a partir
@@ -78,8 +77,6 @@ export default function App() {
   // Si una fuente falla, la app arranca con la del sistema en vez de
   // quedarse en blanco.
   if (!fontsLoaded && !fontError) return null;
-
-  applyGlobalTypography();
 
   return (
     <SafeAreaProvider>
