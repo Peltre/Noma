@@ -22,7 +22,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
-import { SAVINGS_COLORS } from '../store/useSavings';
 import { formatCurrencyShort } from '../utils';
 import { IconCheck, IconPlus, IconHome, IconHistory, IconSavings, IconCards } from '../components/Icons';
 import Logo from '../components/Logo';
@@ -268,7 +267,7 @@ export default function Onboarding({ visible, tourOnly = false }) {
         await setupInitialAccounts({
             cashBalance: positiveFloat(cashAmount),
             debitCards: debitName.trim()
-                ? [{ name: debitName.trim(), type: 'debit', color: SAVINGS_COLORS[0], initialBalance: positiveFloat(debitBalance) }]
+                ? [{ name: debitName.trim(), type: 'debit', color: theme.cardDefault || '#236B61', initialBalance: positiveFloat(debitBalance) }]
                 : [],
         });
         await finish();
@@ -328,6 +327,7 @@ export default function Onboarding({ visible, tourOnly = false }) {
                                 onSubmitEditing={() => setStep('tour')}
                                 style={{ marginTop: 20 }}
                             />
+                            <Text style={styles.helperNote}>Lo puedes cambiar cuando quieras desde Ajustes.</Text>
                         </View>
                         <Dots index={dotIndex} total={dotTotal} />
                         <Cta label={userName.trim() ? 'Empezar' : 'Empezar sin nombre'} onPress={() => setStep('tour')} />

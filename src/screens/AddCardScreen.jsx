@@ -41,10 +41,14 @@ export default function AddCardScreen() {
     // app's night palette, not an arbitrary color wheel that happens
     // to be the same one savings apartados use. Picked once at mount,
     // not recalculated on every render.
+    // Default: el acento de la app (turquesa) para la primera tarjeta;
+    // las siguientes recorren la paleta del tema para que no salgan
+    // todas iguales. Al editar, el color que ya tiene.
     const [color, setColor] = useState(() => {
         if (editCard?.color) return editCard.color;
         const count = accounts.filter(a => a.type === 'debit').length + creditCards.length;
-        return theme.cardColors[count % theme.cardColors.length];
+        if (count === 0) return theme.cardDefault || '#236B61';
+        return theme.cardColors[(count - 1) % theme.cardColors.length];
     });
     const [pattern, setPattern] = useState(editCard?.pattern || 'none');
     const [loading, setLoading] = useState(false);
