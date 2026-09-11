@@ -44,18 +44,11 @@ export default function createHomeStyles(theme) {
             alignItems: 'center',
             zIndex: 1,
         },
-        kebabBtn: {
+        settingsBtn: {
             paddingLeft: Spacing.sm,
             paddingVertical: Spacing.xs,
             justifyContent: 'center',
             alignItems: 'center',
-            gap: 3,
-        },
-        kebabDot: {
-            width: 3.5,
-            height: 3.5,
-            borderRadius: 2,
-            backgroundColor: theme.ink,
             opacity: 0.85,
         },
         greeting: {

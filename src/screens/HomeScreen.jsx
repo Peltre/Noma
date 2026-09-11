@@ -26,6 +26,7 @@ import {
     IconSwap,
     IconCardPayment,
     IconGoal,
+    IconGear,
     IconTrendUp,
     IconTrendDown,
     IconCalendarClock,
@@ -256,13 +257,13 @@ export default function HomeScreen() {
                             <Text style={styles.userName}>{settings.userName}</Text>
                         </View>
                         <TouchableOpacity
-                            style={styles.kebabBtn}
+                            style={styles.settingsBtn}
                             onPress={() => navigation.navigate('Settings')}
+                            accessibilityRole="button"
+                            accessibilityLabel="Ajustes"
                             hitSlop={{ top: 10, bottom: 10, left: 14, right: 6 }}
                         >
-                            <View style={styles.kebabDot} />
-                            <View style={styles.kebabDot} />
-                            <View style={styles.kebabDot} />
+                            <IconGear color={theme.ink} size={16} />
                         </TouchableOpacity>
                     </View>
 

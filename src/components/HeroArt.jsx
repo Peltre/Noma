@@ -26,7 +26,7 @@ const VB_H = 150;
 // ser el mismo en cada pintada.
 const STARS = [
     [34, 26, 0.9, 0.32], [96, 16, 1.0, 0.26], [142, 34, 0.85, 0.36],
-    [196, 14, 0.75, 0.28], [246, 66, 1.1, 0.22], [158, 78, 0.8, 0.28],
+    [236, 20, 0.75, 0.28], [254, 78, 1.1, 0.22], [150, 92, 0.8, 0.28],
     [20, 62, 0.9, 0.24], [68, 48, 0.7, 0.22], [118, 60, 0.75, 0.2],
 ];
 
@@ -63,7 +63,9 @@ export default function HeroArt({ width, height, theme }) {
                 </LinearGradient>
             </Defs>
 
-            {/* Arriba a la derecha: donde no están ni el saludo ni el balance.
+            {/* En diagonal desde el saludo hacia abajo a la derecha, a la
+                altura del balance y con aire respecto al engrane de ajustes
+                (esquina superior derecha).
                 La luna es un disco SÓLIDO, no un degradado. El borde
                 desvanecido la hacía leer como mancha, y de paso se fundía
                 con el halo: no se distinguía dónde acababa el cuerpo y
@@ -73,8 +75,8 @@ export default function HeroArt({ width, height, theme }) {
                 superior. Ojo si se sube de nuevo: el kebab de ajustes vive
                 por ahí (~x 250 en estas coordenadas) y es ink a 0.85, así
                 que sobre la luna desaparecería. */}
-            <Circle cx="224" cy="34" r="74" fill="url(#heroHalo)" />
-            <Circle cx="226" cy="36" r="11" fill={theme.ink} opacity={0.82} />
+            <Circle cx="188" cy="44" r="74" fill="url(#heroHalo)" />
+            <Circle cx="190" cy="44" r="11" fill={theme.ink} opacity={0.82} />
 
             <G fill={theme.ink}>
                 {STARS.map(([cx, cy, r, op], i) => (

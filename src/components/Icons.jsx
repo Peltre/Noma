@@ -456,6 +456,19 @@ export function IconGoal({ color, size = IconSize.lg }) {
     );
 }
 
+// Ajustes: engrane RELLENO (la única silueta sólida del set fuera de
+// la tab bar). A 16 px un engrane en contorno se empasta; lleno se lee.
+export function IconGear({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Path
+                fill={color}
+                d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.4a.6.6 0 0 0-.7-.3l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.7 2h-3.4a.6.6 0 0 0-.6.5l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1a.6.6 0 0 0-.7.3l-2 3.4a.6.6 0 0 0 .1.7L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.4a.6.6 0 0 0 .7.3l2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.5h3.4a.6.6 0 0 0 .6-.5l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.3l2-3.4a.6.6 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+            />
+        </Svg>
+    );
+}
+
 export function IconCardAdd({ color, bgColor, size = IconSize.lg }) {
     return (
         <Svg {...svg(size)}>
