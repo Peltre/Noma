@@ -5,7 +5,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useTheme } from '../store/useTheme';
 
-export function LogoMark({ size = 96 }) {
+function LogoMark({ size = 96 }) {
     const { theme } = useTheme();
     return (
         <Svg width={size} height={size} viewBox="0 0 96 96">

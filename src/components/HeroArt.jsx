@@ -71,10 +71,9 @@ export default function HeroArt({ width, height, theme }) {
                 con el halo: no se distinguía dónde acababa el cuerpo y
                 empezaba la luz. Con canto duro, el halo por fin se lee
                 como resplandor alrededor de algo.
-                cy pasó de 22 a 36 porque a r=11 quedaba pegada al borde
-                superior. Ojo si se sube de nuevo: el kebab de ajustes vive
-                por ahí (~x 250 en estas coordenadas) y es ink a 0.85, así
-                que sobre la luna desaparecería. */}
+                Ojo si se sube: el engrane de ajustes vive en la esquina
+                superior derecha (~x 250) y es ink al 85 %, así que sobre la
+                luna desaparecería. */}
             <Circle cx="188" cy="44" r="74" fill="url(#heroHalo)" />
             <Circle cx="190" cy="44" r="11" fill={theme.ink} opacity={0.82} />
 

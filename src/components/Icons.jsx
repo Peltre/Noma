@@ -265,15 +265,6 @@ export function IconLock({ color, size = IconSize.xs }) {
     );
 }
 
-export function IconSparkle({ color, size = IconSize.lg }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M12 3.2c0 4.8 2.4 7.2 7.2 7.2-4.8 0-7.2 2.4-7.2 7.2 0-4.8-2.4-7.2-7.2-7.2 4.8 0 7.2-2.4 7.2-7.2Z" {...line(size, color)} />
-            <Path d="M18.4 16.4c0 2-1 3-3 3 2 0 3 1 3 3 0-2 1-3 3-3-2 0-3-1-3-3Z" {...line(size, color)} />
-        </Svg>
-    );
-}
-
 export function IconSwap({ color, size = IconSize.md }) {
     return (
         <Svg {...svg(size)}>
@@ -317,17 +308,6 @@ export function IconCurrency({ color, size = IconSize.md }) {
             <Circle cx="12" cy="12" r="9" {...line(size, color)} />
             <Path d="M14.8 9.2a3 3 0 0 0-2.8-1.8c-1.7 0-3 1-3 2.4 0 3.2 6 1.6 6 4.8 0 1.4-1.3 2.4-3 2.4a3 3 0 0 1-2.8-1.8" {...line(size, color)} />
             <Path d="M12 6v12" {...line(size, color)} />
-        </Svg>
-    );
-}
-
-// ── Instrumentos ────────────────────────────────────────────────
-export function IconCash({ color, size = IconSize.lg }) {
-    return (
-        <Svg {...svg(size)}>
-            <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} {...line(size, color)} />
-            <Circle cx="12" cy="12" r="3" {...line(size, color)} />
-            <Path d="M5.6 8.4h.1M18.4 15.6h.1" {...line(size, color)} />
         </Svg>
     );
 }
@@ -495,16 +475,6 @@ export function IconReceipt({ color, size = IconSize.lg }) {
         <Svg {...svg(size)}>
             <Path d="M4.5 3.4h15v17.2l-2.5-1.6-2.5 1.6-2.5-1.6-2.5 1.6-2.5-1.6-2.5 1.6V3.4Z" {...line(size, color)} />
             <Path d="M8.6 8.4h6.8M8.6 12.4h4.6" {...line(size, color)} />
-        </Svg>
-    );
-}
-
-export function IconDocument({ color, size = IconSize.lg }) {
-    return (
-        <Svg {...svg(size)}>
-            <Path d="M13.4 2.6H7a2.4 2.4 0 0 0-2.4 2.4v14a2.4 2.4 0 0 0 2.4 2.4h10a2.4 2.4 0 0 0 2.4-2.4V8.6l-6-6Z" {...line(size, color)} />
-            <Path d="M13.4 2.6v6h6" {...line(size, color)} />
-            <Path d="M8.6 13.4h6.8M8.6 17h4.6" {...line(size, color)} />
         </Svg>
     );
 }

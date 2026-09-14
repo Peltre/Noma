@@ -45,7 +45,7 @@ export function ColorPicker({ selected, onSelect }) {
 }
 
 // Colored circle dot used in cards and chips
-export function AccountDot({ color, size = 40 }) {
+function AccountDot({ color, size = 40 }) {
     return (
         <View
             style={{
@@ -61,7 +61,7 @@ export function AccountDot({ color, size = 40 }) {
 // Pick which real débito/efectivo account an apartado is linked to.
 // Shows how much of each is currently free, so the choice already
 // carries the info that decides how much can be earmarked.
-export function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
+function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const linkable = accounts.filter((a) => LINKABLE_TYPES.includes(a.type));
@@ -111,7 +111,7 @@ const EMPTY_INTEREST = { enabled: false, rate: '', cap: '', rateAboveCap: '' };
 
 // Rate/cap fields for "this apartado grows on its own" — shared
 // between creation and editing so both stay in sync.
-export function InterestFields({ value, onChange }) {
+function InterestFields({ value, onChange }) {
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const hasCap = parseFloat(value.cap) > 0;
