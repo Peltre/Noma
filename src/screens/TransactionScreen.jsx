@@ -30,6 +30,7 @@ import { AccentProvider } from '../store/useAccent';
 import DecimalInput from '../components/DecimalInput';
 import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
 import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard } from '../components/ui';
+import AppBackground from '../components/AppBackground';
 
 // Type accents: the two fixed-meaning colors (moneyOut/moneyIn) plus
 // transfer's own token. No 'withdrawal' entry here — a plain retiro
@@ -234,6 +235,9 @@ export default function TransactionScreen() {
         // y turquesa es "ingreso".
         <AccentProvider color={cur.color} on={cur.on}>
             <View style={styles.root}>
+                {/* Fondo propio: la pantalla sube desde abajo y, siendo
+                transparente, mostraba Inicio detrás mientras llegaba. */}
+                <AppBackground />
 
                 {/* ── Hero — type + amount ── */}
                 <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>

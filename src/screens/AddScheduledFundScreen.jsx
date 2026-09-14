@@ -21,6 +21,7 @@ import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
 import { ScreenHeader, Field, FieldLabel, Pill, Button, fieldSurface } from '../components/ui';
 import createAddScheduledFundStyles from './AddScheduledFundScreen.styles';
+import AppBackground from '../components/AppBackground';
 
 const FREQUENCIES = [
     { key: 'weekly', label: 'Semanal' },
@@ -114,6 +115,9 @@ export default function AddScheduledFundScreen() {
 
     return (
         <View style={styles.safeArea}>
+            {/* Fondo propio: la pantalla sube desde abajo y, siendo
+                transparente, mostraba Inicio detrás mientras llegaba. */}
+            <AppBackground />
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <ScreenHeader
                     title={isEdit ? 'Editar fondo' : 'Nuevo fondo'}

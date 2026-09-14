@@ -119,7 +119,7 @@ export default function CurvedTabBar({ state, descriptors, navigation }) {
             <TouchableOpacity
                 style={[styles.fab, styles.fabFloating, { backgroundColor: theme.brand, bottom: totalHeight - (56 - FAB_POKE) }]}
                 activeOpacity={0.85}
-                onPress={() => navigation.navigate('HomeTab', { screen: 'AddTransaction' })}
+                onPress={() => navigation.navigate('AddTransaction')}
             >
                 <IconPlus color={theme.brandOn} size={26} />
             </TouchableOpacity>

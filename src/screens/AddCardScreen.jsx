@@ -14,6 +14,7 @@ import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
 import ColorPicker from 'react-native-wheel-color-picker';
 import { ScreenHeader, Field, FieldLabel, Pill, Button, Money, fieldSurface } from '../components/ui';
+import AppBackground from '../components/AppBackground';
 
 export default function AddCardScreen() {
     const navigation = useNavigation();
@@ -173,6 +174,9 @@ export default function AddCardScreen() {
 
     return (
         <View style={styles.safeArea}>
+            {/* Fondo propio: la pantalla sube desde abajo y, siendo
+                transparente, mostraba Inicio detrás mientras llegaba. */}
+            <AppBackground />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={!pickerActive}
