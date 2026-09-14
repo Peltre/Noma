@@ -58,10 +58,10 @@ function getTypeConfig(theme, type, category) {
     // Interest is a real income transaction but app-generated, so it
     // gets the same `savings` accent as everywhere else interest shows up.
     if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };
-    // A goal purchase is really `type: 'expense'` underneath (see
-    // useFinanceStore's addTransactionsBatch), but it's money already
-    // set aside, not a new outflow — same savings accent as Interés,
-    // so it doesn't read (icon or amount) as a plain Gasto.
+    // "Objetivo cumplido" es un gasto normal por debajo (ver
+    // handleRedeemGoal en SavingsScreen), pero es dinero que ya estaba
+    // apartado, no una salida nueva: mismo acento que Interés para que
+    // no se lea como un Gasto más.
     if (category === 'goal') return { Icon: IconGoal, bg: theme.savingsSoft, fg: theme.savings, label: 'Objetivo cumplido' };
     if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
     if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };

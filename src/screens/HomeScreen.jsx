@@ -230,9 +230,9 @@ export default function HomeScreen() {
                     heroHeader y heroBalance traen zIndex:1, así que el
                     texto queda encima sin más ajustes, y el overflow
                     hidden de GlassCard recorta el arte a las esquinas.
-                    HeroArt necesita medidas en píxeles, no '100%' — ver
-                    la nota en NightSkyArt.jsx sobre por qué react-native-svg
-                    no estira un Svg porcentual contra un padre flex. */}
+                    HeroArt necesita medidas en píxeles, no '100%':
+                    react-native-svg no estira un Svg porcentual contra un
+                    padre flex, por eso se mide con onLayout. */}
                 <GlassCard style={styles.heroCard}>
                     <View
                         style={StyleSheet.absoluteFill}
@@ -282,9 +282,7 @@ export default function HomeScreen() {
                                 competía con el cielo de detrás, que ya es la
                                 identidad de la pantalla. Un blanco liso lee
                                 como luz de luna y deja que la decoración sea
-                                la decoración.
-                                LiveAmount.jsx sigue en el repo por si se
-                                retoma. */}
+                                la decoración. */}
                             <Money value={totalBalance} size={FontSize.hero} />
                             {hasTrend && (
                                 <View

@@ -149,46 +149,6 @@ export default function createHomeStyles(theme) {
             marginTop: 1,
         },
 
-        // Allocation bar
-        // Sangra 8px más que las secciones (xl en vez de lg) a
-        // propósito: es lo único de Inicio que no vive dentro de una
-        // tarjeta, y ese aire extra es lo que la separa del héroe de
-        // arriba en vez de dejarla pegada a su canto.
-        alloc: {
-            paddingHorizontal: Spacing.xl,
-            paddingBottom: Spacing.md,
-        },
-        allocBar: {
-            height: 9,
-            borderRadius: 5,
-            overflow: 'hidden',
-            flexDirection: 'row',
-            backgroundColor: theme.border,
-        },
-        allocLegend: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            paddingTop: Spacing.sm + 1,
-        },
-        allocItem: { flex: 1 },
-        allocLabelRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-        },
-        allocDot: {
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-        },
-        allocLabel: {
-            fontSize: FontSize.xs - 1.5,
-            fontWeight: '700',
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-            color: theme.inkMid,
-        },
-        allocValue: { marginTop: 3 },
 
         // Credit card — GlassCard supplies background/border.
         metaText: {

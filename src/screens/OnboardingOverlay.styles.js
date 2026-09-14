@@ -89,9 +89,5 @@ export default function createOnboardingStyles(theme) {
         miniCardsStack: { height: 130, position: 'relative' },
         miniFaceScale: { position: 'absolute', left: 0, right: 0, transform: [{ scale: 0.74 }], transformOrigin: 'top' },
         miniCardsNote: { color: theme.moneyOut, fontWeight: '700', textAlign: 'center', marginTop: 4 },
-        miniFace: { borderRadius: Radius.xs, padding: 8, height: 44 },
-        miniFaceText: { fontSize: 10, fontWeight: '700', color: theme.brandOn },
-        miniFaceTag: { fontSize: 7, fontWeight: '700', color: theme.brandOn, opacity: 0.8 },
-        miniFaceTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.25)', marginTop: 4, overflow: 'hidden' },
     });
 }

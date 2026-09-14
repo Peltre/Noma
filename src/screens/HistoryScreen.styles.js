@@ -3,9 +3,6 @@
 // campo de periodo, la tarjeta de KPIs, la fila de movimiento y el
 // detalle dentro de la hoja.
 //
-// HistorySheet.styles.js ya no existe: su marco (backdrop, panel,
-// handle, botones) lo pone Sheet, y lo que quedaba —la lista de
-// detalle y las etiquetas— vive aquí abajo con prefijo sheet*/detail*.
 import { StyleSheet } from 'react-native';
 import { FontSize, Spacing, Radius, Shadow } from '../constants';
 
