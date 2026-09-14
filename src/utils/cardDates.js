@@ -7,12 +7,12 @@
 import { startOfDay, differenceInCalendarDays, getDaysInMonth, addMonths } from 'date-fns';
 
 // Umbral de "urge": corte o pago límite dentro de este número de días.
-export const URGENT_DAYS = 5;
+const URGENT_DAYS = 5;
 
 // Próxima fecha (hoy incluido) en la que el mes tiene ese día. Si el
 // mes no llega (corte día 31 en febrero), se toma el último día del mes,
 // que es lo que hacen los bancos.
-export function nextOccurrenceOfDay(day, from = new Date()) {
+function nextOccurrenceOfDay(day, from = new Date()) {
     const d = parseInt(day, 10);
     if (!d || d < 1) return null;
     const today = startOfDay(from);
@@ -27,7 +27,7 @@ export function nextOccurrenceOfDay(day, from = new Date()) {
 }
 
 // Días que faltan para el próximo día `day`. 0 = hoy. null si no hay día.
-export function daysUntilDay(day, from = new Date()) {
+function daysUntilDay(day, from = new Date()) {
     const next = nextOccurrenceOfDay(day, from);
     return next ? differenceInCalendarDays(next, startOfDay(from)) : null;
 }

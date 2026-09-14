@@ -9,7 +9,7 @@ import {
     IconTagEducation, IconTagOther,
 } from '../components/Icons';
 
-export const TAG_ICONS = {
+const TAG_ICONS = {
     food: IconTagFood,
     transport: IconTagTransport,
     supermarket: IconTagCart,

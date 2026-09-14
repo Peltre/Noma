@@ -50,7 +50,7 @@ export const FontSize = {
 // Typography.js lo usa para saber qué familia es suya y qué es de un
 // tercero; con una sola familia ya no puede distinguir display de UI
 // por el nombre.
-export const FONT_FAMILY_PREFIX = 'BricolageGrotesque';
+const FONT_FAMILY_PREFIX = 'BricolageGrotesque';
 
 // Cómo nombra los archivos el paquete de @expo-google-fonts: peso +
 // sufijo, unidos al prefijo con guion bajo. Casi todas las familias de
@@ -85,19 +85,6 @@ export const FONT_FILE_NAMES = Object.keys(WEIGHT_SUFFIX).map(file);
 // Las claves 'normal' y 'bold' están porque React Native acepta esos
 // dos alias además de los números, y algún componente de terceros los
 // manda así. Sin ellas caerían al fallback de 400.
-export const UI_FAMILY_BY_WEIGHT = {
-    '300': file(300),
-    '400': file(400),
-    normal: file(400),
-    '500': file(500),
-    '600': file(600),
-    '700': file(700),
-    bold: file(700),
-    '800': file(800),
-    // La app pide 900 en dos sitios y Bricolage no lo tiene: se sirve el
-    // más pesado que existe en vez de caer a la fuente del sistema.
-    '900': file(800),
-};
 
 // Display: los montos y titulares. Todo sube un escalón respecto al
 // mapa de arriba y el tope se planta en 800, que es donde Bricolage

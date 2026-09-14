@@ -12,7 +12,7 @@
 // category, e.g. cajero) isn't offered anywhere in the app on
 // purpose — see TransactionScreen.jsx's getTypes() for why.
 
-export const CATEGORIES = {
+const CATEGORIES = {
     expense: [
         { id: 'food', label: 'Comida' },
         { id: 'transport', label: 'Transporte' },
