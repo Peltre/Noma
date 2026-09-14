@@ -78,13 +78,10 @@ export function useFinanceStore() {
         return newAccount;
     };
 
-    // Batch version of addAccount for onboarding (several debit
-    // accounts at once). addAccount reads `accounts` by closure, so
-    // looping it would have every call build off the same pre-loop
-    // snapshot and lose every account but the last. This builds the
-    // whole array in one pass and saves once. Also gives each account
-    // a unique id (`${Date.now()}_i`) instead of relying on
-    // Date.now() alone, which can collide across fast back-to-back calls.
+    // Varias cuentas de débito en una sola escritura (onboarding). Un
+    // loop de addAccount perdería todas menos la última: cada llamada
+    // lee `accounts` del mismo closure. Ids únicos por índice porque
+    // Date.now() puede repetirse entre llamadas seguidas.
     // `base` permite encadenar sobre un estado ya modificado en la misma
     // pasada (ver setupInitialAccounts): dos escrituras seguidas desde el
     // mismo closure se pisarían entre sí.
@@ -246,64 +243,6 @@ export function useFinanceStore() {
         }
 
         return newTransaction;
-    };
-
-    // Batch version of addTransaction for goal redemption (several
-    // plain expenses, one per account, applied together). Looping
-    // addTransaction has every call read the same pre-loop snapshot,
-    // so only the last one sticks. This validates every entry first
-    // (checked cumulatively per account) and only applies anything
-    // once all of them pass — no partial redemption.
-    const addTransactionsBatch = async (list) => {
-        if (!list.length) return { transactions: [], accounts, error: null };
-
-        const runningBalance = {};
-        for (let i = 0; i < list.length; i++) {
-            const t = list[i];
-            if (!t.amount || t.amount <= 0) {
-                return { error: 'El monto debe ser mayor a cero.', index: i };
-            }
-            const amount = round2(t.amount);
-            if (!(t.accountId in runningBalance)) {
-                const account = accounts.find(a => a.id === t.accountId);
-                runningBalance[t.accountId] = account ? account.balance : null;
-            }
-            const current = runningBalance[t.accountId];
-            if (current == null) {
-                return { error: 'Cuenta no encontrada.', index: i };
-            }
-            if (current - amount < 0) {
-                const account = accounts.find(a => a.id === t.accountId);
-                return { error: `${account.name} solo tiene ${current.toFixed(2)} disponibles.`, index: i };
-            }
-            runningBalance[t.accountId] = round2(current - amount);
-        }
-
-        let updatedAccounts = accounts;
-        const newTransactions = list.map((t, i) => {
-            const amount = round2(t.amount);
-            updatedAccounts = updatedAccounts.map(acc =>
-                acc.id === t.accountId
-                    ? { ...acc, balance: round2(acc.balance - amount) }
-                    : acc
-            );
-            return {
-                id: `${Date.now()}_${i}`,
-                date: new Date().toISOString(),
-                type: 'expense',
-                amount,
-                reason: t.reason,
-                category: t.category || null,
-                accountId: t.accountId,
-                creditCardId: null,
-            };
-        });
-        const updatedTransactions = [...newTransactions, ...transactions];
-        setAccounts(updatedAccounts);
-        setTransactions(updatedTransactions);
-        await saveData(KEYS.accounts, updatedAccounts);
-        await saveData(KEYS.transactions, updatedTransactions);
-        return { transactions: newTransactions, accounts: updatedAccounts, error: null };
     };
 
     const deleteTransaction = async (txnId) => {
@@ -523,7 +462,6 @@ export function useFinanceStore() {
         return result;
     };
 
-    // Onboarding only — sets starting balances directly, no transactions.
     // Onboarding: saldo de efectivo + tarjetas de débito en UNA escritura.
     // Antes eran setInitialBalances y luego addAccountsBatch, y la
     // segunda pisaba a la primera (ambas leen `accounts` del mismo
@@ -535,14 +473,6 @@ export function useFinanceStore() {
         return addAccountsBatch(debitCards, withCash);
     };
 
-    const setInitialBalances = async (balances) => {
-        const updated = accounts.map(acc => {
-            const found = balances.find(b => b.accountId === acc.id);
-            return found ? { ...acc, balance: Math.max(0, round2(found.balance)) } : acc;
-        });
-        setAccounts(updated);
-        await saveData(KEYS.accounts, updated);
-    }
 
     // Batch version for crediting interest on several apartados at
     // once (called by FinanceContext's accrual effect) — same
@@ -612,24 +542,21 @@ export function useFinanceStore() {
         totalBalance,
         totalDebt,
         isLoading,
-        // Actions
+        // Actions. Los mutadores de bajo nivel (updateAccountBalance,
+        // updateCreditCardDebt, payCreditCard, addAccountsBatch) NO se
+        // exponen: toda entrada/salida de dinero pasa por una transacción
+        // y sus validaciones.
         addTransaction,
-        addTransactionsBatch,
         updateTransaction,
         deleteTransaction,
         addCreditCard,
         updateCreditCard,
         deleteCreditCard,
-        updateCreditCardDebt,
-        payCreditCard,
         payCardWithTransaction,
-        updateAccountBalance,
         addAccount,
-        addAccountsBatch,
         updateAccountDetails,
         deleteAccount,
         resetAll,
-        setInitialBalances,
         setupInitialAccounts,
         convertAllAmounts,
         creditInterestBatch,

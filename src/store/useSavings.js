@@ -345,7 +345,7 @@ export function useSavings(accounts = []) {
     // Editing rate/cap while already enabled does NOT reset the clock.
     // Editar un apartado: nombre, color e interés en una sola llamada.
     // `name` y `color` son opcionales; si no vienen, se conservan.
-    const updateSavingsAccountInterest = async (savingsAccountId, { enabled, rate, cap, rateAboveCap, name, color }) => {
+    const updateSavingsAccount = async (savingsAccountId, { enabled, rate, cap, rateAboveCap, name, color }) => {
         const sa = savingsAccounts.find((a) => a.id === savingsAccountId);
         if (!sa) return { error: 'No se encontró el apartado.' };
         if (name !== undefined && !String(name).trim()) {
@@ -602,8 +602,7 @@ export function useSavings(accounts = []) {
         // Interest
         computeAccruedInterest,
         getEstimatedMonthlyInterest,
-        updateSavingsAccountInterest,
-        updateSavingsAccount: updateSavingsAccountInterest,
+        updateSavingsAccount,
         creditInterestBatch,
         // Goals
         addSavingsGoal,

@@ -52,39 +52,6 @@ export function FinanceProvider({ children }) {
         return result;
     };
 
-    // Same idea as addTransaction above, but for a batch touching
-    // several accounts at once (e.g. SavingsScreen redeeming a goal
-    // funded from multiple apartados) — returns `savingsWarnings`
-    // (plural), one per newly-at-risk account. Reads "after" straight
-    // from the batch's own returned accounts array, not
-    // financeStore.accounts, which won't reflect the change until
-    // the next render.
-    const addTransactionsBatch = async (list) => {
-        const uniqueAccountIds = [...new Set(list.map(t => t.accountId).filter(Boolean))];
-        const deficitsBefore = {};
-        uniqueAccountIds.forEach(id => {
-            deficitsBefore[id] = savingsStore.getAccountDeficit(id).deficit;
-        });
-
-        const result = await financeStore.addTransactionsBatch(list);
-        if (result.error) return result;
-
-        const savingsWarnings = [];
-        uniqueAccountIds.forEach(id => {
-            const account = result.accounts.find(a => a.id === id);
-            if (!account) return;
-            const deficitAfter = savingsStore.getAccountDeficit(id, account.balance).deficit;
-            if (deficitAfter > deficitsBefore[id]) {
-                savingsWarnings.push({
-                    accountName: account.name,
-                    newlyAtRisk: round2(deficitAfter - deficitsBefore[id]),
-                });
-            }
-        });
-
-        return { ...result, savingsWarnings };
-    };
-
     // Same wrapping as addTransaction — a card payment is a single-account withdrawal.
     const payCardWithTransaction = async (payload) => {
         const account = payload.accountId
@@ -208,7 +175,6 @@ export function FinanceProvider({ children }) {
             ...savingsStore,
             ...tagsStore,
             addTransaction,
-            addTransactionsBatch,
             payCardWithTransaction,
             deleteAccount,
             changeCurrency,
