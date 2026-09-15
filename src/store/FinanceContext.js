@@ -11,38 +11,51 @@ import { useSavingsStore, computeAccruedInterest } from './savingsStore';
 import { useFundsStore, getFundStatus, selectPendingFunds } from './fundsStore';
 import { useTagsStore } from './tagsStore';
 import { useSettingsStore } from './settingsStore';
-import { round2 } from '../utils/formatCurrency';
 import { fetchExchangeRate } from '../utils/exchangeRate';
 
 const FinanceContext = createContext(null);
 
 // ── Acciones compuestas ──
 
-// Envuelve una salida de dinero: si el movimiento se come dinero que un
-// apartado u objetivo de esa cuenta reclamaba, devuelve `savingsWarning`
-// con cuánto quedó en riesgo. Compara el déficit justo antes y justo
-// después, así sólo avisa por ESTE movimiento.
-async function withSavingsWarning(accountId, run) {
-    const account = accountId ? useMoneyStore.getState().accounts.find((a) => a.id === accountId) : null;
-    const { getAccountDeficit } = useSavingsStore.getState();
-    const before = account ? getAccountDeficit(account.id).deficit : 0;
-
+// Después de cualquier cosa que baje un saldo, lo apartado de esa
+// tarjeta tiene que seguir cabiendo en ella. `reconcileAccount` recorta
+// lo que sobre (primero lo libre, luego los objetivos a prorrata) y
+// devuelve qué se tocó, para avisarlo.
+//
+// Las cuentas a revisar salen del movimiento: la de origen, y en un
+// traspaso también la destino (borrar o encoger un traspaso baja el
+// saldo del otro lado).
+async function withReconcile(accountIds, run) {
     const result = await run();
-    if (result?.error || !account) return result;
+    if (result?.error) return result;
 
-    const after = getAccountDeficit(account.id).deficit;
-    return after > before
-        ? { ...result, savingsWarning: { accountName: account.name, newlyAtRisk: round2(after - before) } }
-        : result;
+    const { reconcileAccount } = useSavingsStore.getState();
+    const { accounts } = useMoneyStore.getState();
+    const adjustments = [];
+    for (const id of new Set(accountIds.filter(Boolean))) {
+        const trimmed = reconcileAccount(id);
+        if (trimmed) {
+            adjustments.push({ ...trimmed, accountName: accounts.find((a) => a.id === id)?.name ?? '' });
+        }
+    }
+    return adjustments.length ? { ...result, savingsAdjusted: adjustments } : result;
 }
 
-const addTransaction = (txn) => {
-    const isOutflow = txn.type === 'expense' || txn.type === 'withdrawal' || txn.type === 'transfer';
-    return withSavingsWarning(isOutflow ? txn.accountId : null, () => useMoneyStore.getState().addTransaction(txn));
+const addTransaction = (txn) =>
+    withReconcile([txn.accountId, txn.toAccountId], () => useMoneyStore.getState().addTransaction(txn));
+
+const updateTransaction = (txnId, changes) => {
+    const txn = useMoneyStore.getState().transactions.find((t) => t.id === txnId);
+    return withReconcile([txn?.accountId, txn?.toAccountId], () => useMoneyStore.getState().updateTransaction(txnId, changes));
+};
+
+const deleteTransaction = (txnId) => {
+    const txn = useMoneyStore.getState().transactions.find((t) => t.id === txnId);
+    return withReconcile([txn?.accountId, txn?.toAccountId], () => useMoneyStore.getState().deleteTransaction(txnId));
 };
 
 const payCardWithTransaction = (payload) =>
-    withSavingsWarning(payload.accountId, () => useMoneyStore.getState().payCardWithTransaction(payload));
+    withReconcile([payload.accountId], () => useMoneyStore.getState().payCardWithTransaction(payload));
 
 // Borrar una tarjeta débito exige que no le cuelgue nada: apartados,
 // objetivos directos. Los fondos programados que apuntaban a ella
@@ -141,8 +154,8 @@ export function useFinance() {
         creditCards: money.creditCards,
         totalBalance: selectTotalBalance(money),
         addTransaction,
-        updateTransaction: money.updateTransaction,
-        deleteTransaction: money.deleteTransaction,
+        updateTransaction,
+        deleteTransaction,
         payCardWithTransaction,
         addAccount: money.addAccount,
         updateAccountDetails: money.updateAccountDetails,
@@ -166,12 +179,9 @@ export function useFinance() {
         saveToGoal: savings.saveToGoal,
         takeFromGoal: savings.takeFromGoal,
         moveGoal: savings.moveGoal,
-        getAccountDeficit: savings.getAccountDeficit,
         getFreeRoom: savings.getFreeRoom,
         getApartadoFree: savings.getApartadoFree,
         getPlaceFree: savings.getPlaceFree,
-        getSavingsAccountRisk: savings.getSavingsAccountRisk,
-        getGoalRisk: savings.getGoalRisk,
         getMonthlySuggestion: savings.getMonthlySuggestion,
 
         // Fondos programados y MSI

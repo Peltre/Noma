@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { formatCurrency } from '../utils';
+import { formatCurrency, savingsAdjustedToast } from '../utils';
 import { FontSize, Spacing } from '../constants';
 import createCardsStyles from './CardsScreen.styles';
 import { useFinance } from '../store/FinanceContext';
@@ -129,12 +129,11 @@ function PayCardSheet({ card, accounts, onClose }) {
             toast.error('Fondos insuficientes', result.error);
             return;
         }
-        // Aviso, no decisión: se cierra la hoja y el toast lo explica.
-        if (result.savingsWarning) {
-            toast.info(
-                `Usaste ${formatCurrency(result.savingsWarning.newlyAtRisk)} de tu ahorro`,
-                `Ese dinero estaba apartado en ${result.savingsWarning.accountName}.`,
-            );
+        // Si el gasto se comió ahorro, la app ya ajustó los números:
+        // el toast dice qué se recortó.
+        if (result.savingsAdjusted) {
+            const notice = savingsAdjustedToast(result.savingsAdjusted, formatCurrency);
+            toast.info(notice.title, notice.detail);
         }
         onClose();
     };
@@ -192,7 +191,7 @@ function PayCardSheet({ card, accounts, onClose }) {
 function CardDetailSheet({ card, onClose, onPay, onEdit }) {
     const {
         deleteAccount, deleteCreditCard, accounts, savingsAccounts, savingsGoals,
-        deleteSavingsAccount, getFreeRoom, getApartadoFree, getSavingsAccountRisk,
+        deleteSavingsAccount, getFreeRoom, getApartadoFree,
     } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
@@ -275,7 +274,6 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
             <ApartadoSheet
                 onClose={() => setSub(null)}
                 savingsAccount={acc}
-                atRisk={getSavingsAccountRisk(acc.id).atRisk}
                 backing={{ free: getApartadoFree(acc.id), committed, total: acc.earmarkedAmount }}
                 destinos={goalsHere.map((g) => ({ goal: g, amount: g.savedAmount }))}
                 linkedAccount={accounts.find((a) => a.id === acc.linkedAccountId)}

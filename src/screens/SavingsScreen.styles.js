@@ -131,22 +131,6 @@ export default function createSavingsStyles(theme) {
 
         // Aviso de riesgo — mismo bloque en la tarjeta de total y en
         // la de objetivo: triángulo ámbar + una línea que explica.
-        riskRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.xs + 2,
-            marginTop: Spacing.md,
-            paddingTop: Spacing.sm + 2,
-            borderTopWidth: 1,
-            borderTopColor: theme.border,
-        },
-        riskText: {
-            flex: 1,
-            fontSize: FontSize.xs,
-            color: theme.moneyOut,
-            fontWeight: '600',
-            lineHeight: FontSize.xs * 1.4,
-        },
 
         // ── Fila de apartado ──
         accountsGroup: {

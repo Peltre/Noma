@@ -22,7 +22,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { FontSize, Spacing, getTagIcon, TAG_ICON_OPTIONS } from '../constants';
-import { formatCurrency } from '../utils';
+import { formatCurrency, savingsAdjustedToast } from '../utils';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme, useStyles } from '../store/useTheme';
@@ -194,13 +194,11 @@ export default function TransactionScreen() {
                 await updateScheduledFund(prefill.fundId, { accountId: selectedAccount });
             }
         }
-        // El aviso de ahorro ya no bloquea la salida: se registra, se
-        // regresa, y el toast lo explica encima de la pantalla anterior.
-        if (result.savingsWarning) {
-            toast.info(
-                `Usaste ${formatCurrency(result.savingsWarning.newlyAtRisk)} de tu ahorro`,
-                `Ese dinero estaba apartado en ${result.savingsWarning.accountName}.`,
-            );
+        // Si el gasto se comió ahorro, la app ya ajustó los números:
+        // el toast dice qué se recortó.
+        if (result.savingsAdjusted) {
+            const notice = savingsAdjustedToast(result.savingsAdjusted, formatCurrency);
+            toast.info(notice.title, notice.detail);
         }
         navigation.goBack();
     };

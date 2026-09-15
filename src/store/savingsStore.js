@@ -11,11 +11,13 @@
 // reclaman. Nada aquí toca saldos de cuentas: eso sólo lo hace una
 // transacción (moneyStore).
 //
-// ── Riesgo ──
-// Si el saldo real de una tarjeta baja de lo que sus apartados y
-// objetivos reclaman, no se corrige nada en silencio: se calcula un
-// déficit y se reparte proporcionalmente (getSavingsAccountRisk,
-// getGoalRisk).
+// ── Reconciliación ──
+// Lo apartado nunca puede sumar más que el saldo real de la tarjeta.
+// Si un gasto (o borrar un ingreso, o editar un monto) deja la tarjeta
+// por debajo, `reconcileAccount` ajusta los números para que digan la
+// verdad: primero baja lo que está apartado SIN destino, y sólo si aún
+// falta, baja los objetivos en proporción a lo que tienen. Así nunca
+// existe dinero que la app muestre pero no esté.
 import { parseISO, addDays } from 'date-fns';
 import { createPersistedStore } from './createPersistedStore';
 import { useMoneyStore } from './moneyStore';
@@ -151,22 +153,66 @@ export const useSavingsStore = createPersistedStore({
             getApartadoFree,
             getPlaceFree,
 
-            // Parte del déficit de la tarjeta que le toca a un apartado.
-            getSavingsAccountRisk: (savingsAccountId) => {
-                const sa = findSA(savingsAccountId);
-                if (!sa) return { atRisk: 0, safeAmount: 0 };
-                const { totalEarmarked, deficit } = getAccountDeficit(sa.linkedAccountId);
-                if (deficit <= 0 || totalEarmarked <= 0) return { atRisk: 0, safeAmount: sa.earmarkedAmount };
-                const atRisk = round2(deficit * (sa.earmarkedAmount / totalEarmarked));
-                return { atRisk, safeAmount: round2(sa.earmarkedAmount - atRisk) };
+            // Deja lo apartado de una tarjeta dentro de su saldo real.
+            // Devuelve qué se recortó, para poder avisarlo.
+            // Orden: primero lo libre de cada apartado (nadie lo esperaba
+            // para algo), después los objetivos, a prorrata de lo que
+            // tienen ahorrado. Se llama después de CUALQUIER cosa que
+            // baje un saldo (ver FinanceContext).
+            reconcileAccount: (accountId) => {
+                const { deficit } = getAccountDeficit(accountId);
+                if (deficit <= 0) return null;
+
+                let pending = deficit;
+                const trimmedGoals = [];
+                let nextSA = get().savingsAccounts;
+                let nextGoals = get().savingsGoals;
+
+                // Paso 1: lo apartado sin destino, apartado por apartado.
+                const mine = nextSA.filter((a) => a.linkedAccountId === accountId);
+                for (const sa of mine) {
+                    if (pending <= 0) break;
+                    const free = getApartadoFree(sa.id);
+                    if (free <= 0) continue;
+                    const cut = Math.min(free, pending);
+                    nextSA = nextSA.map((a) => (a.id === sa.id ? { ...a, earmarkedAmount: round2(a.earmarkedAmount - cut) } : a));
+                    pending = round2(pending - cut);
+                }
+
+                // Paso 2: los objetivos que viven en esta tarjeta, a prorrata.
+                if (pending > 0) {
+                    const here = nextGoals.filter((g) => g.accountId === accountId && g.savedAmount > 0);
+                    const total = round2(here.reduce((sum, g) => sum + g.savedAmount, 0));
+                    if (total > 0) {
+                        const cutFor = new Map();
+                        let assigned = 0;
+                        here.forEach((g, i) => {
+                            // El último absorbe el redondeo, para que la
+                            // suma de los recortes sea exactamente `pending`.
+                            const cut = i === here.length - 1
+                                ? round2(pending - assigned)
+                                : round2(Math.min(g.savedAmount, pending * (g.savedAmount / total)));
+                            assigned = round2(assigned + cut);
+                            cutFor.set(g.id, Math.min(cut, g.savedAmount));
+                        });
+                        // Un apartado no puede quedar por debajo de lo que
+                        // sus objetivos reclaman: baja lo mismo que ellos.
+                        const bySA = {};
+                        nextGoals = nextGoals.map((g) => {
+                            const cut = cutFor.get(g.id);
+                            if (!cut) return g;
+                            if (g.savingsAccountId) bySA[g.savingsAccountId] = round2((bySA[g.savingsAccountId] || 0) + cut);
+                            trimmedGoals.push({ name: g.name, amount: cut, left: round2(g.savedAmount - cut) });
+                            return { ...g, savedAmount: round2(g.savedAmount - cut) };
+                        });
+                        nextSA = nextSA.map((a) => (bySA[a.id] ? { ...a, earmarkedAmount: round2(Math.max(0, a.earmarkedAmount - bySA[a.id])) } : a));
+                    }
+                }
+
+                set({ savingsAccounts: nextSA, savingsGoals: nextGoals });
+                return { amount: deficit, goals: trimmedGoals };
             },
-            // Parte del déficit que le toca a un objetivo, según donde vive.
-            getGoalRisk: (goal) => {
-                if (!goal.accountId || goal.savedAmount <= 0) return 0;
-                const { totalEarmarked, deficit } = getAccountDeficit(goal.accountId);
-                if (deficit <= 0 || totalEarmarked <= 0) return 0;
-                return round2(goal.savedAmount * (deficit / totalEarmarked));
-            },
+
             getEstimatedMonthlyInterest: (savingsAccountId) => computeAccruedInterest(findSA(savingsAccountId), 30),
             getMonthlySuggestion: (goal) => {
                 if (!goal.deadline) return null;

@@ -26,7 +26,7 @@ import { FontSize, Spacing } from '../constants';
 import createSavingsStyles from './SavingsScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
-import { IconWarningTriangle, IconGoal, IconChevronRight } from '../components/Icons';
+import { IconGoal, IconChevronRight } from '../components/Icons';
 import {
     ScreenHeader, EmptyState, Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface, useToast,
 } from '../components/ui';
@@ -46,25 +46,21 @@ function resolvePlace(goal, accounts, savingsAccounts) {
 }
 
 // Los números que comparten la fila y la hoja de un objetivo.
-function describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk) {
+function describeGoal(goal, place, theme, getMonthlySuggestion) {
     const percentage = goal.targetAmount > 0
         ? Math.min(Math.round((goal.savedAmount / goal.targetAmount) * 100), 100) : 0;
     // Completo con montos reales, nunca con el porcentaje redondeado.
     const isComplete = goal.targetAmount > 0 && goal.savedAmount >= goal.targetAmount;
     const suggestion = getMonthlySuggestion(goal);
-    const atRisk = getGoalRisk(goal);
-    const riskPct = goal.targetAmount > 0 ? Math.min((atRisk / goal.targetAmount) * 100, percentage) : 0;
     const color = goal.color || place.apartado?.color || (place.account ? getAccountColor(theme, place.account) : null);
     const monthsLeft = goal.deadline ? differenceInCalendarMonths(parseISO(goal.deadline), new Date()) : null;
     const hasPlace = !!goal.accountId;
-    return { percentage, isComplete, suggestion, atRisk, riskPct, color, monthsLeft, hasPlace };
+    return { percentage, isComplete, suggestion, color, monthsLeft, hasPlace };
 }
 
-function GoalRing({ pct, riskPct, theme, color, size = 74, stroke = size >= 60 ? 5 : 3 }) {
+function GoalRing({ pct, theme, color, size = 74, stroke = size >= 60 ? 5 : 3 }) {
     const r = (size - stroke) / 2;
     const circumference = 2 * Math.PI * r;
-    const safePct = Math.max(0, pct - riskPct);
-    const dash = (p) => `${(circumference * p) / 100}, ${circumference}`;
     return (
         <Svg width={size} height={size}>
             <Circle cx={size / 2} cy={size / 2} r={r} stroke={theme.border} strokeWidth={stroke} fill="none" />
@@ -72,17 +68,9 @@ function GoalRing({ pct, riskPct, theme, color, size = 74, stroke = size >= 60 ?
                 <Circle
                     cx={size / 2} cy={size / 2} r={r}
                     stroke={color || theme.ink} strokeWidth={stroke} fill="none"
-                    strokeDasharray={dash(pct)}
-                    strokeLinecap={riskPct > 0 ? 'butt' : 'round'}
+                    strokeDasharray={`${(circumference * pct) / 100}, ${circumference}`}
+                    strokeLinecap="round"
                     transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                />
-            )}
-            {riskPct > 0 && (
-                <Circle
-                    cx={size / 2} cy={size / 2} r={r}
-                    stroke={theme.moneyOut} strokeWidth={stroke} fill="none"
-                    strokeDasharray={dash(riskPct)} strokeLinecap="butt"
-                    transform={`rotate(${-90 + safePct * 3.6} ${size / 2} ${size / 2})`}
                 />
             )}
         </Svg>
@@ -406,12 +394,12 @@ function MoveGoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree,
 }
 
 // La hoja del objetivo: explica y luego actúa.
-function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, getMonthlySuggestion, getGoalRisk, onRedeem, onDelete, onOpenApartado }) {
+function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, getMonthlySuggestion, onRedeem, onDelete, onOpenApartado }) {
     const { theme } = useTheme();
     const styles = useStyles(createSavingsStyles);
     const [sub, setSub] = useState(null); // 'save' | 'take' | 'edit' | 'move'
     const place = resolvePlace(goal, accounts, savingsAccounts);
-    const g = describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk);
+    const g = describeGoal(goal, place, theme, getMonthlySuggestion);
     const accent = g.color || theme.brand;
     const remaining = Math.max(round2(goal.targetAmount - goal.savedAmount), 0);
     const freeHere = g.hasPlace ? getPlaceFree(goal) : 0;
@@ -440,7 +428,7 @@ function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, get
             <Sheet onClose={onClose} scroll>
                 <View style={styles.goalSheetHead}>
                     <View style={styles.goalRingWrap}>
-                        <GoalRing pct={g.percentage} riskPct={g.riskPct} theme={theme} color={g.color} size={84} />
+                        <GoalRing pct={g.percentage} theme={theme} color={g.color} size={84} />
                         <View style={styles.goalRingCenter} pointerEvents="none">
                             <Text style={[styles.goalRingPct, g.percentage >= 100 && styles.goalRingPctFull]}>{g.percentage}%</Text>
                             <Text style={styles.goalRingLabel}>{g.isComplete ? 'LISTO' : 'REUNIDO'}</Text>
@@ -462,7 +450,7 @@ function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, get
                 </View>
 
                 {!g.isComplete && (
-                    <GlassCard style={[styles.goalPaceBox, g.atRisk > 0 && { borderColor: theme.moneyOut }]}>
+                    <GlassCard style={styles.goalPaceBox}>
                         {!!g.suggestion && (
                             <View style={styles.sheetRow}>
                                 <Text style={styles.sheetRowLabel}>Para llegar a tiempo</Text>
@@ -473,14 +461,6 @@ function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, get
                             <Text style={styles.sheetRowLabel}>Faltan</Text>
                             <Text style={styles.sheetRowValue}>{formatCurrencyShort(remaining)}</Text>
                         </View>
-                        {g.atRisk > 0 && (
-                            <View style={[styles.riskRow, { marginTop: 0, paddingBottom: Spacing.sm }]}>
-                                <IconWarningTriangle color={theme.moneyOut} size={13} />
-                                <Text style={styles.riskText}>
-                                    {formatCurrencyShort(g.atRisk)} en riesgo — la tarjeta donde vive tiene menos saldo del que reclaman sus apartados y objetivos.
-                                </Text>
-                            </View>
-                        )}
                     </GlassCard>
                 )}
 
@@ -534,16 +514,16 @@ function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, get
 
 // ── Rows ─────────────────────────────────────────────────────────────
 
-function GoalRow({ goal, accounts, savingsAccounts, getMonthlySuggestion, getGoalRisk, onPress, last }) {
+function GoalRow({ goal, accounts, savingsAccounts, getMonthlySuggestion, onPress, last }) {
     const { theme } = useTheme();
     const styles = useStyles(createSavingsStyles);
     const place = resolvePlace(goal, accounts, savingsAccounts);
-    const g = describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk);
+    const g = describeGoal(goal, place, theme, getMonthlySuggestion);
 
     let sub = `${formatCurrencyShort(goal.savedAmount)} de ${formatCurrencyShort(goal.targetAmount)}`;
     if (g.isComplete) sub += ' · listo';
     else if (goal.deadline) sub += ` · ${format(parseISO(goal.deadline), 'MMM yyyy', { locale: es })}`;
-    if (!g.isComplete && g.atRisk === 0 && g.suggestion) sub += ` · ${formatCurrencyShort(g.suggestion)}/mes`;
+    if (!g.isComplete && g.suggestion) sub += ` · ${formatCurrencyShort(g.suggestion)}/mes`;
 
     return (
         <TouchableOpacity
@@ -554,7 +534,7 @@ function GoalRow({ goal, accounts, savingsAccounts, getMonthlySuggestion, getGoa
             accessibilityLabel={`${goal.name}, ${g.percentage}% reunido`}
         >
             <View style={styles.goalRowRing}>
-                <GoalRing pct={g.percentage} riskPct={g.riskPct} theme={theme} color={g.color} size={36} />
+                <GoalRing pct={g.percentage} theme={theme} color={g.color} size={36} />
                 <View style={styles.goalRowRingCenter} pointerEvents="none">
                     <Text style={[styles.goalRowPct, g.percentage >= 100 && styles.goalRowPctFull, !g.hasPlace && { color: theme.inkDim }]}>{g.percentage}%</Text>
                 </View>
@@ -563,7 +543,6 @@ function GoalRow({ goal, accounts, savingsAccounts, getMonthlySuggestion, getGoa
                 <Text style={styles.goalRowName} numberOfLines={1}>{goal.name}</Text>
                 <Text style={styles.goalRowSub} numberOfLines={1}>
                     {sub}
-                    {g.atRisk > 0 && <Text style={styles.goalRowUrgent}>  · {formatCurrencyShort(g.atRisk)} en riesgo</Text>}
                 </Text>
                 <PlaceLine place={place} theme={theme} styles={styles} />
             </View>
@@ -579,7 +558,7 @@ export default function SavingsScreen() {
         accounts, savingsAccounts, savingsGoals,
         deleteSavingsAccount, deleteSavingsGoal,
         getMonthlySuggestion, addTransaction,
-        getFreeRoom, getApartadoFree, getPlaceFree, getSavingsAccountRisk, getGoalRisk, getAccountDeficit,
+        getFreeRoom, getApartadoFree, getPlaceFree,
     } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
@@ -597,8 +576,6 @@ export default function SavingsScreen() {
     const totalSaved = round2(savingsGoals.reduce((s, g) => s + g.savedAmount, 0));
     const savedPct = totalMoney > 0 ? Math.round((totalSaved / totalMoney) * 100) : 0;
     const moneyAccounts = accounts.filter((a) => a.balance > 0 || savingsAccounts.some((s) => s.linkedAccountId === a.id));
-    // Riesgo total = déficit de cada tarjeta, una sola vez por tarjeta.
-    const totalAtRisk = round2(accounts.reduce((s, a) => s + getAccountDeficit(a.id).deficit, 0));
 
     const handleDeleteApartado = (acc) => {
         Alert.alert('Eliminar apartado', `¿Eliminar "${acc.name}"?`, [
@@ -718,14 +695,6 @@ export default function SavingsScreen() {
                         </>
                     )}
 
-                    {totalAtRisk > 0 && (
-                        <View style={styles.riskRow}>
-                            <IconWarningTriangle color={theme.moneyOut} size={13} />
-                            <Text style={styles.riskText}>
-                                {formatCurrencyShort(totalAtRisk)} en riesgo — alguna tarjeta tiene menos saldo del que reclaman sus apartados y objetivos
-                            </Text>
-                        </View>
-                    )}
                 </GlassCard>
 
                 {/* ── Objetivos ── */}
@@ -766,7 +735,6 @@ export default function SavingsScreen() {
                                     accounts={accounts}
                                     savingsAccounts={savingsAccounts}
                                     getMonthlySuggestion={getMonthlySuggestion}
-                                    getGoalRisk={getGoalRisk}
                                     last={i === savingsGoals.length - 1}
                                     onPress={() => setGoalTarget(goal)}
                                 />
@@ -794,7 +762,6 @@ export default function SavingsScreen() {
                     savingsAccounts={savingsAccounts}
                     getPlaceFree={getPlaceFree}
                     getMonthlySuggestion={getMonthlySuggestion}
-                    getGoalRisk={getGoalRisk}
                     onRedeem={handleRedeemGoal}
                     onDelete={() => deleteSavingsGoal(liveGoal.id)}
                     onOpenApartado={(sa) => { setGoalTarget(null); setApartadoTarget(sa); }}
@@ -809,7 +776,6 @@ export default function SavingsScreen() {
                     <ApartadoSheet
                         onClose={() => setApartadoTarget(null)}
                         savingsAccount={acc}
-                        atRisk={getSavingsAccountRisk(acc.id).atRisk}
                         backing={{ free: getApartadoFree(acc.id), committed, total: acc.earmarkedAmount }}
                         destinos={goalsHere.map((g) => ({ goal: g, amount: g.savedAmount }))}
                         linkedAccount={linked}

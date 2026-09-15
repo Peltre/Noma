@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { format, parseISO, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatCurrency, round2, getCardUrgency, getTxnVisual } from '../utils';
+import { formatCurrency, round2, getCardUrgency, getTxnVisual, savingsAdjustedToast } from '../utils';
 import { FontSize } from '../constants';
 import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
@@ -73,14 +73,11 @@ function MSIPaySheet({ fund, accounts, onClose }) {
         // safe second step here.
         await confirmMSI(fund.id);
         setLoading(false);
-        if (result.savingsWarning) {
-            // Aviso, no decisión: se cierra la hoja y el toast lo explica.
-            toast.info(
-                `Usaste ${formatCurrency(result.savingsWarning.newlyAtRisk)} de tu ahorro`,
-                `Ese dinero estaba apartado en ${result.savingsWarning.accountName}.`,
-            );
-            onClose();
-            return;
+        // Si el gasto se comió ahorro, la app ya ajustó los números:
+        // el toast dice qué se recortó.
+        if (result.savingsAdjusted) {
+            const notice = savingsAdjustedToast(result.savingsAdjusted, formatCurrency);
+            toast.info(notice.title, notice.detail);
         }
         onClose();
     };

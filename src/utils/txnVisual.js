@@ -34,3 +34,16 @@ export function getTxnVisual(theme, type, category) {
 // efectivo, tinta tenue si no hay nada.
 export const getAccountColor = (theme, account) =>
     account?.color || (account?.type === 'cash' ? theme.cashTone : theme.inkDim);
+
+// Un solo texto para los tres lugares donde puede pasar: "se usó
+// ahorro y esto es lo que se ajustó".
+export function savingsAdjustedToast(adjustments, formatMoney) {
+    const total = adjustments.reduce((sum, a) => sum + a.amount, 0);
+    const goals = adjustments.flatMap((a) => a.goals);
+    const detail = goals.length === 1
+        ? `${goals[0].name} bajó a ${formatMoney(goals[0].left)}.`
+        : goals.length > 1
+            ? `Se ajustaron ${goals.length} objetivos.`
+            : 'Era dinero apartado sin destino.';
+    return { title: `Usaste ${formatMoney(total)} de tu ahorro`, detail };
+}

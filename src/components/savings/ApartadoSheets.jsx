@@ -13,7 +13,7 @@ import { formatCurrencyShort, getAccountColor } from '../../utils';
 import { FontSize, Spacing } from '../../constants';
 import createApartadoStyles from './ApartadoSheets.styles';
 import DecimalInput from '../DecimalInput';
-import { IconCheck, IconWarningTriangle, IconChevronRight } from '../Icons';
+import { IconCheck, IconChevronRight } from '../Icons';
 import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface, useToast } from '../ui';
 
 // Only débito/efectivo can back an apartado — same rule useSavings.js
@@ -461,7 +461,7 @@ export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, get
 // ahora explica el apartado antes de ofrecer acciones: libre vs con
 // destino, a qué objetivos va (tocables), en qué cuenta vive y cuánto
 // queda sin apartar ahí. Toda la hoja usa el color del apartado.
-export function ApartadoSheet({ onClose, savingsAccount, backing, destinos = [], linkedAccount, linkedFree = 0, atRisk = 0, onDeposit, onWithdraw, onInterest, onDelete, onOpenGoal }) {
+export function ApartadoSheet({ onClose, savingsAccount, backing, destinos = [], linkedAccount, linkedFree = 0, onDeposit, onWithdraw, onInterest, onDelete, onOpenGoal }) {
     const { theme } = useTheme();
     const styles = useStyles(createApartadoStyles);
     if (!savingsAccount) return null;
@@ -510,14 +510,6 @@ export function ApartadoSheet({ onClose, savingsAccount, backing, destinos = [],
                     </>
                 )}
 
-                {atRisk > 0 && (
-                    <View style={styles.riskRow}>
-                        <IconWarningTriangle color={theme.moneyOut} size={13} />
-                        <Text style={styles.riskText}>
-                            {formatCurrencyShort(atRisk)} en riesgo — la cuenta ligada tiene menos saldo del que este apartado promete
-                        </Text>
-                    </View>
-                )}
 
                 {destinos.length > 0 && (
                     <>
