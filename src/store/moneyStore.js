@@ -18,6 +18,14 @@ export const useMoneyStore = createPersistedStore({
     slices: { accounts: 'accounts', transactions: 'transactions', creditCards: 'creditCards' },
     defaults: { accounts: initialAccounts, transactions: [], creditCards: [] },
 
+    // Los movimientos de interés que generaron las versiones anteriores se
+    // borran una sola vez. Los saldos NO se tocan: ese dinero se ganó de
+    // verdad y ya está en la cuenta; lo que sobra es el registro.
+    migrate: (loaded) => {
+        const clean = loaded.transactions.filter((t) => t.category !== 'interest');
+        return clean.length === loaded.transactions.length ? loaded : { ...loaded, transactions: clean };
+    },
+
     actions: (set, get) => {
         // ── Privados ──
         const bumpBalance = (accounts, accountId, delta) =>
@@ -313,24 +321,16 @@ export const useMoneyStore = createPersistedStore({
             },
 
             // ── Interés de apartados (lo llama FinanceContext al abrir la app) ──
-            // Cada crédito es un ingreso real en la cuenta ligada al apartado.
+            // Silencioso: sube el saldo real de la cuenta y ya. NO crea un
+            // movimiento. Antes generaba uno por día y por apartado, y en
+            // tres semanas el Historial era una pared de "+$1.54" que tapaba
+            // lo que la persona sí hizo. Lo ganado se ve donde importa: en
+            // la hoja del apartado ("+$286 ganados").
             creditInterest: async (credits) => {
-                if (!credits.length) return [];
-                const stamp = Date.now();
-                const newTransactions = credits.map((credit, i) => ({
-                    id: `${stamp}_int_${i}`,
-                    date: new Date().toISOString(),
-                    type: 'income',
-                    amount: round2(credit.amount),
-                    accountId: credit.accountId,
-                    category: 'interest',
-                    reason: credit.reason,
-                }));
+                if (!credits.length) return;
                 set((s) => ({
                     accounts: credits.reduce((accs, c) => bumpBalance(accs, c.accountId, c.amount), s.accounts),
-                    transactions: [...newTransactions, ...s.transactions],
                 }));
-                return newTransactions;
             },
 
             // Cambio de moneda: reescala todo por `rate`.

@@ -87,6 +87,15 @@ export default function createSavingsStyles(theme) {
         goalsHeadSub: { fontSize: FontSize.xs, color: theme.inkDim, fontWeight: '600', flexShrink: 1 },
         goalsHeadAction: { fontSize: FontSize.sm, fontWeight: '700', color: theme.brand, paddingBottom: 4 },
 
+        // Fila para crear un apartado, al pie de "Todo tu dinero".
+        newApartadoRow: {
+            marginTop: Spacing.sm,
+            paddingTop: Spacing.sm,
+            borderTopWidth: 1,
+            borderTopColor: theme.border,
+        },
+        newApartadoRowText: { fontSize: FontSize.sm, fontWeight: '700', color: theme.brand },
+
         // Ahorro en grande.
         savedStrong: { color: theme.ink, fontWeight: '800' },
 

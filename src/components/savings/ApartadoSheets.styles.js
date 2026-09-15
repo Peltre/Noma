@@ -7,6 +7,17 @@ import { FontSize, Spacing } from '../../constants';
 
 export default function createApartadoStyles(theme) {
     return StyleSheet.create({
+        // Pastilla con la tasa de un apartado, junto a su nombre.
+        ratePill: {
+            fontSize: FontSize.xs - 2,
+            fontWeight: '800',
+            color: theme.inkMid,
+            borderWidth: 1,
+            borderColor: theme.border,
+            borderRadius: 8,
+            paddingHorizontal: 5,
+            paddingVertical: 1,
+        },
         apSheetHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, marginTop: Spacing.xs },
         checkbox: {
             width: 20,

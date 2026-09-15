@@ -389,16 +389,6 @@ export function IconBanknotePlus({ color, bgColor, size = IconSize.lg }) {
     );
 }
 
-export function IconCard({ color, size = IconSize.lg }) {
-    return (
-        <Svg {...svg(size)}>
-            <Rect x="2" y="4.5" width="20" height="15" rx={R_SMALL} {...line(size, color)} />
-            <Path d="M2 9.2h20" {...line(size, color)} />
-            <Path d="M5.6 15.4h3.6" {...line(size, color)} />
-        </Svg>
-    );
-}
-
 // Pago de tarjeta: la misma tarjeta de IconCardAdd, con una palomita
 // en la esquina en vez del "+". Es el icono de la familia cardPayment
 // en Inicio, Historial y el menú de Tarjetas; IconCash queda para

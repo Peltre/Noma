@@ -98,8 +98,9 @@ async function resetEverything() {
 }
 
 // Una vez por apertura: abona el interés de cada apartado que lo tenga
-// activo, si pasó al menos un día. Primero el ingreso real en la
-// cuenta (moneyStore), luego el apartado crece lo mismo (savingsStore).
+// activo, si pasó al menos un día. Sube el saldo real de la cuenta y el
+// del apartado, sin dejar un movimiento en el Historial: es un abono de
+// la app, no algo que la persona hizo.
 async function accrueInterest() {
     const { savingsAccounts } = useSavingsStore.getState();
     const { accounts } = useMoneyStore.getState();
@@ -113,7 +114,7 @@ async function accrueInterest() {
         if (days < 1) return;
         const accrued = computeAccruedInterest(sa, days);
         savingsCredits.push({ savingsAccountId: sa.id, amount: accrued, daysElapsed: days });
-        if (accrued > 0) accountCredits.push({ accountId: sa.linkedAccountId, amount: accrued, reason: `Interés — ${sa.name}` });
+        if (accrued > 0) accountCredits.push({ accountId: sa.linkedAccountId, amount: accrued });
     });
     if (accountCredits.length) await useMoneyStore.getState().creditInterest(accountCredits);
     if (savingsCredits.length) await useSavingsStore.getState().creditInterest(savingsCredits);

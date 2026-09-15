@@ -457,6 +457,62 @@ export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, get
     );
 }
 
+// Hoja de una CUENTA vista desde Ahorros: sus apartados, lo que queda
+// sin apartar y la puerta para crear uno nuevo. Es el único lugar donde
+// se administran los apartados; Tarjetas sólo los menciona.
+export function AccountSavingsSheet({ onClose, account, apartados, freeRoom, onOpenApartado, onNew }) {
+    const { theme } = useTheme();
+    const styles = useStyles(createApartadoStyles);
+    if (!account) return null;
+    const total = apartados.reduce((sum, a) => sum + a.earmarkedAmount, 0);
+
+    return (
+        <Sheet onClose={onClose} scroll>
+            <View style={styles.apSheetHead}>
+                <View style={[styles.legendDot, { width: 12, height: 12, borderRadius: 3, backgroundColor: getAccountColor(theme, account) }]} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.goalSheetName} numberOfLines={1}>{account.name}</Text>
+                    <Text style={styles.goalDeadline}>
+                        {apartados.length === 0
+                            ? 'Sin apartados todavía'
+                            : `${apartados.length} ${apartados.length === 1 ? 'apartado' : 'apartados'} · ${formatCurrencyShort(total)}`}
+                    </Text>
+                </View>
+                <Money value={account.balance} size={FontSize.xl} color={theme.ink} decimals={false} />
+            </View>
+
+            <FieldLabel>Apartados</FieldLabel>
+            <GlassCard style={styles.sheetGroup}>
+                {apartados.map((a, i) => (
+                    <TouchableOpacity
+                        key={a.id}
+                        style={[styles.sheetRow, i > 0 && styles.sheetRowBorder]}
+                        onPress={() => onOpenApartado(a)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Apartado ${a.name}`}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, minWidth: 0 }}>
+                            <View style={[styles.legendDot, { backgroundColor: a.color }]} />
+                            <Text style={styles.sheetRowText} numberOfLines={1}>{a.name}</Text>
+                            {a.interest?.enabled && <Text style={styles.ratePill}>{a.interest.rate}%</Text>}
+                        </View>
+                        <Money value={a.earmarkedAmount} size={FontSize.sm} color={theme.ink} decimals={false} />
+                        <IconChevronRight color={theme.inkDim} size={13} />
+                    </TouchableOpacity>
+                ))}
+                <View style={[styles.sheetRow, apartados.length > 0 && styles.sheetRowBorder]}>
+                    <Text style={styles.sheetRowLabel}>Sin apartar</Text>
+                    <Money value={freeRoom} size={FontSize.sm} color={theme.inkMid} decimals={false} />
+                </View>
+            </GlassCard>
+
+            <View style={styles.sheetBtns}>
+                <Button label={`+ Nuevo apartado en ${account.name}`} onPress={onNew} />
+            </View>
+        </Sheet>
+    );
+}
+
 // Hoja de un apartado. Antes abría sólo un menú de cuatro botones;
 // ahora explica el apartado antes de ofrecer acciones: libre vs con
 // destino, a qué objetivos va (tocables), en qué cuenta vive y cuánto

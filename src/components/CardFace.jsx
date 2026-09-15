@@ -75,13 +75,12 @@ function Chip({ compact }) {
     );
 }
 
-// Débito vs. crédito at a glance in a mixed grid. Débito: outlined,
-// transparent. Crédito: filled white — reads as "this one costs you
-// money" without borrowing the theme's moneyOut color onto a
-// non-themed card face.
+// De un vistazo, en una rejilla mixta. Débito y efectivo: contorno,
+// transparente. Crédito: relleno blanco — se lee como "ésta te cuesta
+// dinero" sin traer el moneyOut del tema a una cara que no lo usa.
 function TypeBadge({ type, compact }) {
     const isCredit = type === 'credit';
-    const label = isCredit ? 'CRÉDITO' : 'DÉBITO';
+    const label = isCredit ? 'CRÉDITO' : type === 'cash' ? 'EFECTIVO' : 'DÉBITO';
     return (
         <View style={[styles.badge, isCredit ? styles.badgeCredit : styles.badgeDebit, compact && styles.badgeCompact]}>
             <Text style={[

@@ -31,7 +31,7 @@ import {
     ScreenHeader, EmptyState, Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface, useToast,
 } from '../components/ui';
 import {
-    ColorPicker, Toggle, AddApartadoSheet, MoveMoneySheet, EditInterestSheet, ApartadoSheet,
+    ColorPicker, Toggle, AddApartadoSheet, MoveMoneySheet, EditInterestSheet, ApartadoSheet, AccountSavingsSheet,
 } from '../components/savings/ApartadoSheets';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -569,6 +569,9 @@ export default function SavingsScreen() {
     const [breakdown, setBreakdown] = useState('general');
     const [goalTarget, setGoalTarget] = useState(null);
     const [apartadoTarget, setApartadoTarget] = useState(null);
+    // Cuenta abierta en su hoja: sus apartados y la puerta para crear uno.
+    const [accountTarget, setAccountTarget] = useState(null);
+    const [addApartadoIn, setAddApartadoIn] = useState(null);
     const [moveMoneyTarget, setMoveMoneyTarget] = useState(null);
     const [editInterestTarget, setEditInterestTarget] = useState(null);
 
@@ -660,14 +663,19 @@ export default function SavingsScreen() {
                                 const free = getFreeRoom(a.id);
                                 return (
                                     <View key={a.id} style={styles.acctBlock}>
-                                        <View style={styles.acctRow}>
+                                        <TouchableOpacity
+                                            style={styles.acctRow}
+                                            onPress={() => setAccountTarget(a)}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`Apartados de ${a.name}`}
+                                        >
                                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
                                                 <View style={[styles.legendDot, { backgroundColor: getAccountColor(theme, a) }]} />
                                                 <Text style={styles.acctName} numberOfLines={1}>{a.name}</Text>
                                             </View>
                                             <Money value={a.balance} size={FontSize.sm} color={theme.ink} decimals={false} />
                                             <Text style={styles.acctPct}>{Math.round((a.balance / totalMoney) * 100)}%</Text>
-                                        </View>
+                                        </TouchableOpacity>
                                         {breakdown === 'detalle' && mine.length > 0 && (
                                             <View style={styles.acctChildren}>
                                                 {mine.map((s) => (
@@ -692,6 +700,17 @@ export default function SavingsScreen() {
                                     </View>
                                 );
                             })}
+
+                            {/* Crear un apartado sin tener que entrar antes a
+                                una cuenta: el formulario trae su propio
+                                selector. */}
+                            <TouchableOpacity
+                                style={styles.newApartadoRow}
+                                onPress={() => setAddApartadoIn(true)}
+                                accessibilityRole="button"
+                            >
+                                <Text style={styles.newApartadoRowText}>+ Nuevo apartado</Text>
+                            </TouchableOpacity>
                         </>
                     )}
 
@@ -788,6 +807,29 @@ export default function SavingsScreen() {
                     />
                 );
             })()}
+            {accountTarget && (() => {
+                const acc = accounts.find((a) => a.id === accountTarget.id);
+                if (!acc) return null;
+                return (
+                    <AccountSavingsSheet
+                        onClose={() => setAccountTarget(null)}
+                        account={acc}
+                        apartados={savingsAccounts.filter((sa) => sa.linkedAccountId === acc.id)}
+                        freeRoom={getFreeRoom(acc.id)}
+                        onOpenApartado={(sa) => { setAccountTarget(null); setApartadoTarget(sa); }}
+                        onNew={() => { setAccountTarget(null); setAddApartadoIn(acc.id); }}
+                    />
+                );
+            })()}
+            {addApartadoIn && (
+                <AddApartadoSheet
+                    onClose={() => setAddApartadoIn(null)}
+                    accounts={accounts}
+                    getFreeRoom={getFreeRoom}
+                    // `true` = desde la fila general, sin cuenta elegida.
+                    initialAccountId={addApartadoIn === true ? null : addApartadoIn}
+                />
+            )}
             {moveMoneyTarget && (
                 <MoveMoneySheet
                     onClose={() => setMoveMoneyTarget(null)}

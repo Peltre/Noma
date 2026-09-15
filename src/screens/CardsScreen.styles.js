@@ -8,9 +8,16 @@ import { FontSize, Spacing, Radius, Shadow } from '../constants';
 export default function createCardsStyles(theme) {
     return StyleSheet.create({
 
+        // Detalle de Efectivo: no hay botones, sólo esta nota.
+        cashNote: {
+            flex: 1,
+            fontSize: FontSize.xs,
+            color: theme.inkDim,
+            fontWeight: '500',
+            lineHeight: FontSize.xs * 1.45,
+        },
         safeArea: { flex: 1, backgroundColor: 'transparent' },
 
-        emptyWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg },
 
         // Mazo vacío: una sola fila punteada, no un estado vacío
         // completo — el otro mazo puede tener tarjetas y no queremos
