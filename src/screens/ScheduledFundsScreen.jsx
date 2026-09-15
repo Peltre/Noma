@@ -7,13 +7,13 @@
 //
 // Neither fund type moves money automatically; the person confirms
 // each payment from Home, which is what actually advances the date.
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import { FREQUENCY_LABELS, FontSize } from '../constants';
 
 import DatePickerField from '../components/DatePickerField';
@@ -44,7 +44,7 @@ export default function ScheduledFundsScreen() {
         useFinance();
     const { theme } = useTheme();
     const toast = useToast();
-    const styles = useMemo(() => createScheduledFundsStyles(theme), [theme]);
+    const styles = useStyles(createScheduledFundsStyles);
 
     // Both fund types live in the same array (see useScheduleFunds.js),
     // split here purely for how differently they need to be shown —

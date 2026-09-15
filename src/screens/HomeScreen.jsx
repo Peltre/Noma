@@ -1,16 +1,16 @@
 // Main screen. General overview of finances.
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { format, parseISO, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatCurrency, round2, getCardUrgency } from '../utils';
+import { formatCurrency, round2, getCardUrgency, getTxnVisual } from '../utils';
 import { FontSize } from '../constants';
 import createHomeStyles from './HomeScreen.styles';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import PendingFundCard from '../components/PendingFundCard';
 import CreditCardSummary from '../components/CreditCardSummary';
 import GlassCard from '../components/GlassCard';
@@ -23,17 +23,10 @@ import { Money, SectionHeader, EmptyState, Sheet, Pill, Button, useToast } from 
 const SPLIT_AVAILABLE = '#8FD3C7';
 const SPLIT_SAVED = '#2E8C80';
 import {
-    IconSwap,
-    IconCardPayment,
-    IconGoal,
     IconGear,
     IconTrendUp,
     IconTrendDown,
-    IconCalendarClock,
     IconReceipt,
-    IconWallet,
-    IconBanknotePlus,
-    IconPercent,
 } from '../components/Icons';
 
 // Same shape History uses, swapping in "Hoy" for same-day movements
@@ -44,23 +37,6 @@ function formatTxnDate(dateStr, now) {
     return `${day} · ${format(d, 'HH:mm')}`;
 }
 
-// moneyIn/moneyOut are the only two fixed-meaning accents. A plain
-// withdrawal (cajero, or no specific category) is neither, so it
-// stays neutral. See themes.js for the four-family rule: teal is your
-// money, amber leaves today, violet is a future commitment, blue is
-// earmarked.
-function getTxnVisual(theme, type, category) {
-    if (category === 'msi') return { bg: theme.msiSoft, color: theme.msi, Icon: IconCalendarClock };
-    if (category === 'card_payment')
-        return { bg: theme.cardPaymentSoft, color: theme.cardPayment, Icon: IconCardPayment };
-    if (category === 'interest') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconPercent };
-    if (category === 'goal') return { bg: theme.savingsSoft, color: theme.savings, Icon: IconGoal };
-    if (type === 'income') return { bg: theme.moneyInSoft, color: theme.moneyIn, Icon: IconBanknotePlus };
-    if (type === 'expense') return { bg: theme.moneyOutSoft, color: theme.moneyOut, Icon: IconReceipt };
-    if (type === 'transfer') return { bg: theme.transferSoft, color: theme.transfer, Icon: IconSwap };
-    return { bg: theme.border, color: theme.muted, Icon: IconWallet };
-}
-
 // Confirm-and-pay sheet for one MSI installment — a withdrawal from a
 // chosen account plus a matching debt reduction via
 // payCardWithTransaction, same pattern as CardsScreen's PayCardSheet.
@@ -68,7 +44,7 @@ function MSIPaySheet({ fund, accounts, onClose }) {
     const { payCardWithTransaction, confirmMSI } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createHomeStyles(theme), [theme]);
+    const styles = useStyles(createHomeStyles);
     const [accountId, setAccountId] = useState(accounts[0]?.id || null);
     const [loading, setLoading] = useState(false);
 
@@ -148,7 +124,7 @@ function MSIPaySheet({ fund, accounts, onClose }) {
 export default function HomeScreen() {
     const navigation = useNavigation();
     const { theme } = useTheme();
-    const styles = useMemo(() => createHomeStyles(theme), [theme]);
+    const styles = useStyles(createHomeStyles);
 
     const {
         accounts,

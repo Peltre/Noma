@@ -25,7 +25,7 @@ import { FontSize, Spacing, getTagIcon, TAG_ICON_OPTIONS } from '../constants';
 import { formatCurrency } from '../utils';
 import createTransactionStyles from './TransactionScreen.styles';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import { AccentProvider } from '../store/useAccent';
 import DecimalInput from '../components/DecimalInput';
 import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
@@ -63,7 +63,7 @@ export default function TransactionScreen() {
     const { accounts, creditCards, addTransaction, confirmFund, updateScheduledFund, addMSI, tags, addTag } = useFinance();
     const { theme } = useTheme();
     const toast = useToast();
-    const styles = useMemo(() => createTransactionStyles(theme), [theme]);
+    const styles = useStyles(createTransactionStyles);
     const TYPES = useMemo(() => getTypes(theme), [theme]);
 
     const prefill = route.params?.prefill || null;

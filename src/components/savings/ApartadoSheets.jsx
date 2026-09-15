@@ -2,16 +2,16 @@
 // Un apartado es una parte con nombre del saldo de una tarjeta (cajita
 // Nu, apartado BBVA). Aquí viven: crear, apartar/quitar, interés y la
 // hoja de detalle. Ver el modelo en useSavings.js.
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useFinance } from '../../store/FinanceContext';
-import { useTheme } from '../../store/useTheme';
+import { useTheme, useStyles } from '../../store/useTheme';
 import { AccentProvider } from '../../store/useAccent';
 import { SAVINGS_COLORS, LINKABLE_TYPES } from '../../store/savingsStore';
-import { formatCurrencyShort } from '../../utils';
+import { formatCurrencyShort, getAccountColor } from '../../utils';
 
 import { FontSize, Spacing } from '../../constants';
-import createSavingsStyles from '../../screens/SavingsScreen.styles';
+import createApartadoStyles from './ApartadoSheets.styles';
 import DecimalInput from '../DecimalInput';
 import { IconCheck, IconWarningTriangle, IconChevronRight } from '../Icons';
 import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface, useToast } from '../ui';
@@ -23,7 +23,7 @@ import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface,
 // Color picker (bye bye emoji picker)
 export function ColorPicker({ selected, onSelect }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     return (
         <View style={styles.colorRow}>
             {SAVINGS_COLORS.map((c) => (
@@ -61,8 +61,7 @@ function AccountDot({ color, size = 40 }) {
 // Shows how much of each is currently free, so the choice already
 // carries the info that decides how much can be earmarked.
 function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
-    const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     const linkable = accounts.filter((a) => LINKABLE_TYPES.includes(a.type));
 
     if (linkable.length === 0) {
@@ -85,7 +84,7 @@ function AccountPicker({ accounts, selectedId, onSelect, getFreeRoom }) {
 // Casilla — misma anatomía que el toggle de TransactionScreen.
 export function Toggle({ on, label, onPress, accent, accentOn }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     const tone = accent || theme.brand;
     return (
         <TouchableOpacity
@@ -112,7 +111,7 @@ const EMPTY_INTEREST = { enabled: false, rate: '', cap: '', rateAboveCap: '' };
 // between creation and editing so both stay in sync.
 function InterestFields({ value, onChange }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     const hasCap = parseFloat(value.cap) > 0;
 
     return (
@@ -185,7 +184,7 @@ export function AddApartadoSheet({ onClose, accounts, getFreeRoom, initialAccoun
     const { addSavingsAccount } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     const [name, setName] = useState('');
     const [color, setColor] = useState(SAVINGS_COLORS[0]);
     const [linkedAccountId, setLinkedAccountId] = useState(initialAccountId);
@@ -305,7 +304,7 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
     const { updateSavingsAccount } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     const [name, setName] = useState('');
     const [color, setColor] = useState(SAVINGS_COLORS[0]);
     const [interest, setInterest] = useState(EMPTY_INTEREST);
@@ -389,7 +388,7 @@ export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, get
     const { addToSavingsAccount, removeFromSavingsAccount } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     const [amount, setAmount] = useState('');
     const isDeposit = mode === 'deposit';
     const free = savingsAccount ? getFreeRoom(savingsAccount.linkedAccountId) : 0;
@@ -464,7 +463,7 @@ export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, get
 // queda sin apartar ahí. Toda la hoja usa el color del apartado.
 export function ApartadoSheet({ onClose, savingsAccount, backing, destinos = [], linkedAccount, linkedFree = 0, atRisk = 0, onDeposit, onWithdraw, onInterest, onDelete, onOpenGoal }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createApartadoStyles);
     if (!savingsAccount) return null;
     const rate = savingsAccount.interest?.enabled ? savingsAccount.interest.rate : null;
 
@@ -549,7 +548,7 @@ export function ApartadoSheet({ onClose, savingsAccount, backing, destinos = [],
                         <GlassCard style={styles.sheetGroup}>
                             <View style={styles.sheetRow}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                                    <View style={[styles.legendDot, { backgroundColor: linkedAccount.color || theme.cashTone }]} />
+                                    <View style={[styles.legendDot, { backgroundColor: getAccountColor(theme, linkedAccount) }]} />
                                     <Text style={styles.sheetRowText}>{linkedAccount.name}</Text>
                                 </View>
                                 <Text style={styles.sheetRowLabel}>

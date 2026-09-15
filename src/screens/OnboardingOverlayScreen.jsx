@@ -13,14 +13,14 @@
 // Se vuelve a abrir desde Ajustes ("Ver el recorrido") con
 // settings.showTour = true: arranca directo en el tour y al terminar
 // sólo apaga esa bandera.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     View, Text, TouchableOpacity, ScrollView, Keyboard, Modal, useWindowDimensions, Animated,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import { formatCurrencyShort } from '../utils';
 import { IconCheck, IconPlus, IconHome, IconHistory, IconSavings, IconCards } from '../components/Icons';
@@ -175,7 +175,7 @@ function MiniCards({ styles, theme }) {
 export default function Onboarding({ visible, tourOnly = false }) {
     const { updateSettings, setupInitialAccounts, totalBalance } = useFinance();
     const { theme } = useTheme();
-    const styles = useMemo(() => createOnboardingStyles(theme), [theme]);
+    const styles = useStyles(createOnboardingStyles);
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const slideWidth = width - 2 * 24; // paddingHorizontal del marco

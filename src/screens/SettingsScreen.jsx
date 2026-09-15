@@ -1,11 +1,11 @@
 // General app config: userName, currency, and other app functionalities
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import createSettingsStyles from './SettingsScreen.styles';
 
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import { CURRENCIES } from '../constants';
 import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronRight, IconPencil } from '../components/Icons';
 import { ScreenHeader, SectionHeader, Sheet, Button, GlassCard, useToast } from '../components/ui';
@@ -19,7 +19,7 @@ function CurrencyPickerSheet({ onClose }) {
     const toast = useToast();
     const { settings, changeCurrency } = useFinance();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSettingsStyles(theme), [theme]);
+    const styles = useStyles(createSettingsStyles);
     const [converting, setConverting] = useState(false);
 
     const handlePick = (code) => {
@@ -98,7 +98,7 @@ export default function SettingsScreen() {
     const toast = useToast();
     const { settings, updateSettings, resetEverything } = useFinance();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSettingsStyles(theme), [theme]);
+    const styles = useStyles(createSettingsStyles);
     const [userName, setUserName] = useState('');
 
     // The name starts read-only — tapping the pencil is what turns it

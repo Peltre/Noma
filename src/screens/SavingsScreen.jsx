@@ -11,16 +11,16 @@
 // Los apartados no tienen sección propia: se ven dentro de "Todo tu
 // dinero" y en cada objetivo, y se administran desde el detalle de su
 // tarjeta en Tarjetas (o con el atajo del formulario de objetivo).
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { format, parseISO, differenceInCalendarMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import { AccentProvider } from '../store/useAccent';
 import { SAVINGS_COLORS, LINKABLE_TYPES } from '../store/savingsStore';
-import { formatCurrencyShort } from '../utils';
+import { formatCurrencyShort, getAccountColor } from '../utils';
 import { round2 } from '../utils/formatCurrency';
 import { FontSize, Spacing } from '../constants';
 import createSavingsStyles from './SavingsScreen.styles';
@@ -35,8 +35,6 @@ import {
 } from '../components/savings/ApartadoSheets';
 
 // ── Helpers ──────────────────────────────────────────────────────────
-
-const accountColor = (a, theme) => a.color || (a.type === 'cash' ? theme.cashTone : theme.inkDim);
 
 // El lugar de un objetivo, resuelto: tarjeta + apartado (si lo hay).
 function resolvePlace(goal, accounts, savingsAccounts) {
@@ -56,7 +54,7 @@ function describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk) {
     const suggestion = getMonthlySuggestion(goal);
     const atRisk = getGoalRisk(goal);
     const riskPct = goal.targetAmount > 0 ? Math.min((atRisk / goal.targetAmount) * 100, percentage) : 0;
-    const color = goal.color || place.apartado?.color || (place.account ? accountColor(place.account, theme) : null);
+    const color = goal.color || place.apartado?.color || (place.account ? getAccountColor(theme, place.account) : null);
     const monthsLeft = goal.deadline ? differenceInCalendarMonths(parseISO(goal.deadline), new Date()) : null;
     const hasPlace = !!goal.accountId;
     return { percentage, isComplete, suggestion, atRisk, riskPct, color, monthsLeft, hasPlace };
@@ -96,7 +94,7 @@ function PlaceLine({ place, theme, styles, strong }) {
     if (!place.account) return <Text style={styles.goalRowSub}>Sin lugar todavía</Text>;
     return (
         <View style={styles.placeLine}>
-            <View style={[styles.legendDot, { backgroundColor: accountColor(place.account, theme) }]} />
+            <View style={[styles.legendDot, { backgroundColor: getAccountColor(theme, place.account) }]} />
             <Text style={[styles.placeText, strong && !place.apartado && styles.placeTextStrong]} numberOfLines={1}>
                 {place.account.name}
             </Text>
@@ -118,7 +116,7 @@ function PlaceLine({ place, theme, styles, strong }) {
 // apartado" (atajo). `sameAccountOnly` limita a una tarjeta (mover).
 function PlacePicker({ accounts, savingsAccounts, value, onChange, getPlaceFree, onNewApartado, sameAccountOnly }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const linkable = accounts.filter((a) => LINKABLE_TYPES.includes(a.type) && (!sameAccountOnly || a.id === sameAccountOnly));
     const isSel = (accountId, savingsAccountId) =>
         value?.accountId === accountId && (value?.savingsAccountId || null) === (savingsAccountId || null);
@@ -129,7 +127,7 @@ function PlacePicker({ accounts, savingsAccounts, value, onChange, getPlaceFree,
                 return (
                     <View key={a.id} style={styles.placeGroup}>
                         <Pill
-                            icon={() => <View style={[styles.legendDot, { backgroundColor: accountColor(a, theme) }]} />}
+                            icon={() => <View style={[styles.legendDot, { backgroundColor: getAccountColor(theme, a) }]} />}
                             label={`${a.name} · ${formatCurrencyShort(getPlaceFree({ accountId: a.id }))}`}
                             selected={isSel(a.id, null)}
                             onPress={() => onChange({ accountId: a.id, savingsAccountId: null })}
@@ -167,7 +165,7 @@ function AddGoalSheet({ onClose, accounts, savingsAccounts, getPlaceFree, initia
     const { addSavingsGoal } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const [name, setName] = useState('');
     const [targetAmount, setTargetAmount] = useState('');
     const [hasDeadline, setHasDeadline] = useState(false);
@@ -270,7 +268,7 @@ function EditGoalSheet({ onClose, goal }) {
     const { updateSavingsGoal } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const [name, setName] = useState(goal.name);
     const [targetAmount, setTargetAmount] = useState(String(goal.targetAmount));
     const [hasDeadline, setHasDeadline] = useState(!!goal.deadline);
@@ -320,7 +318,7 @@ function GoalAmountSheet({ onClose, goal, mode, available, accent }) {
     const { saveToGoal, takeFromGoal } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const [amount, setAmount] = useState('');
     const isSave = mode === 'save';
     const requested = parseFloat(amount) || 0;
@@ -367,7 +365,7 @@ function MoveGoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree,
     const { moveGoal } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const [place, setPlace] = useState(goal.accountId ? { accountId: goal.accountId, savingsAccountId: goal.savingsAccountId || null } : null);
     const changed = !!place && (place.accountId !== goal.accountId || (place.savingsAccountId || null) !== (goal.savingsAccountId || null));
     // Al moverlo, su propio dinero cuenta como libre en su lugar actual.
@@ -410,7 +408,7 @@ function MoveGoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree,
 // La hoja del objetivo: explica y luego actúa.
 function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, getMonthlySuggestion, getGoalRisk, onRedeem, onDelete, onOpenApartado }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const [sub, setSub] = useState(null); // 'save' | 'take' | 'edit' | 'move'
     const place = resolvePlace(goal, accounts, savingsAccounts);
     const g = describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk);
@@ -538,7 +536,7 @@ function GoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, get
 
 function GoalRow({ goal, accounts, savingsAccounts, getMonthlySuggestion, getGoalRisk, onPress, last }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
     const place = resolvePlace(goal, accounts, savingsAccounts);
     const g = describeGoal(goal, place, theme, getMonthlySuggestion, getGoalRisk);
 
@@ -585,7 +583,7 @@ export default function SavingsScreen() {
     } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createSavingsStyles(theme), [theme]);
+    const styles = useStyles(createSavingsStyles);
 
     const [showAddGoal, setShowAddGoal] = useState(false);
     // 'general' = sólo tarjetas; 'detalle' = con sus apartados y lo sin apartar.
@@ -676,7 +674,7 @@ export default function SavingsScreen() {
                         <>
                             <View style={styles.splitBar}>
                                 {moneyAccounts.map((a) => a.balance > 0 && (
-                                    <View key={a.id} style={{ flex: a.balance, backgroundColor: accountColor(a, theme) }} />
+                                    <View key={a.id} style={{ flex: a.balance, backgroundColor: getAccountColor(theme, a) }} />
                                 ))}
                             </View>
 
@@ -687,7 +685,7 @@ export default function SavingsScreen() {
                                     <View key={a.id} style={styles.acctBlock}>
                                         <View style={styles.acctRow}>
                                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
-                                                <View style={[styles.legendDot, { backgroundColor: accountColor(a, theme) }]} />
+                                                <View style={[styles.legendDot, { backgroundColor: getAccountColor(theme, a) }]} />
                                                 <Text style={styles.acctName} numberOfLines={1}>{a.name}</Text>
                                             </View>
                                             <Money value={a.balance} size={FontSize.sm} color={theme.ink} decimals={false} />

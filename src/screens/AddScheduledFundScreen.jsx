@@ -9,14 +9,14 @@
 // screen, since almost none of their fields (amount, months, which
 // card) are safe to change after the purchase already happened. See
 // updateScheduledFund's comment in useScheduleFunds.js for why.
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { parseISO } from 'date-fns';
 import { Spacing } from '../constants';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
 import { ScreenHeader, Field, FieldLabel, Pill, Button, fieldSurface, useToast } from '../components/ui';
@@ -36,7 +36,7 @@ export default function AddScheduledFundScreen() {
     const { accounts, addScheduledFund, updateScheduledFund, removeScheduledFund } = useFinance();
     const { theme } = useTheme();
     const toast = useToast();
-    const styles = useMemo(() => createAddScheduledFundStyles(theme), [theme]);
+    const styles = useStyles(createAddScheduledFundStyles);
 
     const editFund = route.params?.editFund || null;
     const isEdit = !!editFund;

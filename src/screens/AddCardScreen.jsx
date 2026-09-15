@@ -2,14 +2,14 @@
 // type picked up front (locked once editing, since an existing
 // account/card can't switch identity), live CardFace preview that
 // fills in as you type.
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FontSize, Spacing } from '../constants';
 import createAddCardStyles from './AddCardScreen.styles';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
 import ColorPicker from 'react-native-wheel-color-picker';
@@ -27,7 +27,7 @@ export default function AddCardScreen() {
     } = useFinance();
     const { theme } = useTheme();
     const toast = useToast();
-    const styles = useMemo(() => createAddCardStyles(theme), [theme]);
+    const styles = useStyles(createAddCardStyles);
 
     const editCard = route.params?.editCard || null;
     const isEdit = !!editCard;

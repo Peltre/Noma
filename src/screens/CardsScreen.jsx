@@ -3,14 +3,14 @@
 // stacked behind each other, tap a peeking one to bring it to the
 // front, tap the front one for full detail. Long-press anywhere for
 // a quick Editar/Pagar/Eliminar popover without leaving the screen.
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { formatCurrency } from '../utils';
 import { FontSize, Spacing } from '../constants';
 import createCardsStyles from './CardsScreen.styles';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace from '../components/CardFace';
 import FocusStack from '../components/FocusStack';
@@ -89,7 +89,7 @@ function PayCardSheet({ card, accounts, onClose }) {
     const { payCardWithTransaction } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    const styles = useStyles(createCardsStyles);
     const [amount, setAmount] = useState(card ? String(card.currentDebt.toFixed(2)) : '');
     const [accountId, setAccountId] = useState(accounts[0]?.id || null);
     const [loading, setLoading] = useState(false);
@@ -196,7 +196,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
     } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    const styles = useStyles(createCardsStyles);
     const isCredit = card.cardType === 'credit';
 
     // Los apartados de ESTA tarjeta se administran aquí: son parte de su
@@ -426,7 +426,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
 // already measured for us, clamped so it never renders off-screen.
 function QuickActionsPopover({ card, position, onClose, onEdit, onPay, onDelete }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    const styles = useStyles(createCardsStyles);
     if (!card) return null;
 
     const isCredit = card.cardType === 'credit';
@@ -472,7 +472,7 @@ function QuickActionsPopover({ card, position, onClose, onEdit, onPay, onDelete 
 // making the person choose twice.
 function AddTypeSheet({ onClose, onPick }) {
     const { theme } = useTheme();
-    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    const styles = useStyles(createCardsStyles);
     return (
         <Sheet onClose={onClose} title="Nueva tarjeta" subtitle="¿Qué tipo vas a agregar?">
             <View style={styles.sheetBtns}>
@@ -546,7 +546,7 @@ export default function CardsScreen() {
     const { creditCards, accounts, deleteAccount, deleteCreditCard, savingsAccounts } = useFinance();
     const toast = useToast();
     const { theme } = useTheme();
-    const styles = useMemo(() => createCardsStyles(theme), [theme]);
+    const styles = useStyles(createCardsStyles);
 
     const [payingCard, setPayingCard] = useState(null);
     const [selectedCard, setSelectedCard] = useState(null);

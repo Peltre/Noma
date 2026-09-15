@@ -1,29 +1,25 @@
 // Full log of transactions — tap any row for detail, edit, or delete
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { format, parseISO, isSameMonth, isSameWeek, isSameYear, addMonths, addWeeks, addYears, startOfWeek, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useFinance } from '../store/FinanceContext';
-import { useTheme } from '../store/useTheme';
+import { useTheme, useStyles } from '../store/useTheme';
 import { AccentProvider } from '../store/useAccent';
 import { FontSize, Spacing, getCategoryLabel, getTagIcon } from '../constants';
+import { getTxnVisual } from '../utils';
 import createHistoryStyles from './HistoryScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import SelectField from '../components/SelectField';
 import {
     ScreenHeader, EmptyState, Sheet, Button, Field, FieldLabel, Pill, Money, GlassCard, fieldSurface, useToast,
 } from '../components/ui';
-import {
-    IconSwap, IconCardPayment, IconCalendarClock, IconReceipt, IconWallet, IconGoal, IconBanknotePlus, IconPercent,
-    IconChevronLeft, IconChevronRight, IconCheck,
-} from '../components/Icons';
+import { IconReceipt, IconChevronLeft, IconChevronRight, IconCheck } from '../components/Icons';
 
-// Type filter. card_payment/msi are `type: 'withdrawal'` underneath
-// (see getTypeConfig below) so they need their own category-based
-// entries here. No 'withdrawal'/Retiros entry — nothing in the app
-// creates a plain withdrawal (no category), so that filter could
-// never return anything. See getTypeConfig's fallback below and
-// TransactionScreen.jsx's getTypes() for where that's decided.
+// Filtro por tipo. Pagos de tarjeta y mensualidades son `withdrawal`
+// por debajo (ver getTxnVisual en utils), así que necesitan entradas
+// propias por categoría. No hay "Retiros": nada crea un withdrawal sin
+// categoría, ese filtro no devolvería nunca nada.
 const TYPE_FILTERS = [
     { key: 'all', label: 'Todos' },
     { key: 'expense', label: 'Gastos' },
@@ -44,49 +40,20 @@ const PERIOD_FILTERS = [
     { key: 'year', label: 'Este año' },
 ];
 
-// moneyIn/moneyOut are the only fixed-meaning accents. A plain
-// withdrawal is neither, so it stays neutral. Transfer gets its own
-// `transfer` accent — still your own money, so a darker/more
-// saturated version of moneyIn's teal, never identical to Ingreso. A
-// card payment or MSI installment is a `type: 'withdrawal'` underneath
-// (see HomeScreen's getTxnVisual) but gets its own label/accent
-// instead of sharing moneyOut with a plain Gasto — kept in sync with
-// getTxnVisual there.
-function getTypeConfig(theme, type, category) {
-    if (category === 'msi') return { Icon: IconCalendarClock, bg: theme.msiSoft, fg: theme.msi, label: 'Mensualidad' };
-    if (category === 'card_payment') return { Icon: IconCardPayment, bg: theme.cardPaymentSoft, fg: theme.cardPayment, label: 'Pago de tarjeta' };
-    // Interest is a real income transaction but app-generated, so it
-    // gets the same `savings` accent as everywhere else interest shows up.
-    if (category === 'interest') return { Icon: IconPercent, bg: theme.savingsSoft, fg: theme.savings, label: 'Interés' };
-    // "Objetivo cumplido" es un gasto normal por debajo (ver
-    // handleRedeemGoal en SavingsScreen), pero es dinero que ya estaba
-    // apartado, no una salida nueva: mismo acento que Interés para que
-    // no se lea como un Gasto más.
-    if (category === 'goal') return { Icon: IconGoal, bg: theme.savingsSoft, fg: theme.savings, label: 'Objetivo cumplido' };
-    if (type === 'income') return { Icon: IconBanknotePlus, bg: theme.moneyInSoft, fg: theme.moneyIn, label: 'Ingreso' };
-    if (type === 'expense') return { Icon: IconReceipt, bg: theme.moneyOutSoft, fg: theme.moneyOut, label: 'Gasto' };
-    if (type === 'transfer') return { Icon: IconSwap, bg: theme.transferSoft, fg: theme.transfer, label: 'Traspaso' };
-    // Unreachable in practice — nothing creates a `type: 'withdrawal'`
-    // transaction without card_payment/msi as its category (see
-    // TransactionScreen.jsx's getTypes()). Kept only as a safe
-    // fallback for any type/category combo that doesn't match above.
-    return { Icon: IconWallet, bg: theme.border, fg: theme.muted, label: 'Movimiento' };
-}
-
 // El signo que le toca a cada movimiento — un traspaso no gana ni
 // pierde, así que no lleva ninguno.
 const signFor = (type) => (type === 'income' ? '+' : type === 'transfer' ? 'none' : '-');
 
 // Small colored icon box — no emoji, no text glyph
 function TxnIcon({ type, category, theme, size = 36 }) {
-    const cfg = getTypeConfig(theme, type, category);
+    const cfg = getTxnVisual(theme, type, category);
     return (
         <View style={{
             width: size, height: size, borderRadius: size * 0.3,
             backgroundColor: cfg.bg,
             alignItems: 'center', justifyContent: 'center',
         }}>
-            <cfg.Icon color={cfg.fg} bgColor={theme.surface} size={size * 0.44} />
+            <cfg.Icon color={cfg.color} bgColor={theme.surface} size={size * 0.44} />
         </View>
     );
 }
@@ -159,7 +126,6 @@ function PeriodField({
     );
 }
 
-// ── Detail / edit bottom sheet ────────────────────────────────────
 function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, styles }) {
     const { deleteTransaction, updateTransaction } = useFinance();
     const toast = useToast();
@@ -167,7 +133,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
     const [editReason, setReason] = useState(txn.reason);
     const [editAmount, setAmount] = useState(txn.amount.toString());
 
-    const cfg = getTypeConfig(theme, txn.type, txn.category);
+    const cfg = getTxnVisual(theme, txn.type, txn.category);
     const isTransfer = txn.type === 'transfer';
 
     const accountName = isTransfer
@@ -214,13 +180,13 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
     };
 
     return (
-        // La hoja toma el acento del movimiento (cfg.fg: ámbar gasto,
+        // La hoja toma el acento del movimiento (ámbar gasto,
         // teal ingreso…): etiquetas, campos al editar y botón Guardar.
-        <AccentProvider color={cfg.fg} on={theme.brandOn}>
+        <AccentProvider color={cfg.color} on={theme.brandOn}>
             <Sheet onClose={onClose}>
                 <View style={styles.sheetHead}>
                     <TxnIcon type={txn.type} category={txn.category} theme={theme} size={52} />
-                    <Text style={[styles.sheetType, { color: cfg.fg }]}>{cfg.label}</Text>
+                    <Text style={[styles.sheetType, { color: cfg.color }]}>{cfg.label}</Text>
                 </View>
 
                 {editing ? (
@@ -255,7 +221,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
                                 value={txn.amount}
                                 size={FontSize.hero - 6}
                                 sign={signFor(txn.type)}
-                                color={cfg.fg}
+                                color={cfg.color}
                             />
                         </View>
                         <Text style={styles.sheetReason}>{txn.reason}</Text>
@@ -305,7 +271,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
 export default function HistoryScreen() {
     const { transactions, accounts, creditCards, tags } = useFinance();
     const { theme } = useTheme();
-    const styles = useMemo(() => createHistoryStyles(theme), [theme]);
+    const styles = useStyles(createHistoryStyles);
     const [typeFilter, setTypeFilter] = useState('all');
     // Defaults to 'month' — Historial opens on the current month, per
     // the actual intent of this screen (see PERIOD_FILTERS below for
@@ -466,7 +432,7 @@ export default function HistoryScreen() {
                                 {txns.map((txn, i) => {
                                     const isTransfer = txn.type === 'transfer';
                                     const isLast = i === txns.length - 1;
-                                    const cfg = getTypeConfig(theme, txn.type, txn.category);
+                                    const cfg = getTxnVisual(theme, txn.type, txn.category);
                                     const accountLabel = isTransfer
                                         ? `${accounts.find(a => a.id === txn.accountId)?.name ?? '—'} → ${accounts.find(a => a.id === txn.toAccountId)?.name ?? '—'}`
                                         : txn.creditCardId
@@ -497,7 +463,7 @@ export default function HistoryScreen() {
                                                     value={txn.amount}
                                                     size={FontSize.md + 0.5}
                                                     sign={signFor(txn.type)}
-                                                    color={cfg.fg}
+                                                    color={cfg.color}
                                                 />
                                                 <Text style={styles.txnDate}>
                                                     {format(parseISO(txn.date), 'd MMM · HH:mm', { locale: es })}

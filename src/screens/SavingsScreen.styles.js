@@ -15,8 +15,6 @@ export default function createSavingsStyles(theme) {
 
         section: { paddingHorizontal: Spacing.lg },
 
-        pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-
         sheetBtns: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
 
         // ── Total en ahorros ──
@@ -47,7 +45,6 @@ export default function createSavingsStyles(theme) {
         goalSheetHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.xs },
         goalSheetName: { fontSize: FontSize.lg, fontWeight: '800', color: theme.ink },
         goalPaceBox: { marginTop: Spacing.md, paddingHorizontal: Spacing.md, paddingVertical: 2 },
-        apSheetHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, marginTop: Spacing.xs },
         sheetGroup: { paddingHorizontal: Spacing.md, paddingVertical: 2 },
         sheetRow: {
             flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -126,24 +123,8 @@ export default function createSavingsStyles(theme) {
             marginTop: Spacing.md,
             backgroundColor: theme.border,
         },
-        // Los colores reales llegan inline (acc.color); esto es la forma
-        // y la opacidad. En la leyenda van en tinta.
-        splitFree: { backgroundColor: theme.ink },
-        splitCommitted: { backgroundColor: theme.ink, opacity: 0.42 },
 
-        legendRow: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: Spacing.md,
-            marginTop: Spacing.sm + 2,
-        },
-        legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
         legendDot: { width: 7, height: 7, borderRadius: 4 },
-        legendLabel: { fontSize: FontSize.sm, color: theme.inkMid, fontWeight: '500' },
-
-
-        // Fila de apartado (tocable: abre la hoja de acciones)
-        earnedText: { fontSize: FontSize.xs - 1, color: theme.inkMid, fontWeight: '700', marginTop: 2 },
 
 
         sheetBtnsTight: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
@@ -219,88 +200,9 @@ export default function createSavingsStyles(theme) {
 
 
 
-        // ── Dentro de las hojas ──
-        // Título con punto de color a la izquierda (interés, mover
-        // dinero): Sheet centra su propio `title`, y estos necesitan
-        // el punto pegado al texto.
-        sheetTitleRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: Spacing.sm,
-            marginBottom: Spacing.xs,
-        },
-        sheetTitle: {
-            fontSize: FontSize.lg,
-            fontWeight: '800',
-            color: theme.ink,
-            letterSpacing: -0.3,
-        },
-
-        preview: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.md - 2,
-            paddingVertical: Spacing.md,
-        },
-        previewName: {
-            flex: 1,
-            fontSize: FontSize.lg,
-            fontWeight: '700',
-            color: theme.ink,
-            letterSpacing: -0.3,
-        },
-
-        colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-        colorDot: {
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            borderWidth: 2,
-            borderColor: 'transparent',
-        },
-
-        // Casilla (interés, fecha límite) — misma anatomía que en
-        // TransactionScreen.
-        toggle: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.sm + 2,
-            paddingVertical: Spacing.sm + 2,
-            marginTop: Spacing.sm,
-        },
-        checkbox: {
-            width: 20,
-            height: 20,
-            borderRadius: 6,
-            borderWidth: 1.5,
-            borderColor: theme.border,
-            alignItems: 'center',
-            justifyContent: 'center',
-        },
-        toggleText: { fontSize: FontSize.sm, fontWeight: '600', color: theme.inkMid },
-
-        // Bloque de interés — sangrado a la izquierda para que se lea
-        // como "esto depende de la casilla de arriba".
-        interestBox: {
-            paddingLeft: Spacing.md,
-            borderLeftWidth: 2,
-            borderLeftColor: theme.glassBorderTop,
-            marginTop: Spacing.xs,
-        },
-        percentRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-        percentInput: { flex: 1 },
-        percentSign: { fontSize: FontSize.sm, fontWeight: '700', color: theme.inkDim },
-
         // DecimalInput no puede vivir dentro de <Field> (necesita su
         // propio inputAccessoryView): lleva fieldSurface y aquí solo lo
         // tipográfico.
-        decimalInput: {
-            fontSize: FontSize.md,
-            color: theme.ink,
-            letterSpacing: 0.2,
-            paddingVertical: 0,
-        },
         decimalInputLarge: {
             fontSize: FontSize.xl,
             fontWeight: '700',
@@ -316,7 +218,6 @@ export default function createSavingsStyles(theme) {
             marginTop: 6,
             lineHeight: FontSize.xs * 1.45,
         },
-        hintError: { color: theme.moneyOut, fontWeight: '700' },
         // Igual que hint pero turquesa: avisa que es tocable.
     });
 }
