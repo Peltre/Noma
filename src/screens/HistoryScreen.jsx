@@ -11,7 +11,7 @@ import createHistoryStyles from './HistoryScreen.styles';
 import DecimalInput from '../components/DecimalInput';
 import SelectField from '../components/SelectField';
 import {
-    ScreenHeader, EmptyState, Sheet, Button, Field, FieldLabel, Pill, Money, GlassCard, fieldSurface,
+    ScreenHeader, EmptyState, Sheet, Button, Field, FieldLabel, Pill, Money, GlassCard, fieldSurface, useToast,
 } from '../components/ui';
 import {
     IconSwap, IconCardPayment, IconCalendarClock, IconReceipt, IconWallet, IconGoal, IconBanknotePlus, IconPercent,
@@ -162,6 +162,7 @@ function PeriodField({
 // ── Detail / edit bottom sheet ────────────────────────────────────
 function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, styles }) {
     const { deleteTransaction, updateTransaction } = useFinance();
+    const toast = useToast();
     const [editing, setEditing] = useState(false);
     const [editReason, setReason] = useState(txn.reason);
     const [editAmount, setAmount] = useState(txn.amount.toString());
@@ -192,7 +193,7 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
                     text: 'Eliminar', style: 'destructive', onPress: async () => {
                         const result = await deleteTransaction(txn.id);
                         if (result?.error) {
-                            Alert.alert('No se pudo eliminar', result.error);
+                            toast.error('No se pudo eliminar', result.error);
                             return;
                         }
                         onClose();
@@ -204,10 +205,10 @@ function TransactionSheet({ txn, onClose, accounts, creditCards, tags, theme, st
 
     const handleSave = async () => {
         const amt = parseFloat(editAmount);
-        if (!editReason.trim()) { Alert.alert('Falta la razón'); return; }
-        if (!amt || amt <= 0) { Alert.alert('Monto inválido'); return; }
+        if (!editReason.trim()) { toast.error('Falta la razón', 'Describe brevemente el movimiento.'); return; }
+        if (!amt || amt <= 0) { toast.error('Falta el monto', 'Escribe cuánto fue el movimiento.'); return; }
         const result = await updateTransaction(txn.id, { reason: editReason.trim(), amount: amt });
-        if (result?.error) { Alert.alert('Fondos insuficientes', result.error); return; }
+        if (result?.error) { toast.error('No se pudo guardar', result.error); return; }
         setEditing(false);
         onClose();
     };

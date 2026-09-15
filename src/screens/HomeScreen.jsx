@@ -1,6 +1,6 @@
 // Main screen. General overview of finances.
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +15,7 @@ import PendingFundCard from '../components/PendingFundCard';
 import CreditCardSummary from '../components/CreditCardSummary';
 import GlassCard from '../components/GlassCard';
 import HeroArt from '../components/HeroArt';
-import { Money, SectionHeader, EmptyState, Sheet, Pill, Button } from '../components/ui';
+import { Money, SectionHeader, EmptyState, Sheet, Pill, Button, useToast } from '../components/ui';
 
 // Barra Disponible / Ahorro del héroe: una sola familia (turquesa).
 // Lo disponible es "tu dinero" en versión clara; el ahorro, la
@@ -66,6 +66,7 @@ function getTxnVisual(theme, type, category) {
 // payCardWithTransaction, same pattern as CardsScreen's PayCardSheet.
 function MSIPaySheet({ fund, accounts, onClose }) {
     const { payCardWithTransaction, confirmMSI } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createHomeStyles(theme), [theme]);
     const [accountId, setAccountId] = useState(accounts[0]?.id || null);
@@ -88,7 +89,7 @@ function MSIPaySheet({ fund, accounts, onClose }) {
         });
         if (result?.error) {
             setLoading(false);
-            Alert.alert('Fondos insuficientes', result.error);
+            toast.error('Fondos insuficientes', result.error);
             return;
         }
         // confirmMSI lives in a separate store (useScheduledFunds) and
@@ -97,11 +98,12 @@ function MSIPaySheet({ fund, accounts, onClose }) {
         await confirmMSI(fund.id);
         setLoading(false);
         if (result.savingsWarning) {
-            Alert.alert(
-                'Usaste fondos de ahorro',
-                `Este pago usó ${formatCurrency(result.savingsWarning.newlyAtRisk)} que tenías apartado como ahorro en ${result.savingsWarning.accountName}.`,
-                [{ text: 'Entendido', onPress: onClose }],
+            // Aviso, no decisión: se cierra la hoja y el toast lo explica.
+            toast.info(
+                `Usaste ${formatCurrency(result.savingsWarning.newlyAtRisk)} de tu ahorro`,
+                `Ese dinero estaba apartado en ${result.savingsWarning.accountName}.`,
             );
+            onClose();
             return;
         }
         onClose();

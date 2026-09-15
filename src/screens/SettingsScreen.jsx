@@ -8,7 +8,7 @@ import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import { CURRENCIES } from '../constants';
 import { IconUser, IconCurrency, IconTrash, IconCheck, IconChevronRight, IconPencil } from '../components/Icons';
-import { ScreenHeader, SectionHeader, Sheet, Button, GlassCard } from '../components/ui';
+import { ScreenHeader, SectionHeader, Sheet, Button, GlassCard, useToast } from '../components/ui';
 
 // Moneda picker — a real conversion, not just a display preference:
 // rescales every stored amount (FinanceContext's changeCurrency)
@@ -16,6 +16,7 @@ import { ScreenHeader, SectionHeader, Sheet, Button, GlassCard } from '../compon
 // needs internet. Gated behind a confirmation, unlike a theme choice
 // — this can't be undone with a second tap.
 function CurrencyPickerSheet({ onClose }) {
+    const toast = useToast();
     const { settings, changeCurrency } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
@@ -36,13 +37,13 @@ function CurrencyPickerSheet({ onClose }) {
                         const result = await changeCurrency(code);
                         setConverting(false);
                         if (result?.error) {
-                            Alert.alert('Sin conexión', result.error);
+                            toast.error('Sin conexión', result.error);
                             return;
                         }
                         onClose();
-                        Alert.alert(
-                            'Moneda actualizada',
-                            `Tu app ahora usa ${currency?.label ?? code}. Tipo de cambio usado: 1 ${settings.currency} = ${result.rate.toFixed(4)} ${code}.`
+                        toast.success(
+                            `Ahora usas ${currency?.label ?? code}`,
+                            `Tipo de cambio: 1 ${settings.currency} = ${result.rate.toFixed(4)} ${code}.`,
                         );
                     },
                 },
@@ -94,6 +95,7 @@ function CurrencyPickerSheet({ onClose }) {
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
+    const toast = useToast();
     const { settings, updateSettings, resetEverything } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
@@ -120,12 +122,12 @@ export default function SettingsScreen() {
 
     const handleSave = async () => {
         if (!userName.trim()) {
-            Alert.alert('Nombre inválido', 'Ingresa tu nombre');
+            toast.error('Falta tu nombre', 'Escribe cómo quieres que te llame.');
             return;
         }
         await updateSettings({ userName: userName.trim() });
         setIsEditingName(false);
-        Alert.alert('Guardado', 'Tu nombre ha sido actualizado');
+        toast.success('Nombre actualizado');
     };
 
     // Erase all data from the app (fresh restart)
@@ -140,7 +142,7 @@ export default function SettingsScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         await resetEverything();
-                        Alert.alert('Datos borrados', 'Empecemos de nuevo.');
+                        toast.success('Datos borrados', 'Empecemos de nuevo.');
                     },
                 },
             ]

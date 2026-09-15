@@ -3,7 +3,7 @@
 // Nu, apartado BBVA). Aquí viven: crear, apartar/quitar, interés y la
 // hoja de detalle. Ver el modelo en useSavings.js.
 import { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useFinance } from '../../store/FinanceContext';
 import { useTheme } from '../../store/useTheme';
 import { AccentProvider } from '../../store/useAccent';
@@ -14,7 +14,7 @@ import { FontSize, Spacing } from '../../constants';
 import createSavingsStyles from '../../screens/SavingsScreen.styles';
 import DecimalInput from '../DecimalInput';
 import { IconCheck, IconWarningTriangle, IconChevronRight } from '../Icons';
-import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface } from '../ui';
+import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface, useToast } from '../ui';
 
 // Only débito/efectivo can back an apartado — same rule useSavings.js
 // enforces server-side, mirrored here so the picker never even shows
@@ -183,6 +183,7 @@ function InterestFields({ value, onChange }) {
 // New apartado sheet
 export function AddApartadoSheet({ onClose, accounts, getFreeRoom, initialAccountId = null, onCreated }) {
     const { addSavingsAccount } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [name, setName] = useState('');
@@ -217,7 +218,7 @@ export function AddApartadoSheet({ onClose, accounts, getFreeRoom, initialAccoun
         });
         setLoading(false);
         if (result?.error) {
-            Alert.alert('No se pudo crear', result.error);
+            toast.error('No se pudo crear el apartado', result.error);
             return;
         }
         onClose();
@@ -302,6 +303,7 @@ export function AddApartadoSheet({ onClose, accounts, getFreeRoom, initialAccoun
 // person can turn on, tune, or turn back off whenever they want.
 export function EditInterestSheet({ onClose, savingsAccount }) {
     const { updateSavingsAccount } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [name, setName] = useState('');
@@ -341,7 +343,7 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
         });
         setLoading(false);
         if (result?.error) {
-            Alert.alert('No se pudo guardar', result.error);
+            toast.error('No se pudo guardar', result.error);
             return;
         }
         onClose();
@@ -385,6 +387,7 @@ export function EditInterestSheet({ onClose, savingsAccount }) {
 // account's real balance — only how much of it is claimed.
 export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, getApartadoFree }) {
     const { addToSavingsAccount, removeFromSavingsAccount } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [amount, setAmount] = useState('');
@@ -401,7 +404,7 @@ export function MoveMoneySheet({ onClose, savingsAccount, getFreeRoom, mode, get
             ? await addToSavingsAccount({ savingsAccountId: savingsAccount.id, amount: amt })
             : await removeFromSavingsAccount({ savingsAccountId: savingsAccount.id, amount: amt });
         if (result?.error) {
-            Alert.alert('No se puede', result.error);
+            toast.error('No se puede', result.error);
             return;
         }
         setAmount('');

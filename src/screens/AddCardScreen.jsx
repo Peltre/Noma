@@ -13,7 +13,7 @@ import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import CardFace, { CARD_PATTERNS } from '../components/CardFace';
 import ColorPicker from 'react-native-wheel-color-picker';
-import { ScreenHeader, Field, FieldLabel, Pill, Button, Money, fieldSurface } from '../components/ui';
+import { ScreenHeader, Field, FieldLabel, Pill, Button, Money, fieldSurface, useToast } from '../components/ui';
 import AppBackground from '../components/AppBackground';
 
 export default function AddCardScreen() {
@@ -26,6 +26,7 @@ export default function AddCardScreen() {
         accounts, creditCards, savingsAccounts,
     } = useFinance();
     const { theme } = useTheme();
+    const toast = useToast();
     const styles = useMemo(() => createAddCardStyles(theme), [theme]);
 
     const editCard = route.params?.editCard || null;
@@ -83,17 +84,17 @@ export default function AddCardScreen() {
 
     const handleConfirm = async () => {
         if (!name.trim()) {
-            Alert.alert('Falta el nombre', 'Ingresa el nombre de la tarjeta'); return;
+            toast.error('Falta el nombre', 'Ponle un nombre a la tarjeta.'); return;
         }
         if (typeIsCredit) {
             if (!limit || parseFloat(limit) <= 0) {
-                Alert.alert('Límite inválido', 'Ingresa un límite mayor a 0'); return;
+                toast.error('Falta el límite', 'Escribe el límite de crédito de la tarjeta.'); return;
             }
             if (!cutoffDay || parseInt(cutoffDay, 10) < 1 || parseInt(cutoffDay, 10) > 31) {
-                Alert.alert('Día inválido', 'El día de corte debe ser entre 1 y 31'); return;
+                toast.error('Día de corte inválido', 'Debe ser un día entre 1 y 31.'); return;
             }
             if (!paymentDay || parseInt(paymentDay, 10) < 1 || parseInt(paymentDay, 10) > 31) {
-                Alert.alert('Día inválido', 'El día de pago debe ser entre 1 y 31'); return;
+                toast.error('Día de pago inválido', 'Debe ser un día entre 1 y 31.'); return;
             }
             // The one ordering that's wrong no matter how the two days
             // get interpreted. Both are stored as a plain "day of
@@ -106,7 +107,7 @@ export default function AddCardScreen() {
             // never valid — every real card leaves at least a few
             // days between the statement closing and payment being due.
             if (parseInt(cutoffDay, 10) === parseInt(paymentDay, 10)) {
-                Alert.alert('Días iguales', 'El día de corte y el día de pago no pueden ser el mismo.'); return;
+                toast.error('Días iguales', 'El corte y el pago no pueden caer el mismo día.'); return;
             }
         }
 
@@ -133,7 +134,7 @@ export default function AddCardScreen() {
         }
         setLoading(false);
         if (result?.error) {
-            Alert.alert('No se pudo guardar', result.error);
+            toast.error('No se pudo guardar', result.error);
             return;
         }
         navigation.goBack();
@@ -152,7 +153,7 @@ export default function AddCardScreen() {
                             ? await deleteCreditCard(editCard.id)
                             : await deleteAccount(editCard.id);
                         if (result?.error) {
-                            Alert.alert('No se pudo eliminar', result.error);
+                            toast.error('No se pudo eliminar', result.error);
                             return;
                         }
                         navigation.goBack();

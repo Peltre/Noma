@@ -11,6 +11,7 @@ import * as FontPack from '@expo-google-fonts/bricolage-grotesque';
 import AppNavigator from './src/navigation/AppNavigator';
 import OnboardingOverlay from './src/screens/OnboardingOverlayScreen';
 import { FinanceProvider, useFinance } from './src/store/FinanceContext';
+import { ToastProvider } from './src/components/ui';
 import { useTheme } from './src/store/useTheme';
 import AppBackground from './src/components/AppBackground';
 import { FONT_FILE_NAMES } from './src/constants/theme';
@@ -80,9 +81,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <FinanceProvider>
-        <RootApp />
-      </FinanceProvider>
+      {/* ToastProvider dentro de SafeAreaProvider (necesita los insets)
+          y por fuera de la navegación, para que el aviso se vea sobre
+          cualquier pantalla u hoja. */}
+      <ToastProvider>
+        <FinanceProvider>
+          <RootApp />
+        </FinanceProvider>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

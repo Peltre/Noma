@@ -16,7 +16,7 @@
 // internal tag for app-generated transactions (MSI, card payments,
 // goal purchases), never something a person picks.
 import { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { addMonths, format } from 'date-fns';
@@ -29,7 +29,7 @@ import { useTheme } from '../store/useTheme';
 import { AccentProvider } from '../store/useAccent';
 import DecimalInput from '../components/DecimalInput';
 import { IconChevronLeft, IconCheck, IconPlus } from '../components/Icons';
-import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard } from '../components/ui';
+import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, useToast } from '../components/ui';
 import AppBackground from '../components/AppBackground';
 
 // Type accents: the two fixed-meaning colors (moneyOut/moneyIn) plus
@@ -62,6 +62,7 @@ export default function TransactionScreen() {
     const insets = useSafeAreaInsets();
     const { accounts, creditCards, addTransaction, confirmFund, updateScheduledFund, addMSI, tags, addTag } = useFinance();
     const { theme } = useTheme();
+    const toast = useToast();
     const styles = useMemo(() => createTransactionStyles(theme), [theme]);
     const TYPES = useMemo(() => getTypes(theme), [theme]);
 
@@ -100,7 +101,7 @@ export default function TransactionScreen() {
     const handleCreateTag = async () => {
         const result = await addTag({ label: newTagName, icon: newTagIcon });
         if (result?.error) {
-            Alert.alert('No se pudo crear', result.error);
+            toast.error('No se pudo crear la etiqueta', result.error);
             return;
         }
         setSelectedTagIds(prev => [...prev, result.id]);
@@ -124,31 +125,23 @@ export default function TransactionScreen() {
 
     const handleConfirm = async () => {
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert('Monto inválido', 'Ingresa un monto mayor a cero'); return;
+            toast.error('Falta el monto', 'Escribe cuánto fue el movimiento.'); return;
         }
         if (!reason.trim()) {
-            Alert.alert('Falta la razón', 'Describe brevemente el movimiento'); return;
+            toast.error('Falta la razón', 'Describe brevemente el movimiento.'); return;
         }
         if (type === 'transfer' && !toAccount) {
-            Alert.alert('Falta la cuenta destino', 'Selecciona a dónde va el dinero'); return;
+            toast.error('Falta la cuenta destino', 'Selecciona a dónde va el dinero.'); return;
         }
         // Sin cuenta o sin tarjeta el movimiento no toca ningún saldo:
         // queda en Historial como dinero fantasma. El store también lo
         // rechaza, pero aquí el mensaje dice qué falta y dónde.
         if (type !== 'transfer' && useCredit && !selectedCard) {
-            Alert.alert(
-                'Falta la tarjeta',
-                'Elige con qué tarjeta de crédito pagas, o desmarca "Pagar con tarjeta de crédito".',
-            );
+            toast.error('Falta la tarjeta', 'Elige con qué tarjeta pagas, o desmarca "Pagar con tarjeta de crédito".');
             return;
         }
         if (!useCredit && !selectedAccount) {
-            Alert.alert(
-                'Falta la cuenta',
-                type === 'income'
-                    ? 'Elige a qué cuenta entra el dinero.'
-                    : 'Elige de qué cuenta sale el dinero.',
-            );
+            toast.error('Falta la cuenta', type === 'income' ? 'Elige a qué cuenta entra el dinero.' : 'Elige de qué cuenta sale el dinero.');
             return;
         }
         if (isMSI && canUseMSI) {
@@ -165,7 +158,7 @@ export default function TransactionScreen() {
                 tagIds: selectedTagIds,
             });
             if (result?.error) {
-                Alert.alert('No se pudo registrar', result.error);
+                toast.error('No se pudo registrar', result.error);
                 return;
             }
             await addMSI({
@@ -185,7 +178,7 @@ export default function TransactionScreen() {
             tagIds: selectedTagIds,
         });
         if (result?.error) {
-            Alert.alert('No se pudo registrar', result.error);
+            toast.error('No se pudo registrar', result.error);
             return;
         }
         // Only mark the pending fund as confirmed if this is still the
@@ -201,13 +194,13 @@ export default function TransactionScreen() {
                 await updateScheduledFund(prefill.fundId, { accountId: selectedAccount });
             }
         }
+        // El aviso de ahorro ya no bloquea la salida: se registra, se
+        // regresa, y el toast lo explica encima de la pantalla anterior.
         if (result.savingsWarning) {
-            Alert.alert(
-                'Usaste fondos de ahorro',
-                `Este movimiento usó ${formatCurrency(result.savingsWarning.newlyAtRisk)} que tenías apartado como ahorro en ${result.savingsWarning.accountName}.`,
-                [{ text: 'Entendido', onPress: () => navigation.goBack() }]
+            toast.info(
+                `Usaste ${formatCurrency(result.savingsWarning.newlyAtRisk)} de tu ahorro`,
+                `Ese dinero estaba apartado en ${result.savingsWarning.accountName}.`,
             );
-            return;
         }
         navigation.goBack();
     };

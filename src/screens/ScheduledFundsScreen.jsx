@@ -28,7 +28,7 @@ import {
     Field,
     FieldLabel,
     Money,
-    GlassCard,
+    GlassCard, useToast,
 } from '../components/ui';
 import createScheduledFundsStyles from './ScheduledFundsScreen.styles';
 
@@ -43,6 +43,7 @@ export default function ScheduledFundsScreen() {
     const { accounts, creditCards, scheduledFunds, updateScheduledFund, removeScheduledFund, getFundStatus } =
         useFinance();
     const { theme } = useTheme();
+    const toast = useToast();
     const styles = useMemo(() => createScheduledFundsStyles(theme), [theme]);
 
     // Both fund types live in the same array (see useScheduleFunds.js),
@@ -90,11 +91,11 @@ export default function ScheduledFundsScreen() {
 
     const handleSaveMSI = async () => {
         if (!msiName.trim()) {
-            Alert.alert('Falta el nombre', 'Ingresa un nombre.');
+            toast.error('Falta el nombre', 'Ponle un nombre a la mensualidad.');
             return;
         }
         if (!msiDate) {
-            Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.');
+            toast.error('Falta la fecha', 'Selecciona la próxima fecha.');
             return;
         }
         await updateScheduledFund(editingMSI.id, {

@@ -16,7 +16,7 @@ import CardFace from '../components/CardFace';
 import FocusStack from '../components/FocusStack';
 import Svg, { Circle } from 'react-native-svg';
 import {
-    ScreenHeader, EmptyState, Sheet, Pill, Button, FieldLabel, Money, fieldSurface,
+    ScreenHeader, EmptyState, Sheet, Pill, Button, FieldLabel, Money, fieldSurface, useToast,
 } from '../components/ui';
 import { IconCard, IconPencil, IconCardPayment, IconTrash, IconChevronDown, IconCardAdd, IconChevronRight } from '../components/Icons';
 import { AddApartadoSheet, ApartadoSheet, MoveMoneySheet, EditInterestSheet } from '../components/savings/ApartadoSheets';
@@ -47,12 +47,11 @@ function MiniRing({ pct, theme }) {
     );
 }
 
-// Shared delete rule (can't delete something that still holds real
-// money/debt) — used both here (quick-action popover) and inside
-// CardDetailSheet below. Unlike the sheet's disabled button, the
-// popover has no obvious "why can't I tap this" affordance, so this
-// path explains itself with an alert instead of just refusing.
-function promptDeleteCard(card, { deleteAccount, deleteCreditCard }) {
+// Regla compartida de borrado (no se puede borrar algo que todavía
+// tiene dinero o deuda) — la usan el popover de acciones rápidas y
+// CardDetailSheet. A diferencia del botón deshabilitado de la hoja, el
+// popover no tiene cómo explicar por qué no se puede, así que avisa.
+function promptDeleteCard(card, { deleteAccount, deleteCreditCard, toast }) {
     const isCredit = card.cardType === 'credit';
     const canDelete = isCredit ? card.currentDebt === 0 : card.balance === 0;
     if (!canDelete) {
@@ -73,7 +72,7 @@ function promptDeleteCard(card, { deleteAccount, deleteCreditCard }) {
                         ? await deleteCreditCard(card.id)
                         : await deleteAccount(card.id);
                     if (result?.error) {
-                        Alert.alert('No se pudo eliminar', result.error);
+                        toast.error('No se pudo eliminar', result.error);
                     }
                 }
             },
@@ -88,6 +87,7 @@ function promptDeleteCard(card, { deleteAccount, deleteCreditCard }) {
 // Balance total drops by the right amount.
 function PayCardSheet({ card, accounts, onClose }) {
     const { payCardWithTransaction } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
     const [amount, setAmount] = useState(card ? String(card.currentDebt.toFixed(2)) : '');
@@ -126,16 +126,15 @@ function PayCardSheet({ card, accounts, onClose }) {
         });
         setLoading(false);
         if (result?.error) {
-            Alert.alert('Fondos insuficientes', result.error);
+            toast.error('Fondos insuficientes', result.error);
             return;
         }
+        // Aviso, no decisión: se cierra la hoja y el toast lo explica.
         if (result.savingsWarning) {
-            Alert.alert(
-                'Usaste fondos de ahorro',
-                `Este pago usó ${formatCurrency(result.savingsWarning.newlyAtRisk)} que tenías apartado como ahorro en ${result.savingsWarning.accountName}.`,
-                [{ text: 'Entendido', onPress: onClose }]
+            toast.info(
+                `Usaste ${formatCurrency(result.savingsWarning.newlyAtRisk)} de tu ahorro`,
+                `Ese dinero estaba apartado en ${result.savingsWarning.accountName}.`,
             );
-            return;
         }
         onClose();
     };
@@ -195,6 +194,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
         deleteAccount, deleteCreditCard, accounts, savingsAccounts, savingsGoals,
         deleteSavingsAccount, getFreeRoom, getApartadoFree, getSavingsAccountRisk,
     } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
     const isCredit = card.cardType === 'credit';
@@ -230,7 +230,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                             ? await deleteCreditCard(card.id)
                             : await deleteAccount(card.id);
                         if (result?.error) {
-                            Alert.alert('No se pudo eliminar', result.error);
+                            toast.error('No se pudo eliminar', result.error);
                             return;
                         }
                         onClose();
@@ -290,7 +290,7 @@ function CardDetailSheet({ card, onClose, onPay, onEdit }) {
                         {
                             text: 'Eliminar', style: 'destructive', onPress: async () => {
                                 const r = await deleteSavingsAccount(acc.id);
-                                if (r?.error) Alert.alert('No se pudo eliminar', r.error);
+                                if (r?.error) toast.error('No se pudo eliminar', r.error);
                                 else setSub(null);
                             }
                         },
@@ -544,6 +544,7 @@ function DeckSection({
 export default function CardsScreen() {
     const navigation = useNavigation();
     const { creditCards, accounts, deleteAccount, deleteCreditCard, savingsAccounts } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createCardsStyles(theme), [theme]);
 
@@ -694,7 +695,7 @@ export default function CardsScreen() {
                     onDelete={() => {
                         const card = quickCard;
                         closeQuickMenu();
-                        promptDeleteCard(card, { deleteAccount, deleteCreditCard });
+                        promptDeleteCard(card, { deleteAccount, deleteCreditCard, toast });
                     }}
                 />
             )}

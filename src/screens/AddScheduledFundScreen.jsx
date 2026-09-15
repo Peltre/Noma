@@ -19,7 +19,7 @@ import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
-import { ScreenHeader, Field, FieldLabel, Pill, Button, fieldSurface } from '../components/ui';
+import { ScreenHeader, Field, FieldLabel, Pill, Button, fieldSurface, useToast } from '../components/ui';
 import createAddScheduledFundStyles from './AddScheduledFundScreen.styles';
 import AppBackground from '../components/AppBackground';
 
@@ -35,6 +35,7 @@ export default function AddScheduledFundScreen() {
     const insets = useSafeAreaInsets();
     const { accounts, addScheduledFund, updateScheduledFund, removeScheduledFund } = useFinance();
     const { theme } = useTheme();
+    const toast = useToast();
     const styles = useMemo(() => createAddScheduledFundStyles(theme), [theme]);
 
     const editFund = route.params?.editFund || null;
@@ -54,19 +55,19 @@ export default function AddScheduledFundScreen() {
 
     const handleSubmit = async () => {
         if (!name.trim()) {
-            Alert.alert('Falta el nombre', 'Ej. Quincena, Renta, Freelance...');
+            toast.error('Falta el nombre', 'Ej. Quincena, Renta, Freelance…');
             return;
         }
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert('Monto inválido', 'Ingresa un monto mayor a cero.');
+            toast.error('Falta el monto', 'Escribe cuánto entra cada vez.');
             return;
         }
         if (!nextDate) {
-            Alert.alert('Falta la fecha', 'Selecciona la próxima fecha.');
+            toast.error('Falta la fecha', 'Selecciona la próxima fecha.');
             return;
         }
         if (!accountId || !accounts.some(a => a.id === accountId)) {
-            Alert.alert('Falta la cuenta', 'Elige a qué cuenta va a entrar el dinero cuando confirmes este fondo.');
+            toast.error('Falta la cuenta', 'Elige a qué cuenta entra el dinero al confirmarlo.');
             return;
         }
 
@@ -86,11 +87,11 @@ export default function AddScheduledFundScreen() {
         }
         setLoading(false);
 
-        Alert.alert(
-            isEdit ? 'Actualizado' : 'Fondo creado',
-            isEdit
-                ? `"${payload.name}" se guardó correctamente.`
-                : `"${payload.name}" aparecerá como recordatorio cuando se acerque la fecha.`
+        // Confirmación en toast: se regresa de inmediato y el aviso
+        // aparece encima de la pantalla anterior.
+        toast.success(
+            isEdit ? 'Fondo actualizado' : 'Fondo creado',
+            isEdit ? null : 'Aparecerá como recordatorio cuando se acerque la fecha.',
         );
         navigation.goBack();
     };

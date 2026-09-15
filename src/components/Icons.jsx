@@ -438,6 +438,18 @@ export function IconGoal({ color, size = IconSize.lg }) {
 
 // Ajustes: engrane RELLENO (la única silueta sólida del set fuera de
 // la tab bar). A 16 px un engrane en contorno se empasta; lleno se lee.
+// Aviso: una "i" en un círculo. Sólo la usan los toast informativos;
+// el triángulo queda para error y esto para "esto cambió, entérate".
+export function IconInfo({ color, size = IconSize.md }) {
+    return (
+        <Svg {...svg(size)}>
+            <Circle cx="12" cy="12" r="9" {...line(size, color)} />
+            <Path d="M12 11v5.4" {...line(size, color)} />
+            <Circle cx="12" cy="7.8" r="1" fill={color} />
+        </Svg>
+    );
+}
+
 export function IconGear({ color, size = IconSize.md }) {
     return (
         <Svg {...svg(size)}>

@@ -28,7 +28,7 @@ import DecimalInput from '../components/DecimalInput';
 import DatePickerField from '../components/DatePickerField';
 import { IconWarningTriangle, IconGoal, IconChevronRight } from '../components/Icons';
 import {
-    ScreenHeader, EmptyState, Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface,
+    ScreenHeader, EmptyState, Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface, useToast,
 } from '../components/ui';
 import {
     ColorPicker, Toggle, AddApartadoSheet, MoveMoneySheet, EditInterestSheet, ApartadoSheet,
@@ -165,6 +165,7 @@ function PlacePicker({ accounts, savingsAccounts, value, onChange, getPlaceFree,
 // "empezar con lo que ya hay libre ahí".
 function AddGoalSheet({ onClose, accounts, savingsAccounts, getPlaceFree, initialPlace = null }) {
     const { addSavingsGoal } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [name, setName] = useState('');
@@ -193,7 +194,7 @@ function AddGoalSheet({ onClose, accounts, savingsAccounts, getPlaceFree, initia
             color,
             initialAmount,
         });
-        if (result?.error) { Alert.alert('No se pudo crear', result.error); return; }
+        if (result?.error) { toast.error('No se pudo crear el objetivo', result.error); return; }
         onClose();
     };
 
@@ -267,6 +268,7 @@ function AddGoalSheet({ onClose, accounts, savingsAccounts, getPlaceFree, initia
 // Editar nombre, meta, fecha y color.
 function EditGoalSheet({ onClose, goal }) {
     const { updateSavingsGoal } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [name, setName] = useState(goal.name);
@@ -285,7 +287,7 @@ function EditGoalSheet({ onClose, goal }) {
             deadline: hasDeadline && deadline ? deadline.toISOString() : null,
             color,
         });
-        if (result?.error) { Alert.alert('No se pudo guardar', result.error); return; }
+        if (result?.error) { toast.error('No se pudo guardar', result.error); return; }
         onClose();
     };
 
@@ -316,6 +318,7 @@ function EditGoalSheet({ onClose, goal }) {
 // Ahorrar / Sacar: un monto, con el tope visible.
 function GoalAmountSheet({ onClose, goal, mode, available, accent }) {
     const { saveToGoal, takeFromGoal } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [amount, setAmount] = useState('');
@@ -329,7 +332,7 @@ function GoalAmountSheet({ onClose, goal, mode, available, accent }) {
         const result = isSave
             ? await saveToGoal({ goalId: goal.id, amount: requested })
             : await takeFromGoal({ goalId: goal.id, amount: requested });
-        if (result?.error) { Alert.alert('No se pudo', result.error); return; }
+        if (result?.error) { toast.error('No se pudo', result.error); return; }
         onClose();
     };
 
@@ -362,6 +365,7 @@ function GoalAmountSheet({ onClose, goal, mode, available, accent }) {
 // Mover a otro lugar dentro de la misma tarjeta.
 function MoveGoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree, accent }) {
     const { moveGoal } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
     const [place, setPlace] = useState(goal.accountId ? { accountId: goal.accountId, savingsAccountId: goal.savingsAccountId || null } : null);
@@ -374,7 +378,7 @@ function MoveGoalSheet({ onClose, goal, accounts, savingsAccounts, getPlaceFree,
     };
     const handle = async () => {
         const result = await moveGoal({ goalId: goal.id, ...place });
-        if (result?.error) { Alert.alert('No se pudo mover', result.error); return; }
+        if (result?.error) { toast.error('No se pudo mover', result.error); return; }
         onClose();
     };
     const locked = goal.accountId && goal.savedAmount > 0 ? goal.accountId : null;
@@ -579,6 +583,7 @@ export default function SavingsScreen() {
         getMonthlySuggestion, addTransaction,
         getFreeRoom, getApartadoFree, getPlaceFree, getSavingsAccountRisk, getGoalRisk, getAccountDeficit,
     } = useFinance();
+    const toast = useToast();
     const { theme } = useTheme();
     const styles = useMemo(() => createSavingsStyles(theme), [theme]);
 
@@ -603,7 +608,7 @@ export default function SavingsScreen() {
             {
                 text: 'Eliminar', style: 'destructive', onPress: async () => {
                     const r = await deleteSavingsAccount(acc.id);
-                    if (r?.error) Alert.alert('No se pudo eliminar', r.error);
+                    if (r?.error) toast.error('No se pudo eliminar', r.error);
                 }
             },
         ]);
@@ -613,7 +618,7 @@ export default function SavingsScreen() {
     // donde vive) y el objetivo desaparece sin devolver nada.
     const handleRedeemGoal = (goal) => {
         const account = accounts.find((a) => a.id === goal.accountId);
-        if (!account) { Alert.alert('Sin lugar', 'Este objetivo no tiene una tarjeta. Elige dónde vive antes de marcarlo.'); return; }
+        if (!account) { toast.error('Sin lugar', 'Elige dónde vive este objetivo antes de marcarlo.'); return; }
         Alert.alert(
             'Marcar como comprado',
             `Se descontarán ${formatCurrencyShort(goal.savedAmount)} de ${account.name} y quedará en tu historial.`,
@@ -624,7 +629,7 @@ export default function SavingsScreen() {
                         const result = await addTransaction({
                             type: 'expense', amount: goal.savedAmount, reason: goal.name, category: 'goal', accountId: account.id,
                         });
-                        if (result?.error) { Alert.alert('No se pudo', result.error); return; }
+                        if (result?.error) { toast.error('No se pudo', result.error); return; }
                         await deleteSavingsGoal(goal.id, { returnFunds: false });
                     }
                 },
