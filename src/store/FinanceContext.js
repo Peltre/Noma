@@ -1,192 +1,198 @@
-// Global context that shares the same storage instance with all screens
-import { createContext, useContext, useEffect, useRef } from "react";
-import { differenceInDays, parseISO } from "date-fns";
-import { useFinanceStore } from "./useFinanceStore";
-import { useSettings } from "./useSettings";
-import { useScheduledFunds } from "./useScheduleFunds";
-import { useSavings } from "./useSavings";
-import { useTags } from "./useTags";
-import { round2 } from "../utils/formatCurrency";
-import { fetchExchangeRate } from "../utils/exchangeRate";
+// Fachada única para las pantallas: `useFinance()` junta los cinco
+// stores y las acciones compuestas (las que tocan más de un store).
+//
+// FinanceProvider además corre lo que debe pasar una vez al abrir la
+// app (abono de intereses). Las pantallas no saben cuántos stores hay:
+// piden lo que necesitan de aquí.
+import { createContext, useContext, useEffect, useRef } from 'react';
+import { differenceInDays, parseISO } from 'date-fns';
+import { useMoneyStore, selectTotalBalance } from './moneyStore';
+import { useSavingsStore, computeAccruedInterest } from './savingsStore';
+import { useFundsStore, getFundStatus, selectPendingFunds } from './fundsStore';
+import { useTagsStore } from './tagsStore';
+import { useSettingsStore } from './settingsStore';
+import { round2 } from '../utils/formatCurrency';
+import { fetchExchangeRate } from '../utils/exchangeRate';
 
 const FinanceContext = createContext(null);
 
+// ── Acciones compuestas ──
+
+// Envuelve una salida de dinero: si el movimiento se come dinero que un
+// apartado u objetivo de esa cuenta reclamaba, devuelve `savingsWarning`
+// con cuánto quedó en riesgo. Compara el déficit justo antes y justo
+// después, así sólo avisa por ESTE movimiento.
+async function withSavingsWarning(accountId, run) {
+    const account = accountId ? useMoneyStore.getState().accounts.find((a) => a.id === accountId) : null;
+    const { getAccountDeficit } = useSavingsStore.getState();
+    const before = account ? getAccountDeficit(account.id).deficit : 0;
+
+    const result = await run();
+    if (result?.error || !account) return result;
+
+    const after = getAccountDeficit(account.id).deficit;
+    return after > before
+        ? { ...result, savingsWarning: { accountName: account.name, newlyAtRisk: round2(after - before) } }
+        : result;
+}
+
+const addTransaction = (txn) => {
+    const isOutflow = txn.type === 'expense' || txn.type === 'withdrawal' || txn.type === 'transfer';
+    return withSavingsWarning(isOutflow ? txn.accountId : null, () => useMoneyStore.getState().addTransaction(txn));
+};
+
+const payCardWithTransaction = (payload) =>
+    withSavingsWarning(payload.accountId, () => useMoneyStore.getState().payCardWithTransaction(payload));
+
+// Borrar una tarjeta débito exige que no le cuelgue nada: apartados,
+// objetivos directos. Los fondos programados que apuntaban a ella
+// quedan sin destino explícito.
+async function deleteAccount(accountId) {
+    const { savingsAccounts, savingsGoals } = useSavingsStore.getState();
+    if (savingsAccounts.some((sa) => sa.linkedAccountId === accountId)) {
+        return { error: 'Esta cuenta tiene apartados de ahorro ligados. Elimínalos (o quítales el dinero asignado) antes de eliminar la cuenta.' };
+    }
+    if (savingsGoals.some((g) => g.accountId === accountId && !g.savingsAccountId)) {
+        return { error: 'Hay objetivos que viven en esta cuenta. Muévelos a otro lugar antes de borrarla.' };
+    }
+    const result = await useMoneyStore.getState().deleteAccount(accountId);
+    if (result?.error) return result;
+    await useFundsStore.getState().detachAccount(accountId);
+    return result;
+}
+
+// Ajustes → Moneda: reescala todo y cambia la moneda. Sin internet
+// devuelve { error } y no toca nada.
+async function changeCurrency(newCurrency) {
+    const current = useSettingsStore.getState().settings.currency;
+    if (newCurrency === current) return { ok: true, rate: 1 };
+    const { rate, error } = await fetchExchangeRate(current, newCurrency);
+    if (error) return { error };
+    await useMoneyStore.getState().convertAllAmounts(rate);
+    await useSavingsStore.getState().convertAllAmounts(rate);
+    await useFundsStore.getState().convertAllAmounts(rate);
+    await useSettingsStore.getState().updateSettings({ currency: newCurrency });
+    return { ok: true, rate };
+}
+
+// Ajustes → Borrar todo: la persona vuelve a ser un usuario nuevo.
+async function resetEverything() {
+    await useMoneyStore.resetPersisted();
+    await useSavingsStore.resetPersisted();
+    await useFundsStore.resetPersisted();
+    await useTagsStore.resetPersisted();
+    await useSettingsStore.resetPersisted();
+}
+
+// Una vez por apertura: abona el interés de cada apartado que lo tenga
+// activo, si pasó al menos un día. Primero el ingreso real en la
+// cuenta (moneyStore), luego el apartado crece lo mismo (savingsStore).
+async function accrueInterest() {
+    const { savingsAccounts } = useSavingsStore.getState();
+    const { accounts } = useMoneyStore.getState();
+    const accountCredits = [];
+    const savingsCredits = [];
+    savingsAccounts.forEach((sa) => {
+        if (!sa.interest?.enabled) return;
+        if (!accounts.some((a) => a.id === sa.linkedAccountId)) return; // apartado huérfano
+        const last = parseISO(sa.lastInterestAccrualAt || sa.createdAt);
+        const days = differenceInDays(new Date(), last);
+        if (days < 1) return;
+        const accrued = computeAccruedInterest(sa, days);
+        savingsCredits.push({ savingsAccountId: sa.id, amount: accrued, daysElapsed: days });
+        if (accrued > 0) accountCredits.push({ accountId: sa.linkedAccountId, amount: accrued, reason: `Interés — ${sa.name}` });
+    });
+    if (accountCredits.length) await useMoneyStore.getState().creditInterest(accountCredits);
+    if (savingsCredits.length) await useSavingsStore.getState().creditInterest(savingsCredits);
+}
+
 export function FinanceProvider({ children }) {
-    const financeStore = useFinanceStore();
-    const settingsStore = useSettings();
-    const scheduledFundsStore = useScheduledFunds();
-    // Apartados link straight to a real account's balance now, so
-    // useSavings only needs the accounts list, not its own pot.
-    const savingsStore = useSavings(financeStore.accounts);
-    const tagsStore = useTags();
+    const hydrated =
+        useMoneyStore((s) => s.hydrated) && useSavingsStore((s) => s.hydrated) && useFundsStore((s) => s.hydrated)
+        && useTagsStore((s) => s.hydrated) && useSettingsStore((s) => s.hydrated);
 
-    // Not "ready" until every store is done loading, tags included
-    // (TransactionScreen renders the tag picker right away).
-    const isLoading = financeStore.isLoading || settingsStore.isLoading || tagsStore.tagsLoading;
-
-    // Wraps financeStore.addTransaction to add a `savingsWarning` when
-    // a transaction eats into money an apartado had earmarked in that
-    // account — compares the account's deficit right before vs. right
-    // after, so it only fires for this transaction, not a pre-existing one.
-    const addTransaction = async (txn) => {
-        const isOutflow = txn.type === 'expense' || txn.type === 'withdrawal' || txn.type === 'transfer';
-        const account = isOutflow && txn.accountId
-            ? financeStore.accounts.find(a => a.id === txn.accountId)
-            : null;
-        const deficitBefore = account ? savingsStore.getAccountDeficit(account.id).deficit : 0;
-
-        const result = await financeStore.addTransaction(txn);
-        if (result?.error || !account) return result;
-
-        const newBalance = round2(account.balance - result.amount);
-        const deficitAfter = savingsStore.getAccountDeficit(account.id, newBalance).deficit;
-        if (deficitAfter > deficitBefore) {
-            return {
-                ...result,
-                savingsWarning: {
-                    accountName: account.name,
-                    newlyAtRisk: round2(deficitAfter - deficitBefore),
-                },
-            };
-        }
-        return result;
-    };
-
-    // Same wrapping as addTransaction — a card payment is a single-account withdrawal.
-    const payCardWithTransaction = async (payload) => {
-        const account = payload.accountId
-            ? financeStore.accounts.find(a => a.id === payload.accountId)
-            : null;
-        const deficitBefore = account ? savingsStore.getAccountDeficit(account.id).deficit : 0;
-
-        const result = await financeStore.payCardWithTransaction(payload);
-        if (result?.error || !account) return result;
-
-        const newBalance = round2(account.balance - result.amount);
-        const deficitAfter = savingsStore.getAccountDeficit(account.id, newBalance).deficit;
-        if (deficitAfter > deficitBefore) {
-            return {
-                ...result,
-                savingsWarning: {
-                    accountName: account.name,
-                    newlyAtRisk: round2(deficitAfter - deficitBefore),
-                },
-            };
-        }
-        return result;
-    };
-
-    // financeStore.deleteAccount only checks the account's own balance
-    // — it doesn't know apartados exist. Without this, a $0 débito
-    // account with a linked apartado could be deleted, orphaning that
-    // apartado for good.
-    const deleteAccount = async (accountId) => {
-        const linkedApartados = savingsStore.savingsAccounts.filter(sa => sa.linkedAccountId === accountId);
-        if (linkedApartados.length > 0) {
-            return { error: 'Esta cuenta tiene apartados de ahorro ligados. Elimínalos (o quítales el dinero asignado) antes de eliminar la cuenta.' };
-        }
-        // Objetivos que viven directo en esta tarjeta: si se borra, se
-        // quedarían apuntando a un id muerto.
-        const goalsHere = savingsStore.savingsGoals.filter(g => g.accountId === accountId && !g.savingsAccountId);
-        if (goalsHere.length > 0) {
-            return { error: 'Hay objetivos que viven en esta cuenta. Muévelos a otro lugar antes de borrarla.' };
-        }
-        const result = await financeStore.deleteAccount(accountId);
-        if (result?.error) return result;
-
-        // Los fondos que apuntaban a esta cuenta se quedan sin destino
-        // explícitamente (accountId: null). Así "Nuevo movimiento" y
-        // "Editar fondo" piden elegir otra en vez de heredar un id muerto
-        // que ningún saldo reconocería.
-        await scheduledFundsStore.detachAccount(accountId);
-        return result;
-    };
-
-    // Runs once per app open: credits real interest for every
-    // apartado with it enabled, once at least a day has passed.
-    // hasAccruedRef (not just [isLoading]) is the real once-only
-    // guard, since React 19 runs effects twice in dev. Every credit
-    // is collected first and applied via ONE creditInterestBatch call
-    // per store — looping would have each call build off the same
-    // pre-effect closure and lose everything but the last.
+    // hasAccruedRef, no sólo [hydrated]: React 19 corre efectos dos veces en dev.
     const hasAccruedRef = useRef(false);
     useEffect(() => {
-        if (isLoading || hasAccruedRef.current) return;
+        if (!hydrated || hasAccruedRef.current) return;
         hasAccruedRef.current = true;
+        accrueInterest();
+    }, [hydrated]);
 
-        const accrueAllInterest = async () => {
-            const accountCredits = [];  // → financeStore.creditInterestBatch
-            const savingsCredits = [];  // → savingsStore.creditInterestBatch
-
-            savingsStore.savingsAccounts.forEach(sa => {
-                if (!sa.interest?.enabled) return;
-                // Defensive: an orphaned apartado has no real account to credit.
-                if (!financeStore.accounts.some(acc => acc.id === sa.linkedAccountId)) return;
-                const last = sa.lastInterestAccrualAt ? parseISO(sa.lastInterestAccrualAt) : parseISO(sa.createdAt);
-                const days = differenceInDays(new Date(), last);
-                if (days < 1) return;
-
-                const accrued = savingsStore.computeAccruedInterest(sa, days);
-                savingsCredits.push({ savingsAccountId: sa.id, amount: accrued, daysElapsed: days });
-                if (accrued > 0) {
-                    accountCredits.push({
-                        accountId: sa.linkedAccountId,
-                        amount: accrued,
-                        reason: `Interés — ${sa.name}`,
-                    });
-                }
-            });
-
-            if (accountCredits.length > 0) {
-                await financeStore.creditInterestBatch(accountCredits);
-            }
-            if (savingsCredits.length > 0) {
-                await savingsStore.creditInterestBatch(savingsCredits);
-            }
-        };
-
-        accrueAllInterest();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoading]);
-
-    // Settings → Moneda: converts every stored amount across every
-    // store, then flips settings.currency. Requires internet — an
-    // offline attempt returns { error } and touches nothing.
-    const changeCurrency = async (newCurrency) => {
-        const current = settingsStore.settings.currency;
-        if (newCurrency === current) return { ok: true, rate: 1 };
-
-        const { rate, error } = await fetchExchangeRate(current, newCurrency);
-        if (error) return { error };
-
-        await financeStore.convertAllAmounts(rate);
-        await savingsStore.convertAllAmounts(rate);
-        await scheduledFundsStore.convertAllAmounts(rate);
-        await settingsStore.updateSettings({ currency: newCurrency });
-
-        return { ok: true, rate };
-    };
-
-    return (
-        <FinanceContext.Provider value={{
-            ...financeStore,
-            ...settingsStore,
-            ...scheduledFundsStore,
-            ...savingsStore,
-            ...tagsStore,
-            addTransaction,
-            payCardWithTransaction,
-            deleteAccount,
-            changeCurrency,
-            isLoading,
-        }}>
-            {children}
-        </FinanceContext.Provider>
-    );
+    return <FinanceContext.Provider value={{ hydrated }}>{children}</FinanceContext.Provider>;
 }
 
 export function useFinance() {
-    const context = useContext(FinanceContext);
-    if (!context) throw new Error('useFinance debe usarse dentro de FinanceProvider');
-    return context;
+    const ctx = useContext(FinanceContext);
+    if (!ctx) throw new Error('useFinance debe usarse dentro de FinanceProvider');
+
+    const money = useMoneyStore();
+    const savings = useSavingsStore();
+    const funds = useFundsStore();
+    const tags = useTagsStore();
+    const settingsStore = useSettingsStore();
+
+    return {
+        isLoading: !ctx.hydrated,
+
+        // Dinero
+        accounts: money.accounts,
+        transactions: money.transactions,
+        creditCards: money.creditCards,
+        totalBalance: selectTotalBalance(money),
+        addTransaction,
+        updateTransaction: money.updateTransaction,
+        deleteTransaction: money.deleteTransaction,
+        payCardWithTransaction,
+        addAccount: money.addAccount,
+        updateAccountDetails: money.updateAccountDetails,
+        deleteAccount,
+        setupInitialAccounts: money.setupInitialAccounts,
+        addCreditCard: money.addCreditCard,
+        updateCreditCard: money.updateCreditCard,
+        deleteCreditCard: money.deleteCreditCard,
+
+        // Ahorros
+        savingsAccounts: savings.savingsAccounts,
+        savingsGoals: savings.savingsGoals,
+        addSavingsAccount: savings.addSavingsAccount,
+        deleteSavingsAccount: savings.deleteSavingsAccount,
+        updateSavingsAccount: savings.updateSavingsAccount,
+        addToSavingsAccount: savings.addToSavingsAccount,
+        removeFromSavingsAccount: savings.removeFromSavingsAccount,
+        addSavingsGoal: savings.addSavingsGoal,
+        updateSavingsGoal: savings.updateSavingsGoal,
+        deleteSavingsGoal: savings.deleteSavingsGoal,
+        saveToGoal: savings.saveToGoal,
+        takeFromGoal: savings.takeFromGoal,
+        moveGoal: savings.moveGoal,
+        getAccountDeficit: savings.getAccountDeficit,
+        getFreeRoom: savings.getFreeRoom,
+        getApartadoFree: savings.getApartadoFree,
+        getPlaceFree: savings.getPlaceFree,
+        getSavingsAccountRisk: savings.getSavingsAccountRisk,
+        getGoalRisk: savings.getGoalRisk,
+        getMonthlySuggestion: savings.getMonthlySuggestion,
+
+        // Fondos programados y MSI
+        scheduledFunds: funds.scheduledFunds,
+        pendingFunds: selectPendingFunds(funds),
+        getFundStatus,
+        addScheduledFund: funds.addScheduledFund,
+        updateScheduledFund: funds.updateScheduledFund,
+        removeScheduledFund: funds.removeScheduledFund,
+        confirmFund: funds.confirmFund,
+        addMSI: funds.addMSI,
+        confirmMSI: funds.confirmMSI,
+
+        // Etiquetas
+        tags: tags.tags,
+        addTag: tags.addTag,
+
+        // Ajustes
+        settings: settingsStore.settings,
+        updateSettings: settingsStore.updateSettings,
+        changeCurrency,
+        resetEverything,
+    };
 }

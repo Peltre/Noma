@@ -19,7 +19,7 @@ import { es } from 'date-fns/locale';
 import { useFinance } from '../store/FinanceContext';
 import { useTheme } from '../store/useTheme';
 import { AccentProvider } from '../store/useAccent';
-import { SAVINGS_COLORS } from '../store/useSavings';
+import { SAVINGS_COLORS, LINKABLE_TYPES } from '../store/savingsStore';
 import { formatCurrencyShort } from '../utils';
 import { round2 } from '../utils/formatCurrency';
 import { FontSize, Spacing } from '../constants';
@@ -31,7 +31,7 @@ import {
     ScreenHeader, EmptyState, Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface,
 } from '../components/ui';
 import {
-    LINKABLE_TYPES, ColorPicker, Toggle, AddApartadoSheet, MoveMoneySheet, EditInterestSheet, ApartadoSheet,
+    ColorPicker, Toggle, AddApartadoSheet, MoveMoneySheet, EditInterestSheet, ApartadoSheet,
 } from '../components/savings/ApartadoSheets';
 
 // ── Helpers ──────────────────────────────────────────────────────────

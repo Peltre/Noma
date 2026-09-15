@@ -7,7 +7,7 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useFinance } from '../../store/FinanceContext';
 import { useTheme } from '../../store/useTheme';
 import { AccentProvider } from '../../store/useAccent';
-import { SAVINGS_COLORS } from '../../store/useSavings';
+import { SAVINGS_COLORS, LINKABLE_TYPES } from '../../store/savingsStore';
 import { formatCurrencyShort } from '../../utils';
 
 import { FontSize, Spacing } from '../../constants';
@@ -19,7 +19,6 @@ import { Sheet, Pill, Button, Field, FieldLabel, Money, GlassCard, fieldSurface 
 // Only débito/efectivo can back an apartado — same rule useSavings.js
 // enforces server-side, mirrored here so the picker never even shows
 // an option that would get rejected.
-export const LINKABLE_TYPES = ['debit', 'cash'];
 
 // Color picker (bye bye emoji picker)
 export function ColorPicker({ selected, onSelect }) {

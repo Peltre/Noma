@@ -94,7 +94,7 @@ function CurrencyPickerSheet({ onClose }) {
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
-    const { settings, updateSettings, resetAll, resetSavings, resetScheduledFunds, resetSettings, resetTags } = useFinance();
+    const { settings, updateSettings, resetEverything } = useFinance();
     const { theme } = useTheme();
     const styles = useMemo(() => createSettingsStyles(theme), [theme]);
     const [userName, setUserName] = useState('');
@@ -139,11 +139,7 @@ export default function SettingsScreen() {
                     text: 'Borrar todo',
                     style: 'destructive',
                     onPress: async () => {
-                        await resetAll();
-                        await resetSavings();
-                        await resetScheduledFunds();
-                        await resetSettings();
-                        await resetTags();
+                        await resetEverything();
                         Alert.alert('Datos borrados', 'Empecemos de nuevo.');
                     },
                 },
